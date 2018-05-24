@@ -1,4 +1,4 @@
 # Table of contents
 
-* Initial page
+* [My Knowledge Wiki](README.md)
 
