@@ -4,6 +4,7 @@
 
 ## courses
 
+* [Courses](courses/courses.md)
 * Coursera
   * [Machine Learning](courses/coursera/machine-learning/README.md)
     * Week 1
@@ -19,5 +20,4 @@
       * [Lesson 8](courses/fast.ai/deep-learning-part-2-cutting-edge-deep-learning-for-coders/2017-edition/lesson-8.md)
       * [Lesson 13](courses/fast.ai/deep-learning-part-2-cutting-edge-deep-learning-for-coders/2017-edition/lesson-13.md)
     * [2018 Edition](courses/fast.ai/deep-learning-part-2-cutting-edge-deep-learning-for-coders/2018-edition.md)
-* [Courses](courses/courses.md)
 
