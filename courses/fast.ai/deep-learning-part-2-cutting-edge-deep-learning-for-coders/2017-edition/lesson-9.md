@@ -2,9 +2,9 @@
 
 Topics:
 
-* Generative models technique
-* Improve photos (colorization, noise removal, increase resolution, etc.)
-* Create art
+* Generative models
+* Fast style transfer
+* Super resolution (improve photos)
 
 Lesson
 
@@ -17,8 +17,8 @@ Lesson
 
 ### Jupyter Notebook Used
 
-* [neural-style](https://github.com/fastai/courses/blob/master/deeplearning2/neural-style.ipynb)
-* [imagenet-processing](https://github.com/fastai/courses/blob/master/deeplearning2/imagenet_process.ipynb)
+* [neural-style.ipynb](https://github.com/fastai/courses/blob/master/deeplearning2/neural-style.ipynb)
+* [imagenet-processing.ipynb](https://github.com/fastai/courses/blob/master/deeplearning2/imagenet_process.ipynb)
 
 ### Reading: Paper
 
@@ -28,26 +28,26 @@ Lesson
 ## My Notes
 
 - Artistic style transfer part 2 (cont' from last lesson 8)
-  - sharing work done by students, things happening in the forums
-  - style loss plus content loss
+    - sharing work done by students, things happening in the forums
+    - style loss plus content loss
 - how to read paper, tips. we are reading the "A Neural Algorithm for Artistic Style" paper.
-  - [math notation wikipedia](https://en.wikipedia.org/wiki/List_of_mathematical_symbols)
+    - [math notation wikipedia](https://en.wikipedia.org/wiki/List_of_mathematical_symbols)
 - [time: 00:23:09] the next step
 - [time: 00:30:45] super resolution
 - [time: 00:33:06] So this is the paper we're going to look at today, Perceptual Losses for Real-Time Style Transfer and Super-Resolution.
 - As you know from things like the Fisheries Competition, segmentation can be really important as a part of solving other bigger problems.
 - [time: 00:39:14] Let's look at how to create this super-resolution idea.
 - Part of your homework this week will be to create the new approach to style transfer. I'm going to build the super-resolution version (which is a slightly simpler version) and then you're going to try to build on top of that to create the style transfer version.
-- [time: 00:39:40] continue where we left off in neural-style.ipynb notebook
+- [time: 00:39:40] continue where we left off in `neural-style.ipynb` notebook
 - So I've already created a folder with a sample of 20,000 ImageNet images. I've created two sizes; one is 288x288 and one is 72x72, and they're available as bcolz arrays. I actually posted the link to these last week, it's on platform.ai [now files.fast.ai]. So we'll open up those bcolz arrays. One trick you might have (hopefully) learned in Part 1 is that you can turn a bcolz array into a Numpy array by slicing it with everything. Anytime you slice a bcolz array, you get back a Numpy array. So if your slice is everything, then this turns it into a Numpy array. This is just a convenient way of sharing Numpy arrays.
-  - the [link to the data files](http://forums.fast.ai/t/lesson-8-discussion/1522):
+    - the [link to the data files](http://forums.fast.ai/t/lesson-8-discussion/1522):
 - fast style transfer
-- next steps (in the bottom-most of the neural-style.ipynb)
-  - some ideas for things to try:
-    - iGAN
-    - papers
+- next steps (in the bottom-most of the `neural-style.ipynb`)
+    - some ideas for things to try:
+        - iGAN
+        - papers
 - [time: 01:31:34] I want to talk about going big. Going big can mean two things.
-- Imagenet processing in parallel (imagenet_process.ipynb)
+- Imagenet processing in parallel (`imagenet_process.ipynb`)
 - To handle this data that doesn't fit in RAM, we need some tricks. So I thought we would try some interesting project that involves looking at the whole ImageNet Competition dataset.
 - you can go ahead and download ImageNet and you can start working through this project.
 - This project is about implementing a paper called DeViSE. DeViSE is a really, really interesting paper.

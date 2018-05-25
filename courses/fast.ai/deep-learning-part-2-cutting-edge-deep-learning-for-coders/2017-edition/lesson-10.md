@@ -4,7 +4,7 @@ Topics:
 
 * Multi-modal models; models which can combine multiple types of data
 * Combine text and images in a single model using a technique called DeVISE
-* Training a model using the whole imagenet competition dataset
+* Handling large datasets; training a model using the whole ImageNet dataset
 * Generative Adversarial Networks (GANs)
 
 Lesson
@@ -18,9 +18,9 @@ Lesson
 
 ### Jupyter Notebook Used
 
-* [imagenet-processing](https://github.com/fastai/courses/blob/master/deeplearning2/imagenet_process.ipynb)
+* [imagenet-processing.ipynb](https://github.com/fastai/courses/blob/master/deeplearning2/imagenet_process.ipynb)
 * [neural-sr.ipynb](https://github.com/fastai/courses/blob/master/deeplearning2/neural-sr.ipynb)
-* [DCGAN.ipynb](https://github.com/fastai/courses/blob/master/deeplearning2/DCGAN.ipynb)
+* Keras [DCGAN.ipynb](https://github.com/fastai/courses/blob/master/deeplearning2/DCGAN.ipynb)
 * [pytorch-tut.ipynb](https://github.com/fastai/courses/blob/master/deeplearning2/pytorch-tut.ipynb)
 * [wgan-pytorch.ipynb](https://github.com/fastai/courses/blob/master/deeplearning2/wgan-pytorch.ipynb)
 
@@ -54,21 +54,21 @@ Lesson
 - SIMD for resizing large dataset of images like ImageNet
   - compare speedup with and without pillow-SIMD
 - Parallel processing vs serial processing
-  - local.threading() variable
-  - Python GIL
-  - multi-threading vs multi-process performance (experiments)
-  - thread pool, process pool, workers
+    - local.threading() variable
+    - Python GIL
+    - multi-threading vs multi-process performance (experiments)
+    - thread pool, process pool, workers
 - Study transfer learning from ResNet (and write blog post)
 - Briefly learn about cosine distance on the web
 - Nearest Neighbours
-  - different ways
-    - brute-force approach
-      - n-squared time
-    - approximate nearest neighbors
-      - approximately log-n time --> orders of magnitude faster
-  - Locality Sensitive Hashing (LSH)
+    - different ways
+        - brute-force approach
+        - n-squared time
+        - approximate nearest neighbors
+        - approximately log-n time --> orders of magnitude faster
+    - Locality Sensitive Hashing (LSH)
 - Look at Dask
-- [time: 2:08:28] Jeremy recommend GAN as something where anybody who's interested in a project
+- [time: 02:08:28] Jeremy recommend GAN as something where anybody who's interested in a project
 
 ### Datasets
 
@@ -93,21 +93,21 @@ Lesson
 - Don't forget, lambda layers are great for this kind of thing. Whatever code you can write, tuck it into a lambda layer and suddenly it's a Keras layer.
 - So we're going to learn about adversarial networks, generative adversarial networks. And this will kind of close off our deep dive into generative models as applied to images. Just to remind you, the purpose of this has been to learn about generative models, not just to specifically learn about super-resolution or artistic style.
 - [time: 01:40:15 Wasserstein GAN]
-  - Wasserstein GAN got rid of all these problems.
-  - And here is the Wasserstein GAN paper. And this paper is quite an extraordinary paper. It's particularly extraordinary because (and I think I mentioned this in the first class of this part), most papers either tend to be math theory which goes nowhere or kind of nice experiments and engineering, where the theory bit is kind of hacked on at the end and kind of meaningless.
-  - This paper is entirely driven by theory. And then the theory, they go on to show this is what the theory means, this is what we do, and suddenly all the problems go away. The loss curves are going to actually mean something and we're going to be able to do what I said we wanted to do right at the start of this GAN section which is to train the discriminator a whole bunch of steps, and then do a generator, and then the discriminator a whole bunch of steps, and then do a generator. And all that is going to suddenly start working.
-  - there's actually only two things you need to do.
-    - One is remove the log from the loss file. Rather than using cross-entropy loss, we're just going to use mean square error. That's one change.
-    - And the second change is we're going to constrain the weights so that they lie between -.01 and +.01. We're going to constrain the weights to make them small.
-  - Now in the process of saying that's all we're going to do is to not give credit to this paper. Because what this paper is they figured out that's what we need to do. And on the forums, some of you have been reading through this paper. I've already given you some tips, there's a really great walk-through, I'll put it on our wiki, that explains all the math from scratch, but basically what the math says is this.
-  - [time: 1:45:50] Wasserstein GAN in PyTorch notebook (wgan-pytorch.ipynb)
-- [time: 01:46:36] First look at PyTorch. PyTorch tutorial notebook (pytorch-tut.ipynb)
+    - Wasserstein GAN got rid of all these problems.
+    - And here is the Wasserstein GAN paper. And this paper is quite an extraordinary paper. It's particularly extraordinary because (and I think I mentioned this in the first class of this part), most papers either tend to be math theory which goes nowhere or kind of nice experiments and engineering, where the theory bit is kind of hacked on at the end and kind of meaningless.
+    - This paper is entirely driven by theory. And then the theory, they go on to show this is what the theory means, this is what we do, and suddenly all the problems go away. The loss curves are going to actually mean something and we're going to be able to do what I said we wanted to do right at the start of this GAN section which is to train the discriminator a whole bunch of steps, and then do a generator, and then the discriminator a whole bunch of steps, and then do a generator. And all that is going to suddenly start working.
+    - there's actually only two things you need to do.
+        - One is remove the log from the loss file. Rather than using cross-entropy loss, we're just going to use mean square error. That's one change.
+        - And the second change is we're going to constrain the weights so that they lie between -.01 and +.01. We're going to constrain the weights to make them small.
+    - Now in the process of saying that's all we're going to do is to not give credit to this paper. Because what this paper is they figured out that's what we need to do. And on the forums, some of you have been reading through this paper. I've already given you some tips, there's a really great walk-through, I'll put it on our wiki, that explains all the math from scratch, but basically what the math says is this.
+    - [time: 01:45:50] Wasserstein GAN in PyTorch notebook (`wgan-pytorch.ipynb`)
+- [time: 01:46:36] First look at PyTorch. PyTorch tutorial notebook (`pytorch-tut.ipynb`)
 - [time: 01:56:49] [LSUN dataset website](http://lsun.cs.princeton.edu/2016) [DONE, read on 2018-05-06]
 - [time: 01:57:47] [`dcgan.py` file](https://github.com/fastai/courses/blob/master/deeplearning2/dcgan.py)
-  - We're going to start with CIFAR10, so we've got 47 thousand of those images. So I have just put the definitions of the discriminator and generator architectures into a separate Python file, `dcgan.py`.
+    - We're going to start with CIFAR10, so we've got 47 thousand of those images. So I have just put the definitions of the discriminator and generator architectures into a separate Python file, `dcgan.py`.
 - [time: 02:03:16] So this is where we go ahead and train the discriminator. And you'll see here we clamp (this is the same as clip) the weights in the discriminator to fall in this range. And if you're interested in reading the paper, the paper explains that basically the reason for this is that their assumptions are only true in this kind of small area. So that's why we have to make sure the weights stay in this small area.
 - So during the week you can look at these two different versions and you're going to see the PyTorch and the Keras version are basically the same thing. The only difference is ... two things. One is the presence of this clamping and the second is that the loss function is mean-square-error, rather than cross-entropy.
 - So here's the other thing, the loss function for these actually makes sense. The discriminator and the generator loss functions actually decrease as they get better. So you can actually tell if your thing is training properly. You can't exactly compare two different architectures to each other still, but you can certainly see that the training curves are working.
 - So you can take any old paper that produces 3D outputs or segmentations or vector outputs or colorization and add this and it would be great to see what happens because none of that's been done before. [time: 02:08:28] It's not been done before because we haven't had a good way to train GANs before.
-  - You know I think this is kind of something where anybody who's interested in a project, yeah, this would be a great project. And something that maybe you can do reasonably quickly.
-  - Another thing you could do as a project is to convert this into Keras. You can take the Keras DCGAN notebook that we've already got and change the loss function and the weight clipping and try training on this LSUN bedroom dataset and you should get the same results.
+    - You know I think this is kind of something where anybody who's interested in a project, yeah, this would be a great project. And something that maybe you can do reasonably quickly.
+    - Another thing you could do as a project is to convert this into Keras. You can take the Keras DCGAN notebook that we've already got and change the loss function and the weight clipping and try training on this LSUN bedroom dataset and you should get the same results.

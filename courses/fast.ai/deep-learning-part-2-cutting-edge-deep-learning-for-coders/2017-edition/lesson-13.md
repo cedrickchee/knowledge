@@ -16,18 +16,18 @@ Lesson
 
 ### Jupyter Notebook Used \[TODO\]
 
-* \[time: 00:51:31\] spelling\_bee\_RNN.ipynb \[DONE ON 2018-04-13\]
-* \[time: 01:18:09\] translate-pytorch.ipynb \[TODO\]
-* \[time: 02:07:06\] densenet-keras.ipynb \[TODO\]
+* \[time: 00:51:31\] [spelling\_bee\_RNN.ipynb](https://github.com/fastai/courses/blob/master/deeplearning2/spelling_bee_RNN.ipynb)
+* \[time: 01:18:09\] [translate-pytorch.ipynb](https://github.com/fastai/courses/blob/master/deeplearning2/translate-pytorch.ipynb) \[TODO\]
+* \[time: 02:07:06\] [densenet-keras.ipynb](https://github.com/fastai/courses/blob/master/deeplearning2/densenet-keras.ipynb) \[TODO\]
 
 ### Reading: Paper \[TODO\]
 
-* \[time: 00:07:01\] Cyclical Learning Rate for Training Neural Networks by Leslie Smith
-* \[time: 00:09:26\] Arbitrary Style Transfer in Real-time with Adaptive Instance Normalization by Xun Huang et. al
+* \[time: 00:07:01\] [Cyclical Learning Rate for Training Neural Networks](https://arxiv.org/abs/1506.01186) by Leslie Smith
+* \[time: 00:09:26\] [Arbitrary Style Transfer in Real-time with Adaptive Instance Normalization](https://arxiv.org/abs/1703.06868) by Xun Huang et. al
 * \[time: 00:10:35\] [BEGAN: Boundary Equilibrium Generative Adversarial Networks](https://arxiv.org/abs/1703.10717)
 * \[time: 00:11:39\] [CycleGAN](https://github.com/junyanz/CycleGAN)
 * \[time: 00:37:00\] [Grammar as a Foreign Language](https://arxiv.org/abs/1412.7449) by Oriol Vinyals et. al \[continue from last lesson\]
-* \[time: 01:48:39\] Neural Machine Translation of Rare Words with Subword Units by Rico Sennrich et. al
+* \[time: 01:48:39\] [Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909) by Rico Sennrich et. al
 * \[time: 01:57:14\] [The One Hundred Layers Tiramisu: Fully Convolutional DenseNets for Semantic Segmentation](https://arxiv.org/abs/1611.09326) by Simon Jegou, Yoshua Bengio, et. al
 
 ### Reading: Blog posts and articles
@@ -88,6 +88,6 @@ Lesson
   * So because we keep concatenating, the number of filters is getting bigger and bigger. So we're going to have to be careful not to add too many filters at each layer.
   * So the number of filters that are added at each layer they call the growth rate, and for some reason they use the letter "k" for growth rate. They tend to use the values of 12 or 24; in the Tiramisu paper they tend to use the value 16.
   * \[time: 02:06:41\] So really if you're using something that's more of the 100 to 100,000 images range, you probably want to be using DenseNet. If it's more than 100,000 images maybe it doesn't matter so much.
-* \[02:07:06\] densenet-keras.ipynb So let's see the code. So interestingly, this turned out to be something that suited Keras really well. These kind of things where you're using standard kind of layers, connected in different ways, Keras is fantastically great for.
+* \[02:07:06\] `densenet-keras.ipynb` So let's see the code. So interestingly, this turned out to be something that suited Keras really well. These kind of things where you're using standard kind of layers, connected in different ways, Keras is fantastically great for.
 * \[time: 02:11:41\] Question: Can we do transfer learning on DenseNet? ... Answer: Absolutely you can. And in fact PyTorch, just came out yesterday or today, and has some pre-trained DenseNet models.
 

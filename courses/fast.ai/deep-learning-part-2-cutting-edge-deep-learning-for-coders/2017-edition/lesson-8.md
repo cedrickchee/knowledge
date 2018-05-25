@@ -6,7 +6,7 @@ Topics:
 * From Theano to TensorFlow
 * New developments in TensorFlow
 * Project: build your own deep learning box
-* Learn how to read acadmic papers
+* Learn how to read academic papers
 * Creative and generative applications, with artistic style transfer
 
 Lesson
@@ -20,11 +20,12 @@ Lesson
 
 ### Jupyter Notebook Used
 
-\[WIP\]
+* [neural_style.ipynb](https://github.com/fastai/courses/blob/master/deeplearning2/neural-style.ipynb)
 
 ### Reading: Paper
 
-\[WIP\]
+* [A Neural Algorithm of Artistic Style](https://arxiv.org/abs/1508.06576) by Leon A. Gatys et. al
+* [Demystifying Neural Style Transfer](https://arxiv.org/abs/1701.01036) by Yanghao Li et. al
 
 ### Reading: Blog posts and articles
 
@@ -78,9 +79,9 @@ Lesson
   * In particular, we're going to start by looking at what's called either neural style transfer, or the original paper was called Artistic Style.
   * The idea is that we're going to take a photo and make it look like it was painted in the style of some painter.
   * That's actually enough for us to get started. Let's try and build something that optimizes pixels using a loss function of the VGG network's some convolutional layer.
-  * This is the neural style notebook and much of what we're going to look at is going to look very similar.
+  * This is the `neural-style.ipynb` notebook and much of what we're going to look at is going to look very similar.
   * So I need to make sure I run `limit_mem` very soon, as soon as I start running the notebook.
-* What arxiv is
+* What arXiv is
 * Mendeley, arxiv-sanity, another great place for finding papers is twitter, the other place which I find extremely helpful is reddit machine learning.
 * Question: Is it better to calculate `f_content` for a higher layer for VGG and use a lower layer for `f_style` since the higher layer abstracts are captured in the higher layer and the lower layer captures textures and "style"?
 * Broadcasting
