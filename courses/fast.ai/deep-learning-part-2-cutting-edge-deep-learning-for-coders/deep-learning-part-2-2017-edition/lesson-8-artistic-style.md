@@ -20,7 +20,7 @@ Lesson
 
 ### Jupyter Notebook Used
 
-* [neural_style.ipynb](https://github.com/fastai/courses/blob/master/deeplearning2/neural-style.ipynb)
+* [neural\_style.ipynb](https://github.com/fastai/courses/blob/master/deeplearning2/neural-style.ipynb)
 
 ### Reading: Paper
 

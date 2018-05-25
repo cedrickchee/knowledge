@@ -10,25 +10,25 @@
 * [Wiki](http://forums.fast.ai/c/part2-v2)
 * [Jupyter Notebook and Code](https://github.com/fastai/fastai/tree/master/courses/dl2)
 
-
 ## Lessons Cover
 
 Many topics, including:
 
-- multi-object detection with SSD and YOLOv3
-- how to read academic papers
-- customizing a pre-trained model with a custom head
-- more complex data augmentation (for coordinate variables, per-pixel classification, etc)
-- NLP transfer learning
-- handling very large (billion+ token) text corpuses with the new fastai.text library
-- running and interpreting ablation studies
-- state of the art NLP classification
-- multi-modal learning
-- multi-task learning
-- bidirectional LSTM with attention for seq2seq
-- neural translation
-- customizing resnet architectures
-- GANs, WGAN, and CycleGAN
-- data ethics
-- super resolution
-- image segmentation with U-Net
+* multi-object detection with SSD and YOLOv3
+* how to read academic papers
+* customizing a pre-trained model with a custom head
+* more complex data augmentation \(for coordinate variables, per-pixel classification, etc\)
+* NLP transfer learning
+* handling very large \(billion+ token\) text corpuses with the new fastai.text library
+* running and interpreting ablation studies
+* state of the art NLP classification
+* multi-modal learning
+* multi-task learning
+* bidirectional LSTM with attention for seq2seq
+* neural translation
+* customizing resnet architectures
+* GANs, WGAN, and CycleGAN
+* data ethics
+* super resolution
+* image segmentation with U-Net
+
