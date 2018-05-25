@@ -1,14 +1,12 @@
 # Courses
 
-In this collection, you will find my notes for all the courses I am currently studying or have completed. The online courses are from [MOOC](https://en.wikipedia.org/wiki/Massive_open_online_course) providers like:
+In this collection, you will find my notes for all the courses I am currently studying or have completed. The courses are from [MOOC](https://en.wikipedia.org/wiki/Massive_open_online_course) providers and online learning platforms. An incomplete list below:
 
 * [Coursera](https://www.coursera.org)
-* [Udacity](https://en.wikipedia.org/wiki/Udacity)
-* [Stanford Online](https://en.wikipedia.org/wiki/Stanford_Online)
+* [Udacity](https://www.udacity.com/)
+* [Stanford Online](https://online.stanford.edu/)
 * [fast.ai](http://www.fast.ai)
 * [deeplearning.ai](https://www.deeplearning.ai/)
-* [edX](https://en.wikipedia.org/wiki/EdX)
-* [Khan Academy](https://en.wikipedia.org/wiki/Khan_Academy)
-* [Udemy](https://en.wikipedia.org/wiki/Udemy)
-* etc.
-
+* [edX](https://www.edx.org)
+* [Khan Academy](https://www.khanacademy.org/)
+* [Udemy](https://www.udemy.com/)
