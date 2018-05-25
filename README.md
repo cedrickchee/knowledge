@@ -1,3 +1,7 @@
+---
+description: An unassuming place to accumulate knowledge.
+---
+
 # My Knowledge Wiki
 
 Hey, this is a place where I **document everything I know** and **learn** so far about the world in the form of an **online book**. I am sharing them in the hope that they would be useful to you as well.

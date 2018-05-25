@@ -1,4 +1,4 @@
-# 2017 Edition
+# Deep Learning Part 2: 2017 Edition
 
 ## Course Materials
 
