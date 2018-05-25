@@ -8,4 +8,5 @@
 
 * [Wiki](http://forums.fast.ai/c/part2)
 * [Jupyter Notebook and Code](https://github.com/fastai/courses/tree/master/deeplearning2)
+* [Complete Collection of Video Timelines](http://forums.fast.ai/t/part-2-complete-collection-of-video-timelines/4933)
 

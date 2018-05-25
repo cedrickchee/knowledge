@@ -12,8 +12,9 @@
     * Week 2
       * [Linear Regression with Multiple Variables](courses/coursera/machine-learning/week-2/linear-regression-with-multiple-variables.md)
 * fast.ai
+  * [fast.ai](courses/fast.ai/fast.ai.md)
   * Deep Learning Part 1: Practical Deep Learning for Coders
-    * [2018 Edition](courses/fast.ai/deep-learning-part-1-practical-deep-learning-for-coders/2018-edition/README.md)
+    * [Deep Learning Part 1: 2018 Edition](courses/fast.ai/deep-learning-part-1-practical-deep-learning-for-coders/2018-edition/README.md)
       * Lesson 1
   * Deep Learning Part 2: Cutting Edge Deep Learning for Coders
     * [Deep Learning Part 2: 2017 Edition](courses/fast.ai/deep-learning-part-2-cutting-edge-deep-learning-for-coders/deep-learning-part-2-2017-edition/README.md)
