@@ -20,23 +20,23 @@ Lesson
 
 ### Jupyter Notebook Used
 
-[WIP]
+\[WIP\]
 
 ### Reading: Paper
 
-[WIP]
+\[WIP\]
 
 ### Reading: Blog posts and articles
 
-[WIP]
+\[WIP\]
 
 ### Projects
 
-[WIP]
+\[WIP\]
 
 ### Datasets
 
-[WIP]
+\[WIP\]
 
 ## My Notes
 
@@ -123,3 +123,4 @@ Lesson
   * And we're also going to learn about adversarial networks.
   * Then finally we're going to learn about a particular thing that came out three weeks ago, the Wasserstein GAN.
   * Generative Adversarial Networks basically didn't work very well at all until about 3 weeks ago.
+
