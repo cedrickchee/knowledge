@@ -1,7 +1,7 @@
 # fast.ai
 
-* [**Deep Learning Part 1: 2018 Edition \(v2\)**](deep-learning-part-1-practical-deep-learning-for-coders/2018-edition/): Oct - Dec 2017
-* [**Deep Learning Part 2: 2018 Edition \(v2\)**](deep-learning-part-2-cutting-edge-deep-learning-for-coders/deep-learning-part-2-2018-edition/): Mar - May 2018
+* [**Deep Learning Part 1: 2018 Edition \(v2\)**](deep-learning-part-1/2018-edition/): Oct - Dec 2017
+* [**Deep Learning Part 2: 2018 Edition \(v2\)**](deep-learning-part-2/2018-edition/): Mar - May 2018
 
 ## Main Course Links
 
@@ -38,16 +38,16 @@
   * 2017 Edition \(v1\)
   * 2018 Edition \(v2\)
 * Deep Learning Part 2: Cutting Edge Deep Learning for Coders
-  * [2017 Edition \(v1\)](deep-learning-part-2-cutting-edge-deep-learning-for-coders/deep-learning-part-2-2017-edition/)
-    * [Lesson 8 - Artistic Style](deep-learning-part-2-cutting-edge-deep-learning-for-coders/deep-learning-part-2-2017-edition/lesson-8-artistic-style.md)
-    * [Lesson 9 - Generative Models](deep-learning-part-2-cutting-edge-deep-learning-for-coders/deep-learning-part-2-2017-edition/lesson-9-generative-models.md)
-    * [Lesson 10 - Multi-modal & GANs](deep-learning-part-2-cutting-edge-deep-learning-for-coders/deep-learning-part-2-2017-edition/lesson-10-multi-modal-and-gans.md)
-    * [Lesson 11 - Memory Networks](deep-learning-part-2-cutting-edge-deep-learning-for-coders/deep-learning-part-2-2017-edition/lesson-11-memory-networks.md)
-    * [Lesson 12 - Attentional Models](deep-learning-part-2-cutting-edge-deep-learning-for-coders/deep-learning-part-2-2017-edition/lesson-12-attentional-models.md)
-    * [Lesson 13 - Neural Translation](deep-learning-part-2-cutting-edge-deep-learning-for-coders/deep-learning-part-2-2017-edition/lesson-13-neural-translation.md)
-    * [Lesson 14 - Time Series & Segmentation](deep-learning-part-2-cutting-edge-deep-learning-for-coders/deep-learning-part-2-2017-edition/lesson-14-time-series-and-segmentation.md)
-  * [2018 Edition \(v2\)](deep-learning-part-2-cutting-edge-deep-learning-for-coders/deep-learning-part-2-2018-edition/)
-    * [Lesson 8 - Object Detection](deep-learning-part-2-cutting-edge-deep-learning-for-coders/deep-learning-part-2-2018-edition/lesson-8-object-detection.md)
+  * [2017 Edition \(v1\)](deep-learning-part-2/2017-edition/)
+    * [Lesson 8 - Artistic Style](deep-learning-part-2/2017-edition/lesson-8-artistic-style.md)
+    * [Lesson 9 - Generative Models](deep-learning-part-2/2017-edition/lesson-9-generative-models.md)
+    * [Lesson 10 - Multi-modal & GANs](deep-learning-part-2/2017-edition/lesson-10-multi-modal-and-gans.md)
+    * [Lesson 11 - Memory Networks](deep-learning-part-2/2017-edition/lesson-11-memory-networks.md)
+    * [Lesson 12 - Attentional Models](deep-learning-part-2/2017-edition/lesson-12-attentional-models.md)
+    * [Lesson 13 - Neural Translation](deep-learning-part-2/2017-edition/lesson-13-neural-translation.md)
+    * [Lesson 14 - Time Series & Segmentation](deep-learning-part-2/2017-edition/lesson-14-time-series-and-segmentation.md)
+  * [2018 Edition \(v2\)](deep-learning-part-2/2018-edition/)
+    * [Lesson 8 - Object Detection](deep-learning-part-2/2018-edition/lesson-8-object-detection.md)
     * Lesson 9 - Single Shot Multibox Detector \(SSD\)
     * Lesson 10 - NLP Classification, Transfer Learning for NLP and Translation
     * Lesson 11 - Neural Translation and Multi-modal Learning
