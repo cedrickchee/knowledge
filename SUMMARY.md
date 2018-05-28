@@ -29,3 +29,7 @@
       * [Lesson 8 - Object Detection](courses/fast.ai/deep-learning-part-2/2018-edition/lesson-8-object-detection.md)
       * [Lesson 9 - Multi-object Detection](courses/fast.ai/deep-learning-part-2/2018-edition/lesson-9-multi-object-detection.md)
 
+## Books
+
+* [Deep Work](books/deep-work.md)
+
