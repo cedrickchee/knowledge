@@ -19,7 +19,7 @@ _These are my personal notes from fast.ai course and will continue to be updated
 * [Website](http://course.fast.ai/lessons/lesson8.html)
 * [Video](https://youtu.be/Z0ssNAbe81M)
 * [Wiki](http://forums.fast.ai/t/part-2-lesson-8-wiki)
-* [Forum discussion](http://forums.fast.ai/t/part-2-lesson-8-in-class/13556/1)
+* [Forum discussion](http://forums.fast.ai/t/part-2-lesson-8-in-class/13556)
 * Jupyter Notebook and Code
   * [pascal.ipynb](https://nbviewer.jupyter.org/github/fastai/fastai/blob/master/courses/dl2/pascal.ipynb)
 
@@ -53,4 +53,3 @@ _These are my personal notes from fast.ai course and will continue to be updated
 ### Useful Tools and Libraries
 
 * _WIP_
-
