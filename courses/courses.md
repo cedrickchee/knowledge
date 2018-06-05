@@ -11,3 +11,6 @@ In this collection, you will find my notes for all the courses I am currently st
 * [Khan Academy](https://www.khanacademy.org/)
 * [Udemy](https://www.udemy.com/)
 
+I keep a [Trello board](https://trello.com/b/q49ybAYJ/learning-courses-books) of what I am learning and plan to learn. You can see the:
+- courses I am taking and plan to take.
+- books I am reading and plan to read.
