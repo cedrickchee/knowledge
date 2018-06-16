@@ -257,3 +257,61 @@ Some libs take VOC format bounding boxes, so this let’s us convert back when r
 def bb_hw(a):
     return np.array( [ a[1], a[0], a[3] - a[1] + 1, a[2] - a[0] + 1 ] )
 ```
+
+#### Fastai's `open_image` function
+
+Fastai uses [OpenCV](https://opencv.org/). [TorchVision](https://pytorch.org/docs/stable/torchvision/index.html) uses PyTorch tensors for data augmentations etc. A lot of people use [Pillow](http://python-pillow.org/) `PIL`. Jeremy did a lot of testing of all of these and he found **OpenCV was about 5 to 10 times faster than TorchVision**.
+
+```Python
+def open_image(fn):
+    """ Opens an image using OpenCV given the file path.
+
+    Arguments:
+        fn: the file path of the image
+
+    Returns:
+        The image in RGB format as numpy array of floats normalized to range between 0.0 - 1.0
+    """
+    flags = cv2.IMREAD_UNCHANGED+cv2.IMREAD_ANYDEPTH+cv2.IMREAD_ANYCOLOR
+    if not os.path.exists(fn):
+        raise OSError('No such file or directory: {}'.format(fn))
+    elif os.path.isdir(fn):
+        raise OSError('Is a directory: {}'.format(fn))
+    else:
+        try:
+            if str(fn).startswith("http"):
+                req = urllib.urlopen(str(fn))
+                image = np.asarray(bytearray(resp.read()), dtype="uint8")
+                im = cv2.imdecode(image, flags).astype(np.float32)/255
+            else:
+                im = cv2.imread(str(fn), flags).astype(np.float32)/255
+            if im is None: raise OSError(f'File not recognized by opencv: {fn}')
+            return cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+        except Exception as e:
+            raise OSError('Error handling image at: {}'.format(fn)) from e
+```
+
+#### Matplotlib
+
+:bookmark: _Note to self: as we will frequently use Matplotlib, for the better, we need to prioritize learning Matplotlib._
+
+Tricks:
+1. `plt.subplots`.
+
+    Useful wrapper for creating plots, regardless of whether you have more than one subplot.
+    
+    :memo: Matplotlib has an optional object-oriented API which I think is much easier to understand and use (although few examples online use it!).
+
+2. Visible text regardless of background color.
+    
+    A simple but rarely used trick to making text visible regardless of background is to use white text with black outline, or visa versa. Here's how to do it in Matplotlib:
+
+    ```Python
+    def draw_outline(o, lw):
+        o.set_path_effects( [patheffects.Stroke(linewithd=lw, foreground='black'),
+                              patheffects.Normal()] )
+    ```
+
+#### Packaging it all up
+
+When you are working with a new dataset, getting to the point that you can rapidly explore it pays off.
