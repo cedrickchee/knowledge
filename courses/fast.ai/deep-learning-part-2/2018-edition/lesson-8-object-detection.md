@@ -315,3 +315,49 @@ Tricks:
 #### Packaging it all up
 
 When you are working with a new dataset, getting to the point that you can rapidly explore it pays off.
+
+#### Largest item classifier
+
+Rather than trying to solve everything at once, let’s make continual progress. We know how to find the biggest object in each image and classify it, so let’s start from there.
+
+Steps we need to do:
+1. Go through each of the bounding boxes in an image and get the largest one.
+    - Sort the annotation for each image - by bounding box size (descending).
+
+    ```Python
+    def get_lrg(b):
+        if not b:
+            raise Exception()
+        # x is tuple. e.g.: (array([96 155 269 350]), 16)
+        # x[0] returns a numpy array. e.g.: [96 155 269 350]
+        # x[0][-2:] returns a numpy array. e.g.: [269 350]. This is the width x height of a bbox.
+        # x[0][:2] returns a numpy array. e.g.: [96 155]. This is the x/y coord of a bbox.
+        # np.product(x[0][-2:] - x[0][:2]) returns a scalar. e.g.: 33735
+        b = sorted(b, key=lambda x: np.product(x[0][-2:] - x[0][:2]), reverse=True)
+        return b[0] # get the first element in the list, which is the largest bbox for one image.
+
+    # a is image id (int), b is tuple of bbox (numpy array) & class id (int)
+    trn_lrg_anno = { a: get_lrg(b) for a, b in trn_anno.items() if (a != 0 and a != 1) }
+    ```
+
+    - Now we have a dictionary from image id to a single bounding box - the largest for that image.
+
+2. Plot the bounding box.
+
+    ```Python
+    def draw_largest_bbox(img_id):
+        b, c = trn_lrg_anno[img_id] # trn_lrg_anno is a tuple. destructuring syntax.
+        print(f'### DEBUG ### bbox: {b.tolist()}, class id: {c}') # print numpy.ndarray using tolist method.
+
+        b = bb_hw(b) # convert back fastai's bbox to VOC format
+        ax = show_img(open_image(IMG_PATH / trn_fns[img_id]), figsize=(5, 10))
+        draw_rect(ax, b)
+        draw_text(ax, b[:2], cats[c], sz=16)
+
+    img_id = 23
+    draw_largest_bbox(img_id)
+    ```
+
+    ```Pyhon
+    ### DEBUG ### bbox: [1, 2, 461, 242], class id: 15
+    ```
