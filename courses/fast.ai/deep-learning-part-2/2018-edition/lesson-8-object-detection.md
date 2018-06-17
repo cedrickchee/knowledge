@@ -361,3 +361,109 @@ Steps we need to do:
     ```Pyhon
     ### DEBUG ### bbox: [1, 2, 461, 242], class id: 15
     ```
+
+#### Model Data
+
+:memo: Often it's easiest to simply create a CSV of the data you want to model, rather than trying to create a custom dataset.
+
+Here we use Pandas to help us create a CSV of the image filename and class.
+
+```Python
+# Makes tmp directory
+(PATH / 'tmp').mkdir(exist_ok=True)
+CSV = PATH / 'tmp/lrg.csv'
+
+# Pandas
+df = pd.DataFrame({ 'fn': [trn_fns[o] for o in trn_ids],
+                    'cat': [cats[trn_lrg_anno[o][1]] for o in trn_ids] }, columns=['fn', 'cat'])
+df.to_csv(CSV, index=False)
+```
+
+:bookmark: _note to self: learn Pandas._
+
+#### Model
+
+From here it’s just like lesson 2 "Dogs vs Cats"!
+
+```Python
+tfms = tfms_from_model(f_model, sz, aug_tfms=transforms_side_on, crop_type=CropType.NO)
+md = ImageClassifierData.from_csv(PATH, JPEGS, CSV, tfms=tfms, bs=bs)
+```
+
+One thing that is different is `crop_type`.
+
+For bounding boxes, we **do not want to crop the image** because unlike an ImageNet where the thing we care about is pretty much in the middle and pretty big, a lot of the things in object detection is quite small and close to the edge. By setting `crop_type` to `CropType.NO`, it will not crop.
+
+##### Data Loaders
+
+You already know that inside of a model data object, we have bunch of things which include training data loader and training data set. The main thing to know about data loader is that it is an **iterator** that each time you grab the next iteration of stuff from it, you get a mini batch.
+
+If you want to grab just a single batch, this is how you do it:
+
+```Python
+# x: independent variable
+# y: dependent variable
+x, y = next(iter(md.val_dl))
+```
+
+#### Training with ResNet34
+
+```Python
+learn = ConvLearner.pretrained(f_model, md, metrics=[accuracy])
+learn.opt_fn = optim.Adam
+lrf = learn.lr_find(1e-5, 100)
+
+learn.sched.plot(n_skip=5, n_skip_end=1)
+
+# Train a bit
+lr = 2e-2
+learn.fit(lr, 1, cycle_len=1)
+
+# Unfreeze a couple of layers and train
+lrs = np.array([lr/1000, lr/100, lr])
+learn.freeze_to(-2)
+
+lrf = learn.lr_find(lrs/1000)
+learn.sched.plot(1)
+
+learn.fit(lrs/5, 1, cycle_len=1)
+```
+
+Accuracy isn’t improving much — since many images have multiple different objects, it’s going to be impossible to be that accurate.
+
+```Python
+# Unfreeze the whole thing and train
+learn.unfreeze()
+learn.fit(lrs/5, 1, cycle_len=2)
+
+# Save model
+learn.save('clas_one')
+learn.load('clas_one')
+```
+
+##### Training Results
+
+```Python
+# Get images as numpy arrays
+x, y = next(iter(md.val_dl))
+probs = F.softmax(predict_batch(learn.model, x), -1)
+x, preds = to_np(x), to_np(probs)
+preds = np.argmax(preds, -1)
+
+# Plot images and labels
+fig, axes = plt.subplots(3, 4, figsize=(12, 8))
+
+for i, ax in enumerate(axes.flat):
+    ima = md.val_ds.denorm(x)[i]
+    b = md.classes[preds[i]]
+    ax = show_img(ima, ax=ax)
+    draw_text(ax, (0, 0), b)
+
+plt.tight_layout()
+```
+
+It's doing a pretty good job of classifying the largest object.
+
+![image classification plot](/images/pascal_notebook_img_classi_plot.png)
+
+We will revise this more next lesson.
