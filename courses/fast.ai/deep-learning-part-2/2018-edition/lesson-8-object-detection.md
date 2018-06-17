@@ -22,6 +22,7 @@ _These are my personal notes from fast.ai course and will continue to be updated
 * [Forum discussion](http://forums.fast.ai/t/part-2-lesson-8-in-class/13556)
 * Jupyter Notebook and Code
   * [pascal.ipynb](https://nbviewer.jupyter.org/github/fastai/fastai/blob/master/courses/dl2/pascal.ipynb)
+* [Slides](https://github.com/fastai/fastai/blob/master/courses/dl2/ppt/lesson8.pptx)
 
 ## Assignments
 
@@ -36,15 +37,17 @@ _These are my personal notes from fast.ai course and will continue to be updated
 
 #### Blog Posts and Articles
 
-* _WIP_
+* [Lesson summary](https://medium.com/@theimgclist/fast-ai-part-2-lecture-1-object-detection-58095aa76290) by Avinash
 
 #### Other Useful Information
 
-* _WIP_
+* [Object Oriented Matplotlib](https://realpython.com/blog/python/python-matplotlib-guide/)
+* [Learn Greek letters](http://platonicrealms.com/encyclopedia/greek-alphabet)
+* [JupyterLab demo (video)](https://www.youtube.com/watch?v=dSjvK-Z3o3U)
 
 #### Tips and Tricks
 
-* _WIP_
+* [Python plotting with Matplotlib](https://realpython.com/python-matplotlib-guide/)
 
 ### Code Snippets
 
@@ -52,11 +55,54 @@ _These are my personal notes from fast.ai course and will continue to be updated
 
 ### Useful Tools and Libraries
 
-* _WIP_
+* Integrated Development Environment (IDE)
+  * If you don't have a IDE or light-weight editor, download one.
+    * [PyCharm](https://www.jetbrains.com/pycharm/) for community is free
+    * [Visual Studio Code](https://code.visualstudio.com/)
+* [JupyterLab](http://jupyterlab.readthedocs.io/en/stable/)
+
 
 ## My Notes
 
+### Where We Are
+
+* What we've learnt so far.
+  * Differentiable Layers
+  * Transfer Learning
+  * Architecture Design
+  * Handling over-fitting
+  * Embeddings
+* From Part 1 "practical" to Part 2 "cutting edge".
+  * Goals or approach.
+  * Part 1 really was all about introducing best practices in deep learning.
+  * Part 2 is cutting edge deep learning for coders, and what that means is Jeremy often does not know the exact best parameters, architecture details, and so forth to solve a particular problem. We do not necessarily know if it’s going to solve a problem well enough to be practically useful.
+  * :warning: Be aware of sample codes [00:13:20]! The code academics have put up to go along with papers or example code somebody else has written on github, Jeremy nearly always find there is some massive critical flaw, so be careful of taking code from online resources and be ready to do some debugging.
+* It's time to start reading papers.
+  * Each week, we will be implementing a paper or two. In academic papers, people love to use Greek letters. They also hate to refactor, so you will often see a page long formula where when you look at it carefully you'll realize the same sub equation appears 8 times. Academic papers are a bit weird, but in the end, it's the way that the research community communicates their findings so we need to learn to read them.
+* Part 2's topics.
+* This lesson will start on object detection.
+
+### Object Detection
+
+Two main differences from what we are used to:
+
+**1. We have multiple things that we are classifying.**
+  
+  This part is not new, as we have done this in part 1, the Planet satellite tutorial.
+
+**2. Bounding boxes around what we are classifying.**
+
+  The box has the object entirely in it, but is no bigger than it needs to be. For these object detection datasets, we are looking for a pool of objects, but not necessarily **every** object in the image (horse, person, car, tree, etc).
+
+#### Stages
+
+1. Find the largest object.
+2. Find where it is.
+3. Try and do both at the same time.
+
 ### Pascal Notebook
+
+Start with the Pascal Notebook.
 
 ```Python
 from pathlib import Path
@@ -75,11 +121,12 @@ We will be looking at the [Pascal VOC](http://host.robots.ox.ac.uk/pascal/VOC/) 
 :memo: How to download the dataset:
 
 ```bash
-# Make new directory to keep our downloaded files
+# Make a data and pascal dir to keep our downloaded files
 cd ~/fastai/courses/dl2
 ln -s ~/data data && cd $_
 mkdir pascal && cd $_
 
+# Download the two compressed files.
 # Download images
 aria2c --file-allocation=none -c -x 5 -s 5 http://pjreddie.com/media/files/VOCtrainval_06-Nov-2007.tar
 
@@ -90,6 +137,7 @@ curl -OL https://storage.googleapis.com/coco-dataset/external/PASCAL_VOC.zip
 tar -xf VOCtrainval_06-Nov-2007.tar
 unzip PASCAL_VOC.zip
 
+# Move the .json files out of the PASCAL_VOC into the pascal/ dir
 mv PASCAL_VOC/*.json .
 rmdir PASCAL_VOC
 ```
@@ -316,7 +364,7 @@ Tricks:
 
 When you are working with a new dataset, getting to the point that you can rapidly explore it pays off.
 
-#### Largest item classifier
+#### Next Complex Step - Largest Item Classifier
 
 Rather than trying to solve everything at once, let’s make continual progress. We know how to find the biggest object in each image and classify it, so let’s start from there.
 
@@ -409,17 +457,22 @@ x, y = next(iter(md.val_dl))
 #### Training with ResNet34
 
 ```Python
+# Create ResNet34 model
 learn = ConvLearner.pretrained(f_model, md, metrics=[accuracy])
 learn.opt_fn = optim.Adam
+
+# Find a learning rate
 lrf = learn.lr_find(1e-5, 100)
 
+# To change the truncation of the plot, use the command below
 learn.sched.plot(n_skip=5, n_skip_end=1)
 
-# Train a bit
+# Set the learning rate
 lr = 2e-2
+# Train a bit
 learn.fit(lr, 1, cycle_len=1)
 
-# Unfreeze a couple of layers and train
+# Freeze all layers except the last two layers, find new learning rate and retrain
 lrs = np.array([lr/1000, lr/100, lr])
 learn.freeze_to(-2)
 
@@ -429,19 +482,38 @@ learn.sched.plot(1)
 learn.fit(lrs/5, 1, cycle_len=1)
 ```
 
+```Python
+epoch      trn_loss   val_loss   accuracy                  
+    0      0.789873   0.674313   0.788     
+[array([0.67431]), 0.7879999985694885]
+```
+
+Accuracy is still at 79%.
+
 Accuracy isn’t improving much — since many images have multiple different objects, it’s going to be impossible to be that accurate.
 
 ```Python
 # Unfreeze the whole thing and train
 learn.unfreeze()
 learn.fit(lrs/5, 1, cycle_len=2)
+```
 
+```Python
+epoch      trn_loss   val_loss   accuracy                  
+    0      0.600366   0.672303   0.794     
+    1      0.444746   0.691367   0.786                     
+[array([0.69137]), 0.786]
+```
+
+```Python
 # Save model
 learn.save('clas_one')
 learn.load('clas_one')
 ```
 
 ##### Training Results
+
+Let's look at the 20 classes.
 
 ```Python
 # Get images as numpy arrays
@@ -462,8 +534,276 @@ for i, ax in enumerate(axes.flat):
 plt.tight_layout()
 ```
 
+![Image classification plot](/images/pascal_notebook_img_classi_plot.png)
+
 It's doing a pretty good job of classifying the largest object.
 
-![image classification plot](/images/pascal_notebook_img_classi_plot.png)
+In the next stage, we create a bounding box around an object.
 
-We will revise this more next lesson.
+#### Debugging
+
+How to understand the unfamiliar code:
+
+- Run each line of code step by step, print out the inputs and outputs.
+
+**Method 1**: Break down a large piece of code from a cell and put them all in separate cells, one line per cell. Example, you can take the contents of the loop, copy it, create a cell above it, paste it, un-indent it, set `i=0` and put them all in separate cells.
+
+**Method 2**: Use Python debugger `pdb` to step through code.
+
+:bookmark: _note to self: re-learn `pdb`_
+
+#### Next Stage: Create A Bounding Box Around An Object
+
+We know we can make a regression neural net instead of a classification. This is accomplished by changing the last layer of the neural net. Instead of Softmax, and use MSE, it is now a regression problem. We can have multiple outputs.
+
+##### Bounding Box Only
+
+Now we’ll try to find the bounding box of the largest object. This is simply a regression with 4 outputs (predict the following values). So, we can use a CSV with multiple 'labels'.
+- top left `x`
+- top left `y`
+- lower right `x`
+- lower right `y`
+
+```Python
+BB_CSV = PATH / 'tmp/bb.csv'
+```
+
+Transform the bounding box data
+
+```Python
+bb = np.array([ trn_lrg_anno[o][0] for o in trn_ids ])
+bbs = [' '.join( str(p) for p in o ) for o in bb]
+
+df = pd.DataFrame({
+    'fn': [ trn_fns[o] for o in trn_ids ],
+    'bbox': bbs
+}, columns=['fn', 'bbox'])
+df.to_csv(BB_CSV, index=False)
+```
+
+Open and read CSV up to 5 lines.
+
+```Python
+BB_CSV.open().readlines()[:5]
+```
+
+```Python
+['fn,bbox\n',
+ '008197.jpg,186 450 226 496\n',
+ '008199.jpg,84 363 374 498\n',
+ '008202.jpg,110 190 371 457\n',
+ '008203.jpg,187 37 359 303\n']
+```
+
+Set our model and parameters.
+
+```Python
+f_model = resnet34
+sz = 224
+bs = 64
+```
+
+**Tell fastai lib to make a continous network model**
+
+Set `continuous=True` to tell fastai this is a regression problem, which means it won't one-hot encode the labels, and will use MSE as the default crit.
+
+Note that we have to tell the transforms constructor that our labels are coordinates, so that it can handle the transforms correctly.
+
+Also, we use `CropType.NO` because we want to 'squish' the rectangular images into squares, rather than center cropping, so that we don't accidentally crop out some of the objects. (This is less of an issue in something like ImageNet, where there is a single object to classify, and it's generally large and centrally located).
+
+```Python
+augs = [RandomFlip(tfm_y=TfmType.COORD),
+        RandomRotate(30, tfm_y=TfmType.COORD),
+        RandomLighting(0.1,0.1, tfm_y=TfmType.COORD)]
+
+tfms = tfms_from_model(f_model, sz, crop_type=CropType.NO, aug_tfms=augs, tfm_y=TfmType.COORD)
+md = ImageClassifierData.from_csv(PATH, JPEGS, BB_CSV, tfms=tfms, continuous=True, bs=4)
+```
+
+We will look at `TfmType.COORD` in the next lesson, but for now, just realize that when we are doing scaling and data augmentation, that needs to happen to the bounding boxes, not just images.
+
+```Python
+idx = 3
+fig, axes = plt.subplots(3, 3, figsize=(9, 9))
+
+for i, ax in enumerate(axes.flat):
+    x, y = next(iter(md.aug_dl))
+    ima = md.val_ds.denorm(to_np(x))[idx]
+    b = bb_hw(to_np(y[idx]))
+    print(b)
+    show_img(ima, ax=ax)
+    draw_rect(ax, b)
+```
+
+```Python
+[  1.  60. 221. 125.]
+[  0.  12. 224. 211.]
+[  0.   9. 224. 214.]
+[  0.  21. 224. 202.]
+[  0.   0. 224. 223.]
+[  0.  55. 224. 135.]
+[  0.  15. 224. 208.]
+[  0.  31. 224. 182.]
+[  0.  53. 224. 139.]
+```
+
+![Bounding box of the largest object](/images/pascal_notebook_obj_det_one_img_bbox_plot.png)
+
+#### Custom Head
+
+Custom head allows us to add additional layers on the end of the ResNet.
+
+fastai library lets you use a `custom_head` to add your own module on top of a convnet, instead of the adaptive pooling and fully connected net which is added by default. In this case, we don't want to do any pooling, since we need to know the activations of each grid cell.
+
+The final layer has 4 activations, one per bounding box coordinate. Our target is continuous, not categorical, so the MSE loss function used does not do any sigmoid or softmax to the module outputs.
+
+```Python
+head_reg4 = nn.Sequential(Flatten(), nn.Linear(512*7*7, 4))
+learn = ConvLearner.pretrained(f_model, md, custom_head=head_reg4)
+learn.opt_fn = optim.Adam
+learn.crit = nn.L1Loss()
+```
+- `Flatten()`
+  
+  Normally the previous layer has 7x7x512 in ResNet34, so flatten that out into a single vector of length 25088.
+- `L1Loss`
+
+  Rather than adding up the squared errors, add up the absolute values of the errors. It is normally what you want because adding up the squared errors really penalizes bad misses by too much. So L1Loss is generally better to work with.
+
+Check the model to see that the additional layer has been added:
+
+```Python
+learn.summary()
+```
+
+```
+OrderedDict([('Conv2d-1',
+              OrderedDict([('input_shape', [-1, 3, 224, 224]),
+                           ('output_shape', [-1, 64, 112, 112]),
+                           ('trainable', False),
+                           ('nb_params', 9408)])),
+             ... ... ... ... ... ... ... ... ... ... ... ... ...
+             ... ... ... ... ... ... ... ... ... ... ... ... ...
+             ('Conv2d-119',
+              OrderedDict([('input_shape', [-1, 512, 7, 7]),
+                           ('output_shape', [-1, 512, 7, 7]),
+                           ('trainable', False),
+                           ('nb_params', 2359296)])),
+             ('BatchNorm2d-120',
+              OrderedDict([('input_shape', [-1, 512, 7, 7]),
+                           ('output_shape', [-1, 512, 7, 7]),
+                           ('trainable', False),
+                           ('nb_params', 1024)])),
+             ('ReLU-121',
+              OrderedDict([('input_shape', [-1, 512, 7, 7]),
+                           ('output_shape', [-1, 512, 7, 7]),
+                           ('nb_params', 0)])),
+             ('BasicBlock-122',
+              OrderedDict([('input_shape', [-1, 512, 7, 7]),
+                           ('output_shape', [-1, 512, 7, 7]),
+                           ('nb_params', 0)])),
+             ('Flatten-123',
+              OrderedDict([('input_shape', [-1, 512, 7, 7]),
+                           ('output_shape', [-1, 25088]),
+                           ('nb_params', 0)])),
+
+             ################### New layer ###################
+             ('Linear-124',
+              OrderedDict([('input_shape', [-1, 25088]),
+                           ('output_shape', [-1, 4]),
+                           ('trainable', True),
+                           ('nb_params', 100356)]))])
+             ################### New layer ###################
+```
+
+Try and fit the model.
+
+```Python
+learn.lr_find(1e-5, 100)
+learn.sched.plot(5)
+```
+
+```Python
+# Set the learning rate and train
+lr = 2e-3
+learn.fit(lr, 2, cycle_len=1, cycle_mult=2)
+```
+
+```Python
+epoch      trn_loss   val_loss                            
+    0      48.960351  35.755788 
+    1      37.135304  29.60765                            
+    2      31.466736  29.009163                           
+[array([29.00916])]
+```
+
+```Python
+# Freeze all layers except the last two layers, find new learning rate and retrain
+lrs = np.array([lr/100, lr/10, lr])
+
+learn.freeze_to(-2)
+
+lrf = learn.lr_find(lrs/1000)
+learn.sched.plot(1)
+
+learn.fit(lrs, 2, cycle_len=1, cycle_mult=2)
+```
+
+```Python
+epoch      trn_loss   val_loss                            
+    0      25.858838  25.091344 
+    1      22.565964  22.855172                           
+    2      19.391733  21.236308                           
+[array([21.23631])]
+```
+
+```Python
+# Freeze all layers except the three two layers, find new learning rate and retrain
+learn.freeze_to(-3)
+
+learn.fit(lrs, 1, cycle_len=2)
+```
+
+```Python
+epoch      trn_loss   val_loss                            
+    0      18.009395  21.977178 
+    1      16.113632  20.927288                           
+[array([20.92729])]
+```
+
+Save model.
+
+```Python
+learn.save('reg4')
+```
+
+##### Training Results
+
+Let's see how our model did.
+
+```Python
+# Evaluate model
+x, y = next(iter(md.val_dl))
+learn.model.eval()
+preds = to_np(learn.model(VV(x)))
+
+# Plot images with bbox
+fig, axes = plt.subplots(3, 4, figsize=(12, 8))
+
+for i, ax in enumerate(axes.flat):
+    ima = md.val_ds.denorm(to_np(x))[i]
+    b = bb_hw(preds[i])
+    ax = show_img(ima, ax=ax)
+    draw_rect(ax, b)
+plt.tight_layout()
+```
+
+![Bounding box of the largest object](/images/pascal_notebook_obj_det_all_img_bbox_plot.png)
+
+We will revise this more next lesson. 
+
+As you look further down, it starts looking a bit crappy — anytime we have more than one object. This is not surprising. Overall, it did a pretty good job.
+
+#### Single Object Detection
+
+_WIP_
