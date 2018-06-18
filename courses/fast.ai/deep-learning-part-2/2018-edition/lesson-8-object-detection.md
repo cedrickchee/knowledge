@@ -49,10 +49,6 @@ _These are my personal notes from fast.ai course and will continue to be updated
 
 * [Python plotting with Matplotlib](https://realpython.com/python-matplotlib-guide/)
 
-### Code Snippets
-
-* _WIP_
-
 ### Useful Tools and Libraries
 
 * Integrated Development Environment (IDE)
@@ -344,6 +340,7 @@ def open_image(fn):
 :bookmark: _Note to self: as we will frequently use Matplotlib, for the better, we need to prioritize learning Matplotlib._
 
 Tricks:
+
 1. `plt.subplots`.
 
     Useful wrapper for creating plots, regardless of whether you have more than one subplot.
@@ -369,6 +366,7 @@ When you are working with a new dataset, getting to the point that you can rapid
 Rather than trying to solve everything at once, let’s make continual progress. We know how to find the biggest object in each image and classify it, so let’s start from there.
 
 Steps we need to do:
+
 1. Go through each of the bounding boxes in an image and get the largest one.
     - Sort the annotation for each image - by bounding box size (descending).
 
@@ -803,7 +801,3 @@ plt.tight_layout()
 We will revise this more next lesson. 
 
 As you look further down, it starts looking a bit crappy — anytime we have more than one object. This is not surprising. Overall, it did a pretty good job.
-
-#### Single Object Detection
-
-_WIP_
