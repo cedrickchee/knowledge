@@ -2,7 +2,7 @@
 
 * [My Knowledge Wiki](README.md)
 
-## courses
+## Courses
 
 * [Courses](courses/courses.md)
 * Coursera
@@ -33,3 +33,8 @@
 
 * [Deep Work](books/deep-work.md)
 
+## Programming Languages
+
+* [Programming languages](programming-languages/programming-languages.md)
+  * [JavaScript](programming-languages/javascript/javascript.md)
+    * [JS libraries](programming-languages/javascript/js-libraries/js-libraries.md)
