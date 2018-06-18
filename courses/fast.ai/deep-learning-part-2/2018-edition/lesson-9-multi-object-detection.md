@@ -169,7 +169,7 @@ There are 3 things that we need to do to train a neural network:
 2. Architecture
 3. Loss function
 
-#### Data
+#### 1. Data
 
 We need a `ModelData` object whose independent variable is the images, and dependent variable is a tuple of bounding box coordinates and class label.
 
@@ -379,5 +379,184 @@ print(y[1][:2])
     # -----------------------------------------------------------------------------
     # Output
     # -----------------------------------------------------------------------------
-    (64, 3, 224, 224)  
+    (64, 3, 224, 224)
     ```
+
+#### 2. Architecture
+
+The architecture will be the same as the one we used for the classifier and bounding box regression, but we will just combine them. In other words, if we have `c` classes, then the number of activations we need in the final layer is 4 plus `c`. 4 for bounding box coordinates and `c` probabilities (one per class).
+
+We’ll use an extra linear layer this time, plus some dropout, to help us train a more flexible model. In general, we want our custom head to be capable of solving the problem on its own if the pre-trained backbone it is connected to is appropriate. So in this case, we are trying to do quite a bit — classifier and bounding box regression, so just the single linear layer does not seem enough.
+
+If you were wondering why there is no `BatchNorm1d` after the first `ReLU`, ResNet backbone already has `BatchNorm1d` as its final layer.
+
+```Python
+head_reg4 = nn.Sequential(
+    Flatten(),
+    nn.ReLU(),
+    nn.Dropout(0.5),
+    nn.Linear(25088, 256),
+    nn.ReLU(),
+    nn.BatchNorm1d(256),
+    nn.Dropout(0.5),
+    nn.Linear(256, 4 + len(cats))
+)
+models = ConvnetBuilder(f_model, 0, 0, 0, custom_head=head_reg4)
+
+learn = ConvLearner(md, models)
+learn.opt_fn = optim.Adam
+```
+
+Inspect what's inside `cats`:
+
+```Python
+print(type(cats))
+print(len(cats))
+print('%s, %s' % (cats[1], cats[2]))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+<class 'dict'>
+20
+aeroplane, bicycle
+```
+
+#### 3. Loss Function
+
+The loss function needs to look at these `4 + len(cats)` activations and decide if they are good — whether these numbers accurately reflect the position and class of the largest object in the image. We know how to do this. For the first 4 activations, we will use L1Loss just like we did before (L1Loss is like a Mean Squared Error — instead of sum of squared errors, it uses sum of absolute values). For rest of the activations, we can use cross entropy loss.
+
+```Python
+def detn_loss(input, target):
+    """
+    Loss function for the position and class of the largest object in the image.
+    """    
+    bb_t, c_t = target
+    # bb_i: the 4 values for the bbox
+    # c_i: the 20 classes `len(cats)`
+    bb_i, c_i = input[:, :4], input[:, 4:]
+    bb_i = F.sigmoid(bb_i) * 224 # scale bbox values to stay between 0 and 224 (224 is the max img width or height)
+    bb_l = F.l1_loss(bb_i, bb_t) # bbox loss
+    clas_l = F.cross_entropy(c_i, c_t) # object class loss
+    # I looked at these quantities separately first then picked a multiplier
+    # to make them approximately equal
+    return bb_l + clas_l * 20
+
+def detn_l1(input, target):
+    """
+    Loss function for the first 4 activations.
+
+    L1Loss is like a Mean Squared Error — instead of sum of squared errors, it uses sum of absolute values
+    """
+    bb_t, _ = target
+    bb_i = input[:, :4]
+    bb_i = F.sigmoid(bb_i) * 224
+    return F.l1_loss(V(bb_i), V(bb_t)).data
+
+def detn_acc(input, target):
+    """
+    Accuracy
+    """
+    _, c_t = target
+    c_i = input[:, 4:]
+    return accuracy(c_i, c_t)
+```
+
+- `input` : activations.
+- `target` : ground truth.
+- `bb_t, c_t = target` : our custom dataset returns a tuple containing bounding box coordinates and classes. This assignment will destructure them.
+- `bb_i, c_i = input[:, :4]`, `input[:, 4:]` : the first `:` is for the batch dimension. e.g.: 64 (for 64 images).
+- `b_i = F.sigmoid(bb_i) * 224` : we know our image is 224 by 224. `Sigmoid` will force it to be between 0 and 1, and multiply it by 224 to help our neural net to be in the range of what it has to be.
+
+:question: **Question:** As a general rule, is it better to put BatchNorm before or after ReLU [00:18:02]?
+
+Jeremy would suggest to put it after a ReLU because BatchNorm is meant to move towards zero-mean one-standard deviation. So if you put ReLU right after it, you are truncating it at zero so there is no way to create negative numbers. But if you put ReLU then BatchNorm, it does have that ability and gives slightly better results. Having said that, it is not too big of a deal either way. You see during this part of the course, most of the time, Jeremy does ReLU then BatchNorm but sometimes does the opposite when he wants to be consistent with the paper.
+
+:question: **Question:** What is the intuition behind using dropout after a BatchNorm? Doesn't BatchNorm already do a good job of regularizing [00:19:12]?
+
+BatchNorm does an okay job of regularizing but if you think back to part 1 when we discussed a list of things we do to avoid overfitting and adding BatchNorm is one of them as is data augmentation. But it's perfectly possible that you'll still be overfitting. One nice thing about dropout is that is it has a parameter to say how much to drop out. Parameters are great specifically parameters that decide how much to regularize because it lets you build a nice big over parameterized model and then decide on how much to regularize it. Jeremy tends to always put in a drop out starting with p=0 and then as he adds regularization, he can just change the dropout parameter without worrying about if he saved a model he want to be able to load it back, but if he had dropout layers in one but no in another, it will not load anymore. So this way, it stays consistent.
+
+Now we have out inputs and targets, we can calculate the L1 loss and add the cross entropy [00:20:39]:
+
+```
+bb_l = F.l1_loss(bb_i, bb_t)
+clas_l = F.cross_entropy(c_i, c_t)
+return bb_l + clas_l * 20
+```
+
+This is our loss function. Cross entropy and L1 loss may be of wildly different scales — in which case in the loss function, the larger one is going to dominate. In this case, Jeremy printed out the values and found out that if we multiply cross entropy by 20, that makes them about the same scale.
+
+```Python
+learn.crit = detn_loss
+learn.metrics = [detn_acc, detn_l1]
+
+# Set learning rate and train
+lr = 1e-2
+learn.fit(lr, 1, cycle_len=3, use_clr=(32, 5))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss   detn_acc   detn_l1       
+    0      71.055205  48.157942  0.754      33.202651 
+    1      51.411235  39.722549  0.776      26.363626     
+    2      42.721873  38.36225   0.786      25.658993     
+[array([38.36225]), 0.7860000019073486, 25.65899333190918]
+```
+
+It is nice to print out information as you train, so we grabbed L1 loss and added it as metrics.
+
+```Python
+learn.save('reg1_0')
+
+learn.freeze_to(-2)
+
+lrs = np.array([lr/100, lr/10, lr])
+
+learn.fit(lrs/5, 1, cycle_len=5, use_clr=(32, 10))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss   detn_acc   detn_l1       
+    0      36.650519  37.198765  0.768      23.865814 
+    1      30.822986  36.280846  0.776      22.743629     
+    2      26.792856  35.199342  0.756      21.564384     
+    3      23.786961  33.644777  0.794      20.626075     
+    4      21.58091   33.194585  0.788      20.520627     
+[array([33.19459]), 0.788, 20.52062666320801]
+```
+
+```Python
+learn.unfreeze()
+
+learn.fit(lrs/10, 1, cycle_len=10, use_clr=(32, 10))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss   detn_acc   detn_l1       
+    0      19.133272  33.833656  0.804      20.774298 
+    1      18.754909  35.271939  0.77       20.572007     
+    2      17.824877  35.099138  0.776      20.494296     
+    3      16.8321    33.782667  0.792      20.139132     
+    4      15.968     33.525141  0.788      19.848904     
+    5      15.356815  33.827995  0.782      19.483242     
+    6      14.589975  33.49683   0.778      19.531291     
+    7      13.811117  33.022376  0.794      19.462907     
+    8      13.238251  33.300647  0.794      19.423868     
+    9      12.613972  33.260653  0.788      19.346758     
+[array([33.26065]), 0.7880000019073486, 19.34675830078125]
+```
+
+A detection accuracy is in the low 80's which is the same as what it was before. This is not surprising because ResNet was designed to do classification so we wouldn't expect to be able to improve things in such a simple way. It certainly wasn’t designed to do bounding box regression. It was explicitly actually designed in such a way to not care about geometry — it takes the last 7 by 7 grid of activations and averages them all together throwing away all the information about where everything came from.
+
+Interestingly, when we do accuracy (classification) and bounding box at the same time, the L1 seems a little bit better than when we just do bounding box regression [00:22:46].
+
+:memo: If that is counterintuitive to you, then this would be one of the main things to think about after this lesson since it is a really important idea.
+
+The idea is this — figuring out what the main object in an image is, is kind of the hard part. Then figuring out exactly where the bounding box is and what class it is is the easy part in a way. So when you have a single network that’s both saying what is the object and where is the object, it’s going to share all the computation about finding the object. And all that shared computation is very efficient. When we back propagate the errors in the class and in the place, that’s all the information that is going to help the computation around finding the biggest object. So anytime you have multiple tasks which share some concept of what those tasks would need to do to complete their work, it is very likely they should share at least some layers of the network together. Later, we will look at a model where most of the layers are shared except for the last one.
+
+Here are the result [00:24:34]. As before, it does a good job when there is single major object in the image.
+
+![Training results](/images/pascal_notebook_single_obj_det_train_results.png)
