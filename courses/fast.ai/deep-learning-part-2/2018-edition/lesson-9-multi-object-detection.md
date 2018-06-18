@@ -158,3 +158,226 @@ for i, ax in enumerate(axes.flat):
 `learn.summary()` will run a small batch of data through a model and prints out the size of tensors at every layer. As you can see, right before the `Flatten` layer, the tensor has the shape of 512 by 7 by 7. So if it were a rank 1 tensor (i.e. a single vector) its length will be 25088 (512 * 7 * 7)and that is why our custom header’s input size is 25088. Output size is 4 since it is the bounding box coordinates.
 
 ![Model summary](/images/pascal_notebook_model_summary.png)
+
+### Single Object Detection
+
+We combine the two to create something that can classify and localize the largest object in each image.
+
+There are 3 things that we need to do to train a neural network:
+
+1. Data
+2. Architecture
+3. Loss function
+
+#### Data
+
+We need a `ModelData` object whose independent variable is the images, and dependent variable is a tuple of bounding box coordinates and class label.
+
+There are several ways to do this, but here's a particularly 'lazy' and convenient way that is to create two `ModelData` objects representing the two different dependent variables we want:
+1. bounding boxes coordinates
+2. class
+
+```Python
+f_model=resnet34
+sz=224
+bs=64
+
+# Split dataset for validation set
+val_idxs = get_cv_idxs(len(trn_fns))
+
+tfms = tfms_from_model(f_model, sz, crop_type=CropType.NO, tfm_y=TfmType.COORD, aug_tfms=augs)
+```
+
+`ModelData` for bounding box of the largest object:
+
+```Python
+md = ImageClassifierData.from_csv(PATH, JPEGS, BB_CSV, tfms=tfms,
+                                  bs=bs, continuous=True, val_idxs=val_idxs)
+```
+
+`ModelData` for classification of the largest object:
+
+```Python
+md2 = ImageClassifierData.from_csv(PATH, JPEGS, CSV, tfms=tfms_from_model(f_model, sz))
+```
+
+Let's break that down a bit.
+
+```Python
+CSV_FILES = PATH / 'tmp'
+
+!ls {CSV_FILES}
+
+bb.csv	lrg.csv
+```
+
+**`BB_CSV`** is the CSV file for bounding boxes of the largest object. This is simply a regression with 4 outputs (predicted values). So we can use a CSV with multiple 'labels'.
+
+```Python
+!head -n 10 {CSV_FILES}/bb.csv
+
+fn,bbox
+008197.jpg,186 450 226 496
+008199.jpg,84 363 374 498
+008202.jpg,110 190 371 457
+008203.jpg,187 37 359 303
+000012.jpg,96 155 269 350
+008204.jpg,144 142 335 265
+000017.jpg,77 89 335 402
+008211.jpg,181 77 499 281
+008213.jpg,125 291 166 330
+```
+
+**`CSV`** is the CSV file for large object classification. It contains the CSV data of image filename and class of the largest object (from annotations JSON).
+
+```Python
+!head -n 10 {CSV_FILES}/lrg.csv
+
+fn,cat
+008197.jpg,car
+008199.jpg,person
+008202.jpg,cow
+008203.jpg,sofa
+000012.jpg,car
+008204.jpg,person
+000017.jpg,horse
+008211.jpg,person
+008213.jpg,chair
+```
+
+A **dataset** can be anything with `__len__` and `__getitem__`. Here's a dataset that adds a second label to an existing dataset:
+
+```Python
+class ConcatLblDataset(Dataset):
+    """
+    A dataset that adds a second label to an existing dataset.
+    """
+    
+    def __init__(self, ds, y2):
+        """
+        Initialize
+
+        ds: contains both independent and dependent variables
+        y2: contains the additional dependent variables
+        """
+        self.ds, self.y2 = ds, y2
+    
+    def __len__(self):
+        return len(self.ds)
+    
+    def __getitem__(self, i):
+        x, y = self.ds[i]
+
+        # returns an independent variable and the combination of two dependent variables.
+        return (x, (y, self.y2[i]))
+```
+
+We'll use it to add the classes to the bounding boxes labels.
+
+```Python
+trn_ds2 = ConcatLblDataset(md.trn_ds, md2.trn_y)
+val_ds2 = ConcatLblDataset(md.val_ds, md2.val_y)
+```
+
+Here is an example dependent variable:
+
+```Python
+# Grab the two 'label' (bounding box & class) from a record in the validation dataset.
+val_ds2[0][1] # record at index 0. labels at index 1, input image(x) at index 0 (we are not grabbing this)
+```
+
+```Python
+(array([  0.,   1., 223., 178.], dtype=float32), 14)
+```
+
+We can replace the dataloaders' datasets with these new ones.
+
+```Python
+md.trn_dl.dataset = trn_ds2
+md.val_dl.dataset = val_ds2
+```
+
+We have to `denorm`alize the images from the dataloader before they can be plotted.
+
+```Python
+idx = 9
+
+x, y = next(iter(md.val_dl)) # x is image array, y is labels
+ima = md.val_ds.ds.denorm(to_np(x))[idx] # reverse the normalization done to a batch of images.
+b = bb_hw(to_np(y[0][idx]))
+b
+```
+
+```Python
+array([134., 148.,  36.,  48.])
+```
+
+Plot image and object bounding box.
+
+```Python
+ax = show_img(ima)
+draw_rect(ax, b)
+draw_text(ax, b[:2], md2.classes[y[1][idx]])
+```
+
+![Single image object detection](/images/pascal_notebook_single_obj_det.png)
+
+Let's break that code down a bit.
+
+- Inspect `y` variable:
+
+```Python
+print(f'type of y: {type(y)}, y length: {len(y)}')
+print(y[0].size()) # bounding box top-left coord & bottom-right coord values
+print(y[1].size()) # object category (class)
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+type of y: <class 'list'>, y length: 2
+torch.Size([64, 4])
+torch.Size([64])
+```
+
+```Python
+# y[0] returns 64 set of bounding boxes (labels).
+# Here's we only grab the first 2 images' bounding boxes. The returned data type is PyTorch FloatTensor in GPU.
+print(y[0][:2])
+
+# Grab the first 2 images' object classes. The returned data type is PyTorch LongTensor in GPU.
+print(y[1][:2])
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+   0    1  223  178
+   7  123  186  194
+[torch.cuda.FloatTensor of size 2x4 (GPU 0)]
+
+
+ 14
+  3
+[torch.cuda.LongTensor of size 2 (GPU 0)]
+```
+
+- Inspect `x` variable:
+  - data from GPU
+
+    ```Python
+    x.size() # batch of 64 images, each image with 3 channels and size of 224x224
+
+    # -----------------------------------------------------------------------------
+    # Output
+    # -----------------------------------------------------------------------------
+    torch.Size([64, 3, 224, 224])
+    ```
+  - data from CPU
+
+    ```Python
+    to_np(x).shape
+
+    # -----------------------------------------------------------------------------
+    # Output
+    # -----------------------------------------------------------------------------
+    (64, 3, 224, 224)  
+    ```
