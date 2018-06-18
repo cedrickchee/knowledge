@@ -99,6 +99,7 @@ A collection of awesome browser-side [JavaScript] libraries, resources and cool 
 
 ### Frameworks
 
+* [cypress](https://www.cypress.io/) - A complete end-to-end testing experience.
 * [mocha](https://github.com/mochajs/mocha) - Simple, flexible, fun javascript test framework for node.js & the browser.
 * [jasmine](https://github.com/jasmine/jasmine) - DOM-less simple JavaScript testing framework.
 * [qunit](https://github.com/jquery/qunit) - An easy-to-use JavaScript Unit Testing framework.
@@ -227,41 +228,20 @@ There're also some great commercial libraries, like [amchart](https://www.amchar
 * [quill](https://github.com/quilljs/quill) - A cross browser rich text editor with an API.
 * [medium-editor](https://github.com/yabwe/medium-editor) - Medium.com WYSIWYG editor clone.
 * [pen](https://github.com/sofish/pen) - enjoy live editing (+markdown).
-* [jquery-notebook](https://github.com/raphaelcruzeiro/jquery-notebook) - A simple, clean and elegant text editor. Inspired by the awesomeness of Medium.
-* [bootstrap-wysiwyg](https://github.com/mindmup/bootstrap-wysiwyg) - Tiny bootstrap-compatible WYSIWYG rich text editor.
 * [ckeditor-releases](https://github.com/ckeditor/ckeditor-releases) - The best web text editor for everyone.
-* [editor](https://github.com/lepture/editor) - A markdown editor. still on development.
-* [EpicEditor](https://github.com/OscarGodson/EpicEditor) - An embeddable JavaScript Markdown editor with split fullscreen editing, live previewing, automatic draft saving, offline support, and more.
-* [jsoneditor](https://github.com/josdejong/jsoneditor) - A web-based tool to view, edit and format JSON.
-* [vim.js](https://github.com/coolwanglu/vim.js) - JavaScript port of Vim with a persistent ~/.vimrc
-* [Squire](https://github.com/neilj/Squire) - HTML5 rich text editor.
 * [TinyMCE](https://github.com/tinymce/tinymce) - The JavaScript Rich Text editor.
 * [trix](https://github.com/basecamp/trix) - A rich text editor for everyday writing. By Basecamp.
-* [Trumbowyg](https://github.com/Alex-D/Trumbowyg) - A lightweight and amazing WYSIWYG JavaScript editor.
 * [Draft.js](https://github.com/facebook/draft-js) - A React framework for building text editors.
-* [bootstrap-wysihtml5](https://github.com/jhollingworth/bootstrap-wysihtml5) - Simple, beautiful wysiwyg editor
 * [wysihtml5](https://github.com/xing/wysihtml5) - Open source rich text editor based on HTML5 and the progressive-enhancement approach. Uses a sophisticated security concept and aims to generate fully valid HTML5 markup by preventing unmaintainable tag soups and inline styles.
-* [raptor-editor](https://github.com/PANmedia/raptor-editor) - Raptor, an HTML5 WYSIWYG content editor!
-* [popline](https://github.com/kenshin54/popline) - Popline is an HTML5 Rich-Text-Editor Toolbar
 
 
 ## Documentation
 
 * [DevDocs](http://devdocs.io/) is an all-in-one API documentation reader with a fast, organized, and consistent interface.
-* [dexy](http://www.dexy.it/) is a free-form literate documentation tool for writing any kind of technical document incorporating code.
-* [docco](http://jashkenas.github.io/docco/) is a quick-and-dirty, hundred-line-long, literate-programming-style documentation generator.
-* [styledocco](http://jacobrask.github.io/styledocco/) generates documentation and style guide documents from your stylesheets.
-* [Ronn](https://github.com/rtomayko/ronn) builds manuals. It converts simple, human readable textfiles to roff for terminal display, and also to HTML for the web.
-* [dox](https://github.com/tj/dox) is a JavaScript documentation generator written with node. Dox no longer generates an opinionated structure or style for your docs, it simply gives you a JSON representation, allowing you to use markdown and JSDoc-style tags.
-* [jsdox](https://github.com/sutoiku/jsdox) is a JSDoc3 to Markdown documentation generator.
 * [ESDoc](https://github.com/esdoc/esdoc) is a good documentation generator for JavaScript.
-* [YUIDoc](http://yui.github.io/yuidoc/) is a Node.js application that generates API documentation from comments in source, using a syntax similar to tools like Javadoc and Doxygen.
-* [coddoc](http://doug-martin.github.io/coddoc/) is a jsdoc parsing library. Coddoc is different in that it is easily extensible by allowing users to add tag and code parsers through the use of coddoc.addTagHandler and coddoc.addCodeHandler. coddoc also parses source code to be used in APIs.
 * [sphinx](http://www.sphinx-doc.org/) a tool that makes it easy to create intelligent and beautiful documentation
 * [Using JSDoc](http://usejsdoc.org/)
-* [Beautiful docs](http://beautifuldocs.com/) is a documentation viewer based on markdown files.
 * [documentation.js](http://documentation.js.org) - API documentation generator with support for ES2015+ and flow annotation.
-* [jsduck](https://github.com/senchalabs/jsduck) - API documentation generator made for Sencha JavaScript frameworks, but can be used for other frameworks too.
 
 
 ## Files
@@ -278,12 +258,7 @@ There're also some great commercial libraries, like [amchart](https://www.amchar
 
 * [underscore](https://github.com/jashkenas/underscore) - JavaScript's utility _ belt.
 * [lodash](https://github.com/lodash/lodash) - A utility library delivering consistency, customization, performance, & extras.
-* [Sugar](https://github.com/andrewplummer/Sugar) - A Javascript library for working with native objects.
-* [lazy.js](https://github.com/dtao/lazy.js) - Like Underscore, but lazier.
 * [ramda](https://github.com/CrossEye/ramda) - A practical functional library for Javascript programmers.
-* [mout](https://github.com/mout/mout) - Modular JavaScript Utilities.
-* [mesh](https://github.com/crcn/mesh.js) - Streamable data synchronization utility.
-* [preludejs](https://github.com/alanrsoares/prelude-js) - Hardcore Functional Programming for JavaScript.
 
 
 ## Reactive Programming
@@ -291,9 +266,7 @@ There're also some great commercial libraries, like [amchart](https://www.amchar
 
 * [RxJs](https://github.com/Reactive-Extensions/RxJS) - The Reactive Extensions for JavaScript.
 * [Bacon](https://github.com/baconjs/bacon.js) - FRP (functional reactive programming) library for Javascript.
-* [Kefir](https://github.com/pozadi/kefir) - FRP library for JavaScript inspired by Bacon.js and RxJS with focus on high performance and low memory consumption.
 * [Highland](http://highlandjs.org/) - Re-thinking the JavaScript utility belt, Highland manages synchronous and asynchronous code easily, using nothing more than standard JavaScript and Node-like Streams.
-* [Most.js](https://github.com/cujojs/most) - high performance FRP library.
 * [MobX](https://github.com/mobxjs/mobx) - TFRP library for simple, scalable state management.
 * [Cycle.js](https://cycle.js.org) - A functional and reactive JavaScript library for cleaner code.
 
@@ -301,9 +274,6 @@ There're also some great commercial libraries, like [amchart](https://www.amchar
 *Data structure libraries to build a more sophisticated application.*
 
 * [immutable-js](https://github.com/facebook/immutable-js) - Immutable Data Collections including Sequence, Range, Repeat, Map, OrderedMap, Set and a sparse Vector.
-* [mori](https://github.com/swannodette/mori) - A library for using ClojureScript's persistent data structures and supporting API from the comfort of vanilla JavaScript.
-* [buckets](https://github.com/mauriciosantos/Buckets-JS) - A complete, fully tested and documented data structure library written in JavaScript.
-* [hashmap](https://github.com/flesler/hashmap) - Simple hashmap implementation that supports any kind of keys.
 
 
 ## Date
@@ -311,13 +281,6 @@ There're also some great commercial libraries, like [amchart](https://www.amchar
 
 * [moment](https://github.com/moment/moment) - Parse, validate, manipulate, and display dates in javascript.
 * [moment-timezone](https://github.com/moment/moment-timezone) - Timezone support for moment.js.
-* [jquery-timeago](https://github.com/rmm5t/jquery-timeago) - A jQuery plugin that makes it easy to support automatically updating fuzzy timestamps (e.g. "4 minutes ago").
-* [timezone-js](https://github.com/mde/timezone-js) - Timezone-enabled JavaScript Date object. Uses Olson zoneinfo files for timezone data.
-* [date](https://github.com/MatthewMueller/date) - Date() for humans.
-* [ms.js](https://github.com/rauchg/ms.js) - Tiny millisecond conversion utility.
-* [countdown.js](https://github.com/gumroad/countdown.js) - Super simple countdowns.
-* [timeago.js](https://github.com/hustcc/timeago.js) - Simple library (less then 2kb) used to format date with `*** time ago` statement.
-* [fecha](https://github.com/taylorhakes/fecha) - Lightweight date formatting and parsing (~2KB). Meant to replace parsing and formatting functionality of moment.js.
 * [date-fns](https://github.com/date-fns/date-fns) - Modern JavaScript date utility library.
 
 ## String
@@ -356,7 +319,6 @@ There're also some great commercial libraries, like [amchart](https://www.amchar
 * [basket.js](https://github.com/addyosmani/basket.js) - A script and resource loader for caching & loading scripts with localStorage.
 * [bag.js](https://github.com/nodeca/bag.js) - A caching script and resource loader, similar to basket.js, but with additional k/v interface and localStorage / websql / indexedDB support.
 * [basil.js](https://github.com/Wisembly/basil.js) - The missing Javascript smart persistent layer.
-* [jquery-cookie](https://github.com/carhartl/jquery-cookie) - A simple, lightweight jQuery plugin for reading, writing and deleting cookies.
 * [js-cookie](https://github.com/js-cookie/js-cookie) - A simple, lightweight JavaScript API for handling browser cookies
 * [Cookies](https://github.com/ScottHamper/Cookies) - JavaScript Client-Side Cookie Manipulation Library.
 * [DB.js](https://github.com/aaronpowell/db.js/) - Promise based IndexDB Wrapper library
@@ -370,8 +332,6 @@ There're also some great commercial libraries, like [amchart](https://www.amchar
 * [chroma.js](https://github.com/gka/chroma.js) - JavaScript library for all kinds of color manipulations.
 * [color](https://github.com/Qix-/color) - JavaScript color conversion and manipulation library.
 * [colors](https://github.com/mrmrs/colors) - Smarter defaults for colors on the web.
-* [PleaseJS](https://github.com/Fooidge/PleaseJS) - JavaScript Library for creating random pleasing colors and color schemes.
-* [TinyColor](https://github.com/bgrins/TinyColor) - Fast, small color manipulation and conversion for JavaScript.
 * [Vibrant.js](https://github.com/jariz/vibrant.js/) - Extract prominent colors from an image.
 
 ## I18n And L10n
@@ -389,16 +349,13 @@ There're also some great commercial libraries, like [amchart](https://www.amchar
 * [contra](https://github.com/bevacqua/contra/) - Asynchronous flow control with a functional taste to it.
 * [Bluebird](https://github.com/petkaantonov/bluebird/) - fully featured promise library with focus on innovative features and performance.
 * [when](https://github.com/cujojs/when) - A solid, fast Promises/A+ and when() implementation, plus other async goodies.
-* [ObjectEventTarget](https://github.com/gartz/ObjectEventTarget) - Provide a prototype that add support to event listeners (with same behavior of EventTarget from DOMElements available on browsers).
 
 
 ## Routing
 
+* [react router](https://github.com/ReactTraining/react-router) - Declarative routing for React.
 * [director](https://github.com/flatiron/director) - A tiny and isomorphic URL router for JavaScript.
 * [page.js](https://github.com/visionmedia/page.js) - Micro client-side router inspired by the Express router (~1200 bytes).
-* [pathjs](https://github.com/mtrpcic/pathjs) - Simple, lightweight routing for web browsers.
-* [crossroads](https://github.com/millermedeiros/crossroads.js) - JavaScript Routes.
-* [davis.js](https://github.com/olivernn/davis.js) - RESTful degradable JavaScript routing using pushState.
 
 
 ## Security
@@ -434,8 +391,6 @@ There're also some great commercial libraries, like [amchart](https://www.amchar
 * [bottleneck](https://github.com/SGrondin/bottleneck) - A powerful rate limiter that makes throttling easy.
 * [oauth-signature-js](https://github.com/bettiolo/oauth-signature-js) - JavaScript OAuth 1.0a signature generator for node and the browser.
 * [amygdala](https://github.com/lincolnloop/amygdala) - RESTful HTTP client for JavaScript powered web applications.
-* [jquery.rest](https://github.com/jpillora/jquery.rest) - A jQuery plugin for easy consumption of RESTful APIs.
-* [Rails Ranger](https://github.com/victor-am/rails-ranger) - An opinionated REST client for Ruby on Rails APIs.
 
 ## Streaming
 
@@ -553,13 +508,9 @@ Besides libraries, there're [Collection on Codepen](http://codepen.io/collection
 * [bespoke.js](https://github.com/bespokejs/bespoke) - DIY Presentation Micro-Framework
 * [Strut](https://github.com/tantaman/Strut) - Strut - An Impress.js and Bespoke.js Presentation Editor
 * [PhotoSwipe](https://github.com/dimsemenov/PhotoSwipe) - JavaScript image gallery for mobile and desktop, modular, framework independent.
-* [jcSlider](https://github.com/JoanClaret/jcSlider) - A responsive slider jQuery plugin with CSS animations.
-* [basic-jquery-slider](https://github.com/jcobb/basic-jquery-slider) - Simple to use, simple to theme, simple to customise.
-* [jQuery.adaptive-slider](https://github.com/creative-punch/jQuery.adaptive-slider/) - A jQuery plugin for a slider with adaptive colored figcaption and navigation.
 * [slidr](https://github.com/bchanx/slidr) - add some slide effects.
 * [Flickity](https://github.com/metafizzy/flickity) - Touch, responsive, flickable galleries.
 * [Glide.js](https://github.com/jedrzejchalubek/glidejs) - Responsive and touch-friendly jQuery slider. It's simple, lightweight and fast.
-* [jQuery.adaptive-slider](https://github.com/creative-punch/jQuery.adaptive-slider/) - A jQuery plugin for a slider with adaptive colored figcaption and navigation.
 
 ## Range Sliders
 
@@ -577,10 +528,7 @@ Besides libraries, there're [Collection on Codepen](http://codepen.io/collection
 * [tag-it](https://github.com/aehlke/tag-it) - A jQuery UI plugin to handle multi-tag fields as well as tag suggestions/autocomplete.
 * [At.js](https://github.com/ichord/At.js) - Add Github like mentions autocomplete to your application.
 * [Placeholders.js](https://github.com/jamesallardice/Placeholders.js) - A JavaScript polyfill for the HTML5 placeholder attribute.
-* [fancyInput](https://github.com/yairEO/fancyInput) - Makes typing in input fields fun with CSS3 effects.
-* [jQuery-Tags-Input](https://github.com/xoxco/jQuery-Tags-Input) - Magically convert a simple text input into a cool tag list with this jQuery plugin.
 * [vanilla-masker](https://github.com/BankFacil/vanilla-masker) - A pure javascript mask input.
-* [Ion.CheckRadio](https://github.com/IonDen/ion.checkRadio) - jQuery plugin for styling checkboxes and radio-buttons. With skin support.
 * [awesomplete](https://github.com/LeaVerou/awesomplete) - Ultra lightweight, usable, beautiful autocomplete with zero dependencies. - http://leaverou.github.io/awesomplete/
 
 ### Calendar
@@ -689,11 +637,6 @@ Besides libraries, there're [Collection on Codepen](http://codepen.io/collection
 
  * [html5-boilerplate](https://github.com/h5bp/html5-boilerplate) - A professional front-end template for building fast, robust, and adaptable web apps or sites.
  * [mobile-boilerplate](https://github.com/h5bp/mobile-boilerplate) - A front-end template that helps you build fast, modern mobile web apps.
- * [webplate](https://github.com/chrishumboldt/webplate) - An awesome front-end framework that lets you stay focused on building your site or app while remaining really easy to use.
- * [Cerberus](https://github.com/TedGoas/Cerberus) - A few simple, but solid patterns for responsive HTML emails. Even in Outlook.
- * [full-page-intro-and-navigation](https://github.com/CodyHouse/full-page-intro-and-navigation) - An intro page with a full width background image, a bold animated menu and an iOS-like blurred effect behind the navigation
- * [Fluid-Squares](https://github.com/crozynski/Fluid-Squares) - A fluid grid of square units.
- * [Mobile-First-RWD](https://github.com/bradfrost/Mobile-First-RWD) - An example of a mobile-first responsive web design
  * [this-is-responsive](https://github.com/bradfrost/this-is-responsive) - This Is Responsive
  * [npm run-scripts](https://gist.github.com/addyosmani/9f10c555e32a8d06ddb0) Task automation with NPM run-scripts.
 

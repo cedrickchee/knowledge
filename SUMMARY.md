@@ -35,6 +35,6 @@
 
 ## Programming Languages
 
-* [Programming languages](programming-languages/programming-languages.md)
+* [Programming Languages](programming-languages/programming-languages.md)
   * [JavaScript](programming-languages/javascript/javascript.md)
-    * [JS libraries](programming-languages/javascript/js-libraries/js-libraries.md)
+    * [JS Libraries](programming-languages/javascript/js-libraries/js-libraries.md)
