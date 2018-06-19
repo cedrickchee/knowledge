@@ -560,3 +560,202 @@ The idea is this — figuring out what the main object in an image is, is ki
 Here are the result [00:24:34]. As before, it does a good job when there is single major object in the image.
 
 ![Training results](/images/pascal_notebook_single_obj_det_train_results.png)
+
+### Multi Label Classification
+
+[pascal-multi.ipynb](https://nbviewer.jupyter.org/github/fastai/fastai/blob/master/courses/dl2/pascal-multi.ipynb)
+
+We want to keep building models that are slightly more complex than the last model so that if something stops working, we know exactly where it broke.
+
+#### Setup
+
+Global scope variables:
+
+```Python
+PATH = Path('data/pascal')
+trn_j = json.load((PATH / 'pascal_train2007.json').open())
+IMAGES, ANNOTATIONS, CATEGORIES = ['images', 'annotations', 'categories']
+FILE_NAME, ID, IMG_ID, CAT_ID, BBOX = 'file_name', 'id', 'image_id', 'category_id', 'bbox'
+
+cats = dict((o[ID], o['name']) for o in trn_j[CATEGORIES])
+trn_fns = dict((o[ID], o[FILE_NAME]) for o in trn_j[IMAGES])
+trn_ids = [o[ID] for o in trn_j[IMAGES]]
+
+JPEGS = 'VOCdevkit/VOC2007/JPEGImages'
+IMG_PATH = PATH / JPEGS
+```
+
+Define common functions.
+
+Very similar to the first Pascal notebook, a model (single object detection).
+
+```Python
+def hw_bb(bb):
+    # Example, bb = [155, 96, 196, 174]
+    return np.array([ bb[1], bb[0], bb[3] + bb[1] - 1, bb[2] + bb[0] - 1 ])
+
+def get_trn_anno():
+    trn_anno = collections.defaultdict(lambda:[])
+
+    for o in trn_j[ANNOTATIONS]:
+        if not o['ignore']:
+            bb = o[BBOX] # one bbox. looks like '[155, 96, 196, 174]'.
+            bb = hw_bb(bb)
+            trn_anno[o[IMG_ID]].append( (bb, o[CAT_ID]) )
+    return trn_anno
+
+trn_anno = get_trn_anno()
+
+def show_img(im, figsize=None, ax=None):
+    if not ax:
+        fig, ax = plt.subplots(figsize=figsize)
+    ax.imshow(im)
+    ax.set_xticks(np.linspace(0, 224, 8))
+    ax.set_yticks(np.linspace(0, 224, 8))
+    ax.grid()
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+    return ax
+
+def draw_outline(o, lw):
+    o.set_path_effects( [patheffects.Stroke(linewidth=lw, foreground='black'),
+                          patheffects.Normal()] )
+
+def draw_rect(ax, b, color='white'):
+    patch = ax.add_patch(patches.Rectangle(b[:2], *b[-2:], fill=False, edgecolor=color, lw=2))
+    draw_outline(patch, 4)
+
+def draw_text(ax, xy, txt, sz=14, color='white'):
+    text = ax.text(*xy, txt, verticalalignment='top', color=color, fontsize=sz, weight='bold')
+    draw_outline(text, 1)
+
+def bb_hw(a):
+    return np.array( [ a[1], a[0], a[3] - a[1] + 1, a[2] - a[0] + 1 ] )
+
+def draw_im(im, ann):
+    # im is image, ann is annotations
+    ax = show_img(im, figsize=(16, 8))
+    for b, c in ann:
+        # b is bbox, c is class id
+        b = bb_hw(b)
+        draw_rect(ax, b)
+        draw_text(ax, b[:2], cats[c], sz=16)
+
+def draw_idx(i):
+    # i is image id
+    im_a = trn_anno[i] # training annotations
+    im = open_image(IMG_PATH / trn_fns[i]) # trn_fns is training image file names
+    draw_im(im, im_a) # im_a is an element of annotation
+```
+
+#### Multi class
+
+Setup.
+
+```Python
+MC_CSV = PATH / 'tmp/mc.csv'
+
+trn_anno[12]
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+[(array([ 96, 155, 269, 350]), 7)]
+
+mc = [ set( [cats[p[1]] for p in trn_anno[o] ] ) for o in trn_ids ]
+mcs = [ ' '.join( str(p) for p in o ) for o in mc ] # stringify mc
+
+print('mc:', mc[1])
+print('mcs:', mcs[1])
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+mc: {'horse', 'person'}
+mcs: horse person
+
+df = pd.DataFrame({ 'fn': [trn_fns[o] for o in trn_ids], 'clas': mcs }, columns=['fn', 'clas'])
+df.to_csv(MC_CSV, index=False)
+```
+
+:memo: One of the students pointed out that by using Pandas, we can do things much simpler than using `collections.defaultdict` and shared [this gist](https://gist.github.com/binga/1bc4ebe5e41f670f5954d2ffa9d6c0ed). The more you get to know Pandas, the more often you realize it is a good way to solve lots of different problems.
+
+##### Model
+
+Setup ResNet model and train.
+
+```Python
+f_model = resnet34
+sz = 224
+bs = 64
+
+tfms = tfms_from_model(f_model, sz, crop_type=CropType.NO)
+md = ImageClassifierData.from_csv(PATH, JPEGS, MC_CSV, tfms=tfms, bs=bs)
+
+learn = ConvLearner.pretrained(f_model, md)
+learn.opt_fn = optim.Adam
+
+lr = 2e-2
+
+learn.fit(lr, 1, cycle_len=3, use_clr=(32, 5))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss   <lambda>                  
+    0      0.319539   0.139347   0.9535    
+    1      0.172275   0.080689   0.9724                    
+    2      0.116136   0.075965   0.975                     
+
+[array([0.07597]), 0.9750000004768371]
+
+# Define learning rates to search
+lrs = np.array([lr/100, lr/10, lr])
+
+# Freeze the model till the last 2 layers as before
+learn.freeze_to(-2)
+
+# Refit the model
+learn.fit(lrs/10, 1, cycle_len=5, use_clr=(32, 5))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss   <lambda>                   
+    0      0.071997   0.078266   0.9734    
+    1      0.055321   0.082668   0.9737                     
+    2      0.040407   0.077682   0.9757                     
+    3      0.027939   0.07651    0.9756                     
+    4      0.019983   0.07676    0.9763                     
+[array([0.07676]), 0.9763000016212463]
+
+# Save the model
+learn.save('mclas')
+learn.load('mclas')
+```
+
+##### Evaluate the model
+
+```Python
+y = learn.predict()
+x, _ = next(iter(md.val_dl))
+x = to_np(x)
+
+fig, axes = plt.subplots(3, 4, figsize=(12, 8))
+
+for i, ax in enumerate(axes.flat):
+    ima = md.val_ds.denorm(x)[i]
+    ya = np.nonzero(y[i] > 0.4)[0]
+    b = '\n'.join(md.classes[o] for o in ya)
+    ax = show_img(ima, ax=ax)
+    draw_text(ax, (0, 0), b)
+plt.tight_layout()
+```
+
+![Multi-class classification](/images/pascal_multi_notebook_img_classification_plot.png)
+
+Multi-class classification is pretty straight forward [00:28:28]. One minor tweak is the use of `set` in this line so that each object type appear once:
+
+```Python
+mc = [ set( [cats[p[1]] for p in trn_anno[o] ] ) for o in trn_ids ]
+```
