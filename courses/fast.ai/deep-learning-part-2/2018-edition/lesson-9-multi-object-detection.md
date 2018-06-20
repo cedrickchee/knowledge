@@ -555,7 +555,7 @@ Interestingly, when we do accuracy (classification) and bounding box at the same
 
 :memo: If that is counterintuitive to you, then this would be one of the main things to think about after this lesson since it is a really important idea.
 
-The idea is this — figuring out what the main object in an image is, is kind of the hard part. Then figuring out exactly where the bounding box is and what class it is is the easy part in a way. So when you have a single network that's both saying what is the object and where is the object, it's going to share all the computation about finding the object. And all that shared computation is very efficient. When we back propagate the errors in the class and in the place, that's all the information that is going to help the computation around finding the biggest object. So anytime you have multiple tasks which share some concept of what those tasks would need to do to complete their work, it is very likely they should share at least some layers of the network together. Later, we will look at a model where most of the layers are shared except for the last one.
+**The big idea** is this — figuring out what the main object in an image is, is kind of the hard part. Then figuring out exactly where the bounding box is and what class it is is the easy part in a way. So when you have a single network that's both saying what is the object and where is the object, it's going to share all the computation about finding the object. And all that shared computation is very efficient. When we back propagate the errors in the class and in the place, that's all the information that is going to help the computation around finding the biggest object. So anytime you have multiple tasks which share some concept of what those tasks would need to do to complete their work, it is very likely they should share at least some layers of the network together. Later, we will look at a model where most of the layers are shared except for the last one.
 
 Here are the result [00:24:34]. As before, it does a good job when there is single major object in the image.
 
@@ -760,8 +760,161 @@ Multi-class classification is pretty straight forward [00:28:28]. One minor twea
 mc = [ set( [cats[p[1]] for p in trn_anno[o] ] ) for o in trn_ids ]
 ```
 
+Next up, **finding multiple objects in an image**.
+
 #### SSD and YOLO
 
 We have an input image that goes through a conv net which outputs a vector of size `4 + c` where `c = len(cats)` . This gives us an object detector for a single largest object. Let's now create one that finds 16 objects. The obvious way to do this would be to take the last linear layer and rather than having `4 + c` outputs, we could have `16 x (4+c)` outputs. This gives us 16 sets of class probabilities and 16 sets of bounding box coordinates. Then we would just need a loss function that will check whether those 16 sets of bounding boxes correctly represented the up to 16 objects in the image (we will go into the loss function later).
 
 The second way to do this is rather than using `nn.linear`, what if instead, we took from our ResNet convolutional backbone and added an nn.Conv2d with stride 2 [00:31:32]? This will give us a `4 x 4 x [# of filters]` tensor — here let's make it `4 x 4 x (4 + c)` so that we get a tensor where the number of elements is exactly equal to the number of elements we wanted. Now if we created a loss function that took a `4 x 4 x (4 + c)` tensor and and mapped it to 16 objects in the image and checked whether each one was correctly represented by these `4 + c` activations, this would work as well. It turns out, both of these approaches are actually used [00:33:48]. The approach where the output is one big long vector from a fully connected linear layer is used by a class of models known as [YOLO (You Only Look Once)](https://arxiv.org/abs/1506.02640), where else, the approach of the convolutional activations is used by models which started with something called [SSD (Single Shot Detector)](https://arxiv.org/abs/1512.02325). Since these things came out very similar times in late 2015, things are very much moved towards SSD. So the point where this morning, [YOLO version 3](https://pjreddie.com/media/files/papers/YOLOv3.pdf) came out and is now doing SSD, so that's what we are going to do. We will also learn about why this makes more sense as well.
+
+![Possible architectures of identifying 16 objects](/images/pascal_multi_notebook_possible_arch_det_16_obj.png)
+
+#### Anchor Boxes
+
+##### SSD Approach
+
+Let's imagine that we had another `Conv2d(stride=2)` then we would have `2 x 2 x (4 + c)` tensor. Basically, it is creating a grid that looks something like this:
+
+![Grid](/images/pascal_multi_notebook_grid.png)
+
+This is how the geometry of the activations of the second extra convolutional stride 2 layer are.
+
+What we might do here [00:36:09]? We want each of these grid cell (Conv quadrant) to be responsible for finding the largest object in that part of the image.
+
+#### Receptive Field
+
+Why do we want each convolutional grid cell (quadrant) to be responsible for finding things that are in the corresponding part of the image? The reason is because of something called the receptive field of that convolutional grid cell. The basic idea is that throughout your convolutional layers, every piece of those tensors has a receptive field which means which part of the input image was responsible for calculating that cell. Like all things in life, the easiest way to see this is with Excel [00:38:01].
+
+Take a single activation (in this case in the maxpool layer) and let's see where it came from [00:38:45]. In Excel you can do Formulas :arrow_right: Trace Precedents. Tracing all the way back to the input layer, you can see that it came from this 6 x 6 portion of the image (as well as filters).
+
+**Example:**
+
+If we trace one of the maxpool activation backwards:
+
+![Excel spreadsheet - maxpool activations](/images/pascal_multi_receptive_field_excel_1.png)
+
+Tracing back even farther until we get back to the source image:
+
+![Excel spreadsheet - source image](/images/pascal_multi_receptive_field_excel_2.png)
+
+What is more, the middle portion has lots of weights (or connections) coming out of where else, cells in the outside (edges) only have one (don't have many) weight coming out. In other words, the center of the box has more dependencies. So we call this 6 x 6 cells the receptive field of the one activation we picked.
+
+_Note that the receptive field is not just saying it’s this box but also that the center of the box has more dependencies [00:40:27]._ This is **a critically important concept when it comes to understanding architectures and understanding why conv nets work the way they do**.
+
+#### Make a model to predict what shows up in a 4x4 grid
+
+We're going to make a simple first model that simply predicts what object is located in each cell of a 4x4 grid. Later on we can try to improve this.
+
+##### Architecture
+
+The architecture is, we will have a ResNet backbone followed by one or more 2D convolutions (one for now) which is going to give us a `4x4` grid.
+
+```Python
+# Build a simple convolutional model
+class StdConv(nn.Module):
+    """
+    A combination block of Conv2d, BatchNorm, Dropout
+    """
+    def __init__(self, nin, nout, stride=2, drop=0.1):
+        super().__init__()
+        self.conv = nn.Conv2d(nin, nout, 3, stride=stride, padding=1)
+        self.bn = nn.BatchNorm2d(nout)
+        self.drop = nn.Dropout(drop)
+        
+    def forward(self, x):
+        return self.drop(self.bn(F.relu(self.conv(x))))
+
+def flatten_conv(x, k):
+    bs, nf, gx, gy = x.size()
+    x = x.permute(0, 2, 3, 1).contiguous()
+    return x.view(bs, -1, nf//k)
+
+# This is an output convolutional model with 2 `Conv2d` layers.
+class OutConv(nn.Module):
+    """
+    A combination block of `Conv2d`, `4 x Stride 1`, `Conv2d`, `C x Stride 1` with two layers.
+    
+    We are outputting `4 + C`
+    """
+    def __init__(self, k, nin, bias):
+        super().__init__()
+        self.k = k
+        self.oconv1 = nn.Conv2d(nin, (len(id2cat) + 1) * k, 3, padding=1) # +1 is adding one more class for background.
+        self.oconv2 = nn.Conv2d(nin, 4 * k, 3, padding=1)
+        self.oconv1.bias.data.zero_().add(bias)
+        
+    def forward(self, x):
+        return [flatten_conv(self.oconv1(x), self.k),
+                flatten_conv(self.oconv2(x), self.k)]
+```
+
+**The SSD Model**
+
+```Python
+class SSD_Head(nn.Module):
+    def __init__(self, k, bias):
+        super().__init__()
+        self.drop = nn.Dropout(0.25)
+        # Stride 1 conv doesn't change the dimension size, but we have a mini neural network
+        self.sconv0 = StdConv(512, 256, stride=1)
+        self.sconv2 = StdConv(256, 256)
+        self.out = OutConv(k, 256, bias)
+        
+    def forward(self, x):
+        x = self.drop(F.relu(x))
+        x = self.sconv0(x)
+        x = self.sconv2(x)
+        return self.out(x)
+
+head_reg4 = SSD_Head(k, -3.)
+models = ConvnetBuilder(f_model, 0, 0, 0, custom_head=head_reg4)
+learn = ConvLearner(md, models)
+learn.opt_fn = optim.Adam
+```
+
+SSD_Head:
+
+1. We start with ReLU and dropout.
+2. Then stride 1 convolution.
+
+    The reason we start with a stride 1 convolution is because that does not change the geometry at all— it just lets us add an extra layer of calculation. It lets us create not just a linear layer but now we have a little **mini neural network** in our custom head. `StdConv` is defined above — it does convolution, ReLU, BatchNorm, and dropout. _Most research code you see won’t define a class like this, instead they write the entire thing again and again._ Don’t be like that. Duplicate code leads to errors and poor understanding.
+3. Stride 2 convolution [00:44:56].
+4. At the end, the output of step 3 is `4x4` which gets passed to `OutConv`.
+
+    `OutConv` has two separate convolutional layers each of which is stride 1 so it is not changing the geometry of the input. One of them is of length of the number of classes (ignore `k` for now and `+1` is for "background" — i.e. no object was detected), the other's length is 4.
+    
+    Rather than having a single conv layer that outputs `4 + c`, let's have two conv layers and return their outputs in a list.
+    
+    > This allows these layers to specialize just a little bit. We talked about this idea that when you have multiple tasks, they can share layers, but they do not have to share all the layers.
+    
+    In this case, our two tasks of creating a classifier and creating bounding box regression share every single layers except the very last one.
+5. At the end, we flatten out the convolution because Jeremy wrote the loss function to expect flattened out tensor, but we could totally rewrite it to not do that.
+
+#### [Fastai Coding Style](https://github.com/fastai/fastai/blob/master/docs/style.md)
+
+It is very heavily orient towards the idea of expository programming which is the idea that programming code should be something that you can use to explain an idea, ideally as readily as mathematical notation, to somebody that understands your coding method. 
+
+**How do we write a loss function for this?**
+
+The loss function needs to look at each of these 16 sets of activations, each of which has **4 bounding box coordinates** and **categories + 1** — `c + 1` class probabilities and decide if those activations are close or far away from the object which is the closest to this grid cell in the image. If nothing is there, then whether it is predicting background correctly. That turns out to be very hard to do.
+
+**Matching Problem**
+
+The loss function actually needs to take each object in the image and match them to a convolutional grid cell. 
+
+The loss function needs to take each of the objects in the image and match them to one of these convolutional grid cells to say "this grid cell is responsible for this particular object" so then it can go ahead and say "okay, how close are the 4 coordinates and how close are the class probabilities".
+
+Here's our goal:
+
+![Loss function mapping dependent variables from `mbb.csv` to final conv layer activations](/images/pascal_multi_notebook_goal_dep_vars_fin_layer_loss_fn.png)
+
+Our dependent variable looks like the one on the left, and our final convolutional layer is going to be `4 x 4 x (c + 1)` in this case `c = 20`. We then flatten that out into a vector. Our goal is to come up with a function which takes in a dependent variable and also some particular set of activations that ended up coming out of the model and returns a higher number if these activations are not a good reflection of the ground truth bounding boxes; or a lower number if it is a good reflection.
+
+**Train**
+
+_WIP_
+
+**Testing**
+
+_WIP_
