@@ -155,7 +155,7 @@ for i, ax in enumerate(axes.flat):
 
 ##### `custom_head`
 
-`learn.summary()` will run a small batch of data through a model and prints out the size of tensors at every layer. As you can see, right before the `Flatten` layer, the tensor has the shape of 512 by 7 by 7. So if it were a rank 1 tensor (i.e. a single vector) its length will be 25088 (512 * 7 * 7)and that is why our custom header’s input size is 25088. Output size is 4 since it is the bounding box coordinates.
+`learn.summary()` will run a small batch of data through a model and prints out the size of tensors at every layer. As you can see, right before the `Flatten` layer, the tensor has the shape of 512 by 7 by 7. So if it were a rank 1 tensor (i.e. a single vector) its length will be 25088 (512 * 7 * 7)and that is why our custom header's input size is 25088. Output size is 4 since it is the bounding box coordinates.
 
 ![Model summary](/images/pascal_notebook_model_summary.png)
 
@@ -386,7 +386,7 @@ print(y[1][:2])
 
 The architecture will be the same as the one we used for the classifier and bounding box regression, but we will just combine them. In other words, if we have `c` classes, then the number of activations we need in the final layer is 4 plus `c`. 4 for bounding box coordinates and `c` probabilities (one per class).
 
-We’ll use an extra linear layer this time, plus some dropout, to help us train a more flexible model. In general, we want our custom head to be capable of solving the problem on its own if the pre-trained backbone it is connected to is appropriate. So in this case, we are trying to do quite a bit — classifier and bounding box regression, so just the single linear layer does not seem enough.
+We'll use an extra linear layer this time, plus some dropout, to help us train a more flexible model. In general, we want our custom head to be capable of solving the problem on its own if the pre-trained backbone it is connected to is appropriate. So in this case, we are trying to do quite a bit — classifier and bounding box regression, so just the single linear layer does not seem enough.
 
 If you were wondering why there is no `BatchNorm1d` after the first `ReLU`, ResNet backbone already has `BatchNorm1d` as its final layer.
 
@@ -549,13 +549,13 @@ epoch      trn_loss   val_loss   detn_acc   detn_l1
 [array([33.26065]), 0.7880000019073486, 19.34675830078125]
 ```
 
-A detection accuracy is in the low 80's which is the same as what it was before. This is not surprising because ResNet was designed to do classification so we wouldn't expect to be able to improve things in such a simple way. It certainly wasn’t designed to do bounding box regression. It was explicitly actually designed in such a way to not care about geometry — it takes the last 7 by 7 grid of activations and averages them all together throwing away all the information about where everything came from.
+A detection accuracy is in the low 80's which is the same as what it was before. This is not surprising because ResNet was designed to do classification so we wouldn't expect to be able to improve things in such a simple way. It certainly wasn't designed to do bounding box regression. It was explicitly actually designed in such a way to not care about geometry — it takes the last 7 by 7 grid of activations and averages them all together throwing away all the information about where everything came from.
 
 Interestingly, when we do accuracy (classification) and bounding box at the same time, the L1 seems a little bit better than when we just do bounding box regression [00:22:46].
 
 :memo: If that is counterintuitive to you, then this would be one of the main things to think about after this lesson since it is a really important idea.
 
-The idea is this — figuring out what the main object in an image is, is kind of the hard part. Then figuring out exactly where the bounding box is and what class it is is the easy part in a way. So when you have a single network that’s both saying what is the object and where is the object, it’s going to share all the computation about finding the object. And all that shared computation is very efficient. When we back propagate the errors in the class and in the place, that’s all the information that is going to help the computation around finding the biggest object. So anytime you have multiple tasks which share some concept of what those tasks would need to do to complete their work, it is very likely they should share at least some layers of the network together. Later, we will look at a model where most of the layers are shared except for the last one.
+The idea is this — figuring out what the main object in an image is, is kind of the hard part. Then figuring out exactly where the bounding box is and what class it is is the easy part in a way. So when you have a single network that's both saying what is the object and where is the object, it's going to share all the computation about finding the object. And all that shared computation is very efficient. When we back propagate the errors in the class and in the place, that's all the information that is going to help the computation around finding the biggest object. So anytime you have multiple tasks which share some concept of what those tasks would need to do to complete their work, it is very likely they should share at least some layers of the network together. Later, we will look at a model where most of the layers are shared except for the last one.
 
 Here are the result [00:24:34]. As before, it does a good job when there is single major object in the image.
 
@@ -759,3 +759,9 @@ Multi-class classification is pretty straight forward [00:28:28]. One minor twea
 ```Python
 mc = [ set( [cats[p[1]] for p in trn_anno[o] ] ) for o in trn_ids ]
 ```
+
+#### SSD and YOLO
+
+We have an input image that goes through a conv net which outputs a vector of size `4 + c` where `c = len(cats)` . This gives us an object detector for a single largest object. Let's now create one that finds 16 objects. The obvious way to do this would be to take the last linear layer and rather than having `4 + c` outputs, we could have `16 x (4+c)` outputs. This gives us 16 sets of class probabilities and 16 sets of bounding box coordinates. Then we would just need a loss function that will check whether those 16 sets of bounding boxes correctly represented the up to 16 objects in the image (we will go into the loss function later).
+
+The second way to do this is rather than using `nn.linear`, what if instead, we took from our ResNet convolutional backbone and added an nn.Conv2d with stride 2 [00:31:32]? This will give us a `4 x 4 x [# of filters]` tensor — here let's make it `4 x 4 x (4 + c)` so that we get a tensor where the number of elements is exactly equal to the number of elements we wanted. Now if we created a loss function that took a `4 x 4 x (4 + c)` tensor and and mapped it to 16 objects in the image and checked whether each one was correctly represented by these `4 + c` activations, this would work as well. It turns out, both of these approaches are actually used [00:33:48]. The approach where the output is one big long vector from a fully connected linear layer is used by a class of models known as [YOLO (You Only Look Once)](https://arxiv.org/abs/1506.02640), where else, the approach of the convolutional activations is used by models which started with something called [SSD (Single Shot Detector)](https://arxiv.org/abs/1512.02325). Since these things came out very similar times in late 2015, things are very much moved towards SSD. So the point where this morning, [YOLO version 3](https://pjreddie.com/media/files/papers/YOLOv3.pdf) came out and is now doing SSD, so that's what we are going to do. We will also learn about why this makes more sense as well.
