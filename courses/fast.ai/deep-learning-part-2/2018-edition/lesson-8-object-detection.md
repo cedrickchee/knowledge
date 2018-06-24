@@ -56,7 +56,9 @@ _These are my personal notes from fast.ai course and will continue to be updated
     * [PyCharm](https://www.jetbrains.com/pycharm/) for community is free
     * [Visual Studio Code](https://code.visualstudio.com/)
 * [JupyterLab](http://jupyterlab.readthedocs.io/en/stable/)
-
+* Bounding box annotation tools
+    * [Rectlabel](https://rectlabel.com/)
+    * [List of manual image annotation tools](https://en.wikipedia.org/wiki/List_of_manual_image_annotation_tools)
 
 ## My Notes
 
