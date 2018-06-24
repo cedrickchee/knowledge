@@ -51,7 +51,7 @@ _My personal notes from [fast.ai course](http://www.fast.ai/). These notes will 
   * [2018 Edition \(v2\)](deep-learning-part-2/2018-edition/)
     * [Lesson 8 - Object Detection](deep-learning-part-2/2018-edition/lesson-8-object-detection.md)
     * [Lesson 9 - Single Shot Multibox Detector \(SSD\)](deep-learning-part-2/2018-edition/lesson-9-multi-object-detection.md)
-    * Lesson 10 - NLP Classification, Transfer Learning for NLP and Translation
+    * [Lesson 10 - NLP Classification, Transfer Learning for NLP and Translation](deep-learning-part-2/2018-edition/lesson-10-transfer-learning-nlp.md)
     * Lesson 11 - Neural Translation and Multi-modal Learning
     * Lesson 12 - DarkNet and Generative Adversarial Networks \(GANs\)
     * Lesson 13 - CycleGAN, Data Ethics and Image Enhancement
