@@ -50,7 +50,7 @@ _My personal notes from [fast.ai course](http://www.fast.ai/). These notes will 
     * [Lesson 14 - Time Series & Segmentation](deep-learning-part-2/2017-edition/lesson-14-time-series-and-segmentation.md)
   * [2018 Edition \(v2\)](deep-learning-part-2/2018-edition/)
     * [Lesson 8 - Object Detection](deep-learning-part-2/2018-edition/lesson-8-object-detection.md)
-    * Lesson 9 - Single Shot Multibox Detector \(SSD\)
+    * [Lesson 9 - Single Shot Multibox Detector \(SSD\)](deep-learning-part-2/2018-edition/lesson-9-multi-object-detection.md)
     * Lesson 10 - NLP Classification, Transfer Learning for NLP and Translation
     * Lesson 11 - Neural Translation and Multi-modal Learning
     * Lesson 12 - DarkNet and Generative Adversarial Networks \(GANs\)
