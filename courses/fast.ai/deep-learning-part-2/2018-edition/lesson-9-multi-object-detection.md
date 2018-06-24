@@ -901,7 +901,7 @@ The loss function needs to look at each of these 16 sets of activations, each of
 
 **Matching Problem**
 
-The loss function actually needs to take each object in the image and match them to a convolutional grid cell. 
+The loss function actually needs to take each object in the image and match them to a convolutional grid cell.
 
 The loss function needs to take each of the objects in the image and match them to one of these convolutional grid cells to say "this grid cell is responsible for this particular object" so then it can go ahead and say "okay, how close are the 4 coordinates and how close are the class probabilities".
 
@@ -911,10 +911,955 @@ Here's our goal:
 
 Our dependent variable looks like the one on the left, and our final convolutional layer is going to be `4 x 4 x (c + 1)` in this case `c = 20`. We then flatten that out into a vector. Our goal is to come up with a function which takes in a dependent variable and also some particular set of activations that ended up coming out of the model and returns a higher number if these activations are not a good reflection of the ground truth bounding boxes; or a lower number if it is a good reflection.
 
-**Train**
-
-_WIP_
-
 **Testing**
 
-_WIP_
+Do a simple test to make sure that model works.
+
+```Python
+x, y = next(iter(md.val_dl))
+x, y = V(x), V(y)
+```
+
+```Python
+for i, o in enumerate(y):
+    y[i] = o.cuda()
+learn.model.cuda()
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+Sequential(
+  (0): Conv2d(3, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+  (1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True)
+  (2): ReLU(inplace)
+  (3): MaxPool2d(kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), dilation=(1, 1), ceil_mode=False)
+  (4): Sequential(
+    (0): BasicBlock(
+      (conv1): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True)
+      (relu): ReLU(inplace)
+      (conv2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn2): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True)
+    )
+    (1): BasicBlock(
+      (conv1): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True)
+      (relu): ReLU(inplace)
+      (conv2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn2): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True)
+    )
+    (2): BasicBlock(
+      (conv1): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True)
+      (relu): ReLU(inplace)
+      (conv2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn2): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True)
+    )
+  )
+  ...   ...     ...
+  ...   ...     ...
+  (8): SSD_Head(
+    (drop): Dropout(p=0.25)
+    (sconv0): StdConv(
+      (conv): Conv2d(512, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (bn): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True)
+      (drop): Dropout(p=0.1)
+    )
+    (sconv2): StdConv(
+      (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (bn): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True)
+      (drop): Dropout(p=0.1)
+    )
+    (out): OutConv(
+      (oconv1): Conv2d(256, 21, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (oconv2): Conv2d(256, 4, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+  )
+)
+```
+
+```Python
+batch = learn.model(x)
+
+anchors = anchors.cuda()
+grid_sizes = grid_sizes.cuda()
+anchor_cnr = anchor_cnr.cuda()
+
+ssd_loss(batch, y, True)
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+ 0.4062
+ 0.2180
+ 0.1307
+ 0.5762
+ 0.1524
+ 0.4794
+[torch.cuda.FloatTensor of size 6 (GPU 0)]
+
+
+ 0.1128
+[torch.cuda.FloatTensor of size 1 (GPU 0)]
+
+loc: 10.360502243041992, clas: 73.66346740722656
+Variable containing:
+ 84.0240
+[torch.cuda.FloatTensor of size 1 (GPU 0)]
+```
+
+```Python
+x, y = next(iter(md.val_dl)) # grab a single batch
+x, y = V(x), V(y) # turn into variables
+learn.model.eval() # set model to eval mode (trained in the previous block)
+batch = learn.model(x)
+b_clas, b_bb = batch # destructure the class and the bounding box
+```
+
+```Python
+b_clas.size(), b_bb.size()
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+(torch.Size([64, 16, 21]), torch.Size([64, 16, 4]))
+```
+
+The dimension:
+- 64 batch size by
+- 16 grid cells
+- 21 classes
+- 4 bounding box coords
+
+**Let’s now look at the ground truth `y`.**
+
+We will look at image 7.
+
+```Python
+idx = 7
+b_clasi = b_clas[idx]
+b_bboxi = b_bb[idx]
+ima = md.val_ds.ds.denorm(to_np(x))[idx]
+bbox, clas = get_y(y[0][idx], y[1][idx])
+bbox, clas
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+(Variable containing:
+  0.6786  0.4866  0.9911  0.6250
+  0.7098  0.0848  0.9911  0.5491
+  0.5134  0.8304  0.6696  0.9063
+ [torch.cuda.FloatTensor of size 3x4 (GPU 0)], Variable containing:
+   8
+  10
+  17
+ [torch.cuda.LongTensor of size 3 (GPU 0)])
+```
+
+_Note that the bounding box coordinates have been scaled to between 0 and 1._
+
+```Python
+def torch_gt(ax, ima, bbox, clas, prs=None, thresh=0.4):
+    """
+    We already have `show_ground_truth` function.
+    
+    This function simply converts tensors into numpy array. (gt stands for ground truth)
+    """
+    return show_ground_truth(ax, ima, to_np((bbox * 224).long()),
+                             to_np(clas), to_np(prs) if prs is not None else None, thresh)
+```
+
+```Python
+fig, ax = plt.subplots(figsize=(7, 7))
+torch_gt(ax, ima, bbox, clas)
+```
+
+![Ground truth](/images/pascal_multi_notebook_ground_truth.png)
+
+The above is a ground truth.
+
+Here is our 4x4 grid cells from our final convolutional layer.
+
+```Python
+fig, ax = plt.subplots(figsize=(7, 7))
+torch_gt(ax, ima, anchor_cnr, b_clasi.max(1)[1])
+```
+
+![4x4 grid cells from final conv layer](/images/pascal_multi_notebook_4_by_4_grid_from_fin_conv_layer.png)
+
+Each of these square boxes, different papers call them different things. The three terms you’ll hear are: anchor boxes, prior boxes, or default boxes. We will stick with the term **anchor boxes**.
+
+What we are going to do for this **loss function** is we are going to go through a **matching problem** where we are going to **take every one of these 16 boxes and see which one of these three ground truth objects has the highest amount of overlap with a given square**.
+
+To do this, we have to have some way of measuring **amount of overlap** and a standard function for this is called [**Jaccard index**](https://en.wikipedia.org/wiki/Jaccard_index) (IoU).
+
+`IoU = area of overlap / area of union`
+
+We are going to go through and find the Jaccard overlap for each one of the three objects versus each of the 16 anchor boxes [00:57:11]. That is going to give us a `3x16` matrix.
+
+Here are the coordinates of all of our anchor boxes (center `x`, center `y`, height, width):
+
+```
+anchors
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+Variable containing:
+ 0.1250  0.1250  0.2500  0.2500
+ 0.1250  0.3750  0.2500  0.2500
+ 0.1250  0.6250  0.2500  0.2500
+ 0.1250  0.8750  0.2500  0.2500
+ 0.3750  0.1250  0.2500  0.2500
+ 0.3750  0.3750  0.2500  0.2500
+ 0.3750  0.6250  0.2500  0.2500
+ 0.3750  0.8750  0.2500  0.2500
+ 0.6250  0.1250  0.2500  0.2500
+ 0.6250  0.3750  0.2500  0.2500
+ 0.6250  0.6250  0.2500  0.2500
+ 0.6250  0.8750  0.2500  0.2500
+ 0.8750  0.1250  0.2500  0.2500
+ 0.8750  0.3750  0.2500  0.2500
+ 0.8750  0.6250  0.2500  0.2500
+ 0.8750  0.8750  0.2500  0.2500
+[torch.cuda.FloatTensor of size 16x4 (GPU 0)]
+```
+
+Here are the amount of overlap between 3 ground truth objects and 16 anchor boxes:
+
+Get the activations.
+
+```Python
+# a_ic: activations image corners
+a_ic = actn_to_bb(b_bboxi, anchors)
+
+fig, ax = plt.subplots(figsize=(7, 7))
+
+# b_clasi.max(1)[1] -> object class id
+# b_clasi.max(1)[0].sigmoid() -> scale class probs using sigmoid
+torch_gt(ax, ima, a_ic, b_clasi.max(1)[1], b_clasi.max(1)[0].sigmoid(), thresh=0.0)
+```
+
+![Activations mapped to bounding boxes](/images/pascal_multi_notebook_activations_to_bbox_plot.png)
+
+**Calculate Jaccard index (all objects `x` all grid cells)**
+
+We are going to go through and find the Jaccard overlap for each one of the 3 ground truth objects versus each of the 16 anchor boxes. That is going to give us a `3x16` matrix.
+
+```Python
+# Test ssd_1_loss logic
+overlaps = jaccard(bbox.data, anchor_cnr.data)
+overlaps
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+Columns 0 to 9 
+ 0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0091
+ 0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0356  0.0549
+ 0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000
+
+Columns 10 to 15 
+ 0.0922  0.0000  0.0000  0.0315  0.3985  0.0000
+ 0.0103  0.0000  0.2598  0.4538  0.0653  0.0000
+ 0.0000  0.1897  0.0000  0.0000  0.0000  0.0000
+[torch.cuda.FloatTensor of size 3x16 (GPU 0)]
+```
+
+What we could do now is we could take the max of dimension (axis) 1 (row-wise) which will tell us for each ground truth object, what the maximum amount that overlaps with some grid cell as well as the index:
+
+```Python
+# For each object, we can find the highest overlap with any grid cell.
+# Returns maximum amount and the corresponding cell index.
+overlaps.max(1) # axis 1 -> horizontal (left-to-right)
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+(
+  0.3985
+  0.4538
+  0.1897
+ [torch.cuda.FloatTensor of size 3 (GPU 0)], 
+  14
+  13
+  11
+ [torch.cuda.LongTensor of size 3 (GPU 0)])
+```
+
+We will also going to look at max over a dimension(axis) 0 (column-wise) which will tell us what is the maximum amount of overlap for each grid cell across all of the ground truth objects:
+
+```Python
+overlaps.max(0) # axis 0 -> vertical (top-to-bottom)
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+(
+  0.0000
+  0.0000
+  0.0000
+  0.0000
+  0.0000
+  0.0000
+  0.0000
+  0.0000
+  0.0356
+  0.0549
+  0.0922
+  0.1897
+  0.2598
+  0.4538
+  0.3985
+  0.0000
+ [torch.cuda.FloatTensor of size 16 (GPU 0)], 
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  1
+  1
+  0
+  2
+  1
+  1
+  0
+  0
+ [torch.cuda.LongTensor of size 16 (GPU 0)])
+```
+
+Here, it tells us for every grid cell what is the index of the ground truth object which overlaps with it the most.
+
+Basically what `map_to_ground_truth` does is it combines these two sets of overlaps in a way described in the **SSD paper** to assign every anchor box to a ground truth object.
+
+The way it assign that is each of the three (row-wise max) gets assigned as is. For the rest of the anchor boxes, they get assigned to anything which they have an overlap of at least 0.5 with (column-wise). If neither applies, it is considered to be a cell which contains background.
+
+Now you can see a list of all the assignments:
+
+```Python
+# Test ssd_1_loss logic
+
+# ground truth overlap and index
+gt_overlap, gt_idx = map_to_ground_truth(overlaps)
+gt_overlap, gt_idx
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+(
+  0.0000
+  0.0000
+  0.0000
+  0.0000
+  0.0000
+  0.0000
+  0.0000
+  0.0000
+  0.0356
+  0.0549
+  0.0922
+  1.9900
+  0.2598
+  1.9900
+  1.9900
+  0.0000
+ [torch.cuda.FloatTensor of size 16 (GPU 0)], 
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  1
+  1
+  0
+  2
+  1
+  1
+  0
+  0
+ [torch.cuda.LongTensor of size 16 (GPU 0)])
+```
+
+Anywhere that has `gt_overlap < 0.5` gets assigned background. The three row-wise max anchor box has high number to force the assignments. Now we can combine these values to classes:
+
+```Python
+# ground truth class
+gt_clas = clas[gt_idx]
+gt_clas
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+Variable containing:
+  8
+  8
+  8
+  8
+  8
+  8
+  8
+  8
+ 10
+ 10
+  8
+ 17
+ 10
+ 10
+  8
+  8
+[torch.cuda.LongTensor of size 16 (GPU 0)]
+```
+
+Then add a threshold and finally comes up with the three classes that are being predicted:
+
+```Python
+# Test ssd_1_loss logic
+
+thresh = 0.5
+# Get positive indices
+pos = gt_overlap > thresh
+print(pos)
+pos_idx = torch.nonzero(pos)[:, 0]
+
+# Get negative indices
+neg_idx = torch.nonzero(1 - pos)[:, 0]
+print(neg_idx)
+
+print(pos_idx)
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+ 0
+ 0
+ 0
+ 0
+ 0
+ 0
+ 0
+ 0
+ 0
+ 0
+ 0
+ 1
+ 0
+ 1
+ 1
+ 0
+[torch.cuda.ByteTensor of size 16 (GPU 0)]
+
+
+  0
+  1
+  2
+  3
+  4
+  5
+  6
+  7
+  8
+  9
+ 10
+ 12
+ 15
+[torch.cuda.LongTensor of size 13 (GPU 0)]
+
+
+ 11
+ 13
+ 14
+[torch.cuda.LongTensor of size 3 (GPU 0)]
+```
+
+And here are what each of these anchor boxes is meant to be predicting:
+
+```Python
+# flip negative class to bg class id
+gt_clas[1 - pos] = len(id2cat) # len id2cat is 20
+print(gt_clas.data)
+[id2cat[o] if o < len(id2cat) else 'bg' for o in gt_clas.data]
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+ 20
+ 20
+ 20
+ 20
+ 20
+ 20
+ 20
+ 20
+ 20
+ 20
+ 20
+ 17
+ 20
+ 10
+  8
+ 20
+[torch.cuda.LongTensor of size 16 (GPU 0)]
+
+['bg',
+ 'bg',
+ 'bg',
+ 'bg',
+ 'bg',
+ 'bg',
+ 'bg',
+ 'bg',
+ 'bg',
+ 'bg',
+ 'bg',
+ 'sofa',
+ 'bg',
+ 'diningtable',
+ 'chair',
+ 'bg']
+```
+
+So that was the matching stage.
+
+For **L1 loss**, we can:
+
+1. take the activations which matched (`pos_idx = [11, 13, 14]`).
+2. subtract from those the ground truth bounding boxes.
+3. take the absolute value of the difference.
+4. take the mean of that.
+
+For classifications, we can just do a cross entropy.
+
+```Python
+# Test ssd_1_loss logic
+gt_bbox = bbox[gt_idx]
+loc_loss = ( ( a_ic[pos_idx] - gt_bbox[pos_idx] ).abs() ).mean()
+clas_loss = F.cross_entropy(b_clasi, gt_clas)
+loc_loss, clas_loss
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+(Variable containing:
+ 1.00000e-02 *
+   6.3030
+ [torch.cuda.FloatTensor of size 1 (GPU 0)], Variable containing:
+  0.9787
+ [torch.cuda.FloatTensor of size 1 (GPU 0)])
+```
+
+**Result**
+
+We will end up with 16 predicted bounding boxes, most of them will be background. If you are wondering what it predicts in terms of bounding box of background, the answer is it totally ignores it.
+
+```Python
+# Plot a few pictures
+fig, axes = plt.subplots(3, 4, figsize=(16, 12))
+
+for idx, ax in enumerate(axes.flat):
+    # loop through each image out of 12 images
+    ima = md.val_ds.ds.denorm(to_np(x))[idx]
+    bbox, clas = get_y(y[0][idx], y[1][idx])
+    ima = md.val_ds.ds.denorm(to_np(x))[idx]
+    bbox, clas = get_y(bbox, clas); bbox, clas
+    a_ic = actn_to_bb(b_bb[idx], anchors)
+    torch_gt(ax, ima, a_ic, b_clas[idx].max(1)[1], b_clas[idx].max(1)[0].sigmoid(), 0.01)
+plt.tight_layout()
+```
+
+![Matching stage result](/images/pascal_multi_notebook_matching_stage_result.png)
+
+In practice, we want to remove the background and also add some threshold for probabilities, but it is on the right track. The potted plant image, the result is not surprising as all of our anchor boxes were small (4x4 grid).
+
+How can we improve?
+
+To go from here to something that is going to be more accurate, all we are going to do is to create way more anchor boxes.
+
+**Tweak 1. How do we interpret the activations**
+
+We have to convert the activations into a scaling. We grab the activations, we stick them through `tanh` (it is scaled to be between -1 and 1) which forces it to be within that range.
+
+We then grab the actual position of the anchor boxes, and we will move them around according to the value of the activations divided by two. In other words, each predicted bounding box can be moved by up to 50% of a grid size from where its default position is.
+
+```Python
+def actn_to_bb(actn, anchors):
+    # e.g. of actn tensor of shape (16, 4): [[0.2744 0.2912 -0.3941 -0.7735], [...]]
+    
+    # normalize actn values between 1 and -1 (tanh func)
+    actn_bbs = torch.tanh(actn)
+    # actn_bbs[:, :2] grab the first 2 columns (obj bbox top-left coords) from the tensor & scale back the coords to grid sizes
+    # anchors[:, :2] grab the first 2 columns (center point coords)
+    actn_centers = (actn_bbs[:, :2] / 2 * grid_sizes) + anchors[:, :2]
+    # same as above but this time for bbox area (height/width)
+    actn_hw = (actn_bbs[:, 2:] / 2 + 1) * anchors[:, 2:]
+    return hw2corners(actn_centers, actn_hw)
+```
+
+**Tweak 2. We actually use binary cross entropy loss instead of cross entropy.**
+
+Binary cross entropy is what we normally use for multi-label classification.
+
+If it has multiple things in it, you cannot use softmax because softmax really encourages just one thing to have the high number. In our case, each anchor box can only have one object associated with it, so it is not for that reason that we are avoiding softmax. It is something else — which is it is possible for an anchor box to have nothing associated with it. There are two ways to handle this idea of "background"; one would be to say background is just a class, so let’s use softmax and just treat background as one of the classes that the softmax could predict. A lot of people have done it this way. But that is a really hard thing to ask neural network to do—it is basically asking whether this grid cell does not have any of the 20 objects that I am interested with Jaccard overlap of more than 0.5. It is a really hard thing to put into a single computation. On the other hand, what if we just asked for each class; "is it a motorbike?", "is it a bus?", etc and if all the answer is no, consider that background. That is the way we do it here. It is not that we can have multiple true labels, but we can have zero.
+
+```Python
+class BCE_Loss(nn.Module):
+    """
+    Binomial Cross Entropy Loss.
+    
+    Each anchor box can only have one object associated with it. Its possible for an anchor box to have NOTHING in it.
+    We could:
+    
+    1. treat background as a class - difficult, because its asking the NN to say 'does this square NOT have 20 other things'
+    2. BCE loss, checks by process of elimination - if there's no 20 object detected, then its background (0 positives)
+    """
+    def __init__(self, num_classes):
+        super().__init__()
+        self.num_classes = num_classes
+    
+    def forward(self, pred, targ):
+        # take the one hot embedding of the target (at this stage, we do have the idea of background)
+        t = one_hot_embedding(targ, self.num_classes + 1)
+        # remove the background column (the last one) which results in a vector either of all zeros or one one
+        t = V(t[:, :-1].contiguous())#.cpu()
+        x = pred[:, :-1]
+        w = self.get_weight(x, t)
+        # use binary cross-entropy predictions
+        return F.binary_cross_entropy_with_logits(x, t, w, size_average=False) / self.num_classes
+    
+    def get_weight(self, x, t):
+        return None
+```
+
+This is a minor tweak, but it is the kind of minor tweak that Jeremy wants you to think about and understand because it makes a really big difference to your training and when there is some increment over a previous paper, it would be something like this [01:08:25]. It is important to understand what this is doing and more importantly why.
+
+Now all it’s left is SSD loss function.
+
+```Python
+def ssd_1_loss(b_c, b_bb, bbox, clas, print_it=False):
+    bbox, clas = get_y(bbox, clas)
+    a_ic = actn_to_bb(b_bb, anchors)
+    overlaps = jaccard(bbox.data, anchor_cnr.data)
+    gt_overlap, gt_idx = map_to_ground_truth(overlaps, print_it)
+    gt_clas = clas[gt_idx]
+    pos = gt_overlap > 0.4
+    pos_idx = torch.nonzero(pos)[:, 0]
+    gt_clas[1 - pos] = len(id2cat)
+    gt_bbox = bbox[gt_idx]
+    loc_loss = ( (a_ic[pos_idx] - gt_bbox[pos_idx]).abs() ).mean()
+    clas_loss = loss_f(b_c, gt_clas)
+    return loc_loss, clas_loss
+
+def ssd_loss(pred, targ, print_it=False):
+    lcs, lls = 0., 0.
+    for b_c, b_bb, bbox, clas in zip(*pred, *targ):
+        loc_loss, clas_loss = ssd_1_loss(b_c, b_bb, bbox, clas, print_it)
+        lls += loc_loss
+        lcs += clas_loss
+    if print_it:
+        print(f'loc: {lls.data[0]}, clas: {lcs.data[0]}')
+    return lls + lcs
+```
+
+The `ssd_loss` function which is what we set as the criteria, it loops through each image in the mini-batch and `call ssd_1_loss` function (i.e. SSD loss for one image).
+
+`ssd_1_loss` is where it is all happening. It begins by de-structuring `bbox` and `clas`.
+
+Let’s take a closer look at `get_y`.
+
+```Python
+def get_y(bbox, clas):
+    bbox = bbox.view(-1, 4) / sz
+    bb_keep = ( (bbox[:, 2] - bbox[:, 0]) > 0 ).nonzero()[:, 0]
+    return bbox[bb_keep], clas[bb_keep]
+```
+
+A lot of code you find on the Internet does not work with mini-batches. It only does one thing at a time which we don’t want. In this case, all these functions (`get_y`, `actn_to_bb`, `map_to_ground_truth`) is working on, not exactly a mini-batch at a time, but a whole bunch of ground truth objects at a time. The data loader is being fed a mini-batch at a time to do the convolutional layers.
+
+Because we can have _different numbers of ground truth objects in each image_ but a tensor has to be the strict rectangular shape, fastai automatically pads it with zeros (any target values that are shorter). This was something that was added recently and super handy, but that does mean that you then have to make sure that you get rid of those zeros. So `get_y` gets rid of any of the bounding boxes that are just padding.
+
+#### More anchors!
+
+There are 3 ways to do this:
+
+1. Create anchor boxes of different sizes (zoom).
+2. Create anchor boxes of different aspect ratios.
+3. Use more convolutional layers as sources of anchor boxes (the boxes are randomly jittered so that we can see ones that are overlapping.
+
+Combining these approaches, you can create lots of anchor boxes.
+
+![More anchors](/images/pascal_multi_notebook_more_anchors.png)
+
+**Create anchors**
+
+```Python
+anc_grids = [4, 2, 1]
+anc_zooms = [0.7, 1., 1.3]
+anc_ratios = [(1., 1.), (1., 0.5), (0.5, 1.)]
+anchor_scales = [(anz * i, anz * j) for anz in anc_zooms for (i, j) in anc_ratios]
+k = len(anchor_scales)
+anc_offsets = [1 / (o * 2) for o in anc_grids]
+```
+
+Make the corners:
+
+```Python
+anc_x = np.concatenate([np.repeat(np.linspace(ao, 1 - ao, ag), ag)
+                        for ao, ag in zip(anc_offsets, anc_grids)])
+anc_y = np.concatenate([np.tile(np.linspace(ao, 1 - ao, ag), ag)
+                        for ao, ag in zip(anc_offsets, anc_grids)])
+anc_ctrs = np.repeat(np.stack([anc_x, anc_y], axis=1), k, axis=0)
+```
+
+Make the dimensions:
+
+```Python
+anc_sizes = np.concatenate([np.array([[o / ag, p / ag] for i in range(ag * ag) for o, p in anchor_scales])
+                           for ag in anc_grids])
+grid_sizes = V(np.concatenate([np.array([1 / ag for i in range(ag * ag) for o, p in anchor_scales])
+               for ag in anc_grids]), requires_grad=False).unsqueeze(1)
+anchors = V(np.concatenate([anc_ctrs, anc_sizes], axis=1), requires_grad=False).float()
+anchor_cnr = hw2corners(anchors[:, :2], anchors[:, 2:])
+```
+
+`anchors` : center and height, width
+`anchor_cnr` : top-left and bottom-right corners
+
+##### Model Architecture
+
+We will change our architecture, so it spits out enough activations.
+
+Try to make the activations closely represents the bounding box.
+
+- Now we can have multiple anchor boxes per grid cell.
+- For every object, have to figure out which anchor box which is closer.
+- For each anchor box, we have to find which object its responsible for.
+- We don't need to necessarily change the number of conv. filters. We will get these for free.
+
+The model is nearly identical to what we had before. But we have a number of stride 2 convolutions which is going to take us through to 4x4, 2x2, and 1x1 (each stride 2 convolution halves our grid size in both directions).
+
+- After we do our first convolution to get to 4x4, we will grab a set of outputs from that because we want to save away the 4x4 anchors.
+- Once we get to 2x2, we grab another set of now 2x2 anchors.
+- Then finally we get to 1x1.
+- We then concatenate them all together, which gives us the correct number of activations (one activation for every anchor box).
+
+```Python
+drop = 0.4
+
+class SSD_MultiHead(nn.Module):
+    def __init__(self, k, bias):
+        """
+        k: Number of zooms x number of aspect ratios. Grids will be for free.
+        """
+        super().__init__()
+        self.drop = nn.Dropout(drop)
+        self.sconv0 = StdConv(512, 256, stride=1, drop=drop)
+        self.sconv1 = StdConv(256, 256, drop=drop)
+        self.sconv2 = StdConv(256, 256, drop=drop)
+        self.sconv3 = StdConv(256, 256, drop=drop)
+        # Note the number of OutConv. There's many more outputs this time around.
+        self.out0 = OutConv(k, 256, bias)
+        self.out1 = OutConv(k, 256, bias)
+        self.out2 = OutConv(k, 256, bias)
+        self.out3 = OutConv(k, 256, bias)
+
+    def forward(self, x):
+        x = self.drop(F.relu(x))
+        x = self.sconv0(x)
+        x = self.sconv1(x)
+        o1c, o1l = self.out1(x)
+        x = self.sconv2(x)
+        o2c, o2l = self.out2(x)
+        x = self.sconv3(x)
+        o3c, o3l = self.out3(x)
+        return [torch.cat([o1c, o2c, o3c], dim=1),
+                torch.cat([o1l, o2l, o3l], dim=1)]
+
+head_reg4 = SSD_MultiHead(k, -4.)
+models = ConvnetBuilder(f_model, 0, 0, 0, custom_head=head_reg4)
+learn = ConvLearner(md, models)
+learn.opt_fn = optim.Adam
+```
+
+**Training**
+
+```Python
+learn.crit = ssd_loss
+lr = 1e-2
+lrs = np.array([lr / 100, lr / 10, lr])
+
+x, y = next(iter(md.val_dl))
+x, y = V(x), V(y)
+batch = learn.model(V(x))
+
+learn.fit(lrs, 1, cycle_len=4, use_clr=(20, 8))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss                           
+    0      159.414772 140.101793
+    1      126.402466 102.215643                         
+    2      108.585769 92.588025                          
+    3      96.446407  88.625489                           
+[array([88.62549])]
+
+learn.save('tmp')
+
+learn.freeze_to(-2)
+learn.fit(lrs / 2, 1, cycle_len=4, use_clr=(20, 8))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss                            
+    0      92.379641  101.096312
+    1      86.359159  84.90464                            
+    2      77.63975   80.936112                           
+    3      69.843253  77.107912                           
+[array([77.10791])]
+
+learn.save('prefocal')
+```
+
+Below, we printed out those detections with at least probability of `0.21` . Some of them look pretty hopeful but others not so much.
+
+```Python
+x, y = next(iter(md.val_dl))
+y = V(y)
+batch = learn.model(V(x))
+b_clas,b_bb = batch
+x = to_np(x)
+
+fig, axes = plt.subplots(3, 4, figsize=(16, 12))
+for idx,ax in enumerate(axes.flat):
+    ima = md.val_ds.ds.denorm(x)[idx]
+    bbox, clas = get_y(y[0][idx], y[1][idx])
+    a_ic = actn_to_bb(b_bb[idx], anchors)
+    torch_gt(ax, ima, a_ic, b_clas[idx].max(1)[1], b_clas[idx].max(1)[0].sigmoid(), 0.21)
+plt.tight_layout()
+```
+
+![More anchors training result](/images/pascal_multi_notebook__more_anchors_training_res_plot.png)
+
+#### Focal Loss
+
+:bookmark: Read the ["Focal Loss for Dense Object Detection"](https://arxiv.org/abs/1708.02002) paper.
+
+The key thing is this very first picture.
+
+The actual contribution of this paper is to add `(1 − pt)^γ` to the start of the equation [01:45:06] which sounds like nothing but actually people have been trying to figure out this problem for years. When you come across a paper like this which is game-changing, you shouldn’t assume you are going to have to write thousands of lines of code. Very often it is one line of code, or the change of a single constant, or adding log to a single place.
+
+##### Implementing Focal Loss
+
+When we defined the binomial cross entropy loss, you may have noticed that there was a weight which by default was `None`:
+
+```Python
+class BCE_Loss(nn.Module):
+    """
+    Binomial Cross Entropy Loss.
+    
+    Each anchor box can only have one object associated with it. Its possible for an anchor box to have NOTHING in it.
+    We could:
+    
+    1. treat background as a class - difficult, because its asking the NN to say 'does this square NOT have 20 other things'
+    2. BCE loss, checks by process of elimination - if there's no 20 object detected, then its background (0 positives)
+    """
+    def __init__(self, num_classes):
+        super().__init__()
+        self.num_classes = num_classes
+    
+    def forward(self, pred, targ):
+        # take the one hot embedding of the target (at this stage, we do have the idea of background)
+        t = one_hot_embedding(targ, self.num_classes + 1)
+        # remove the background column (the last one) which results in a vector either of all zeros or one one
+        t = V(t[:, :-1].contiguous())#.cpu()
+        x = pred[:, :-1]
+        w = self.get_weight(x, t)
+        # use binary cross-entropy predictions
+        return F.binary_cross_entropy_with_logits(x, t, w, size_average=False) / self.num_classes
+    
+    def get_weight(self, x, t):
+        return None
+```
+
+When you call `F.binary_cross_entropy_with_logits`, you can pass in the weight. Since we just wanted to multiply a cross entropy by something, we can just define `get_weight`.
+
+Here is the entirety of focal loss:
+
+```Python
+class FocalLoss(BCE_Loss):
+    def get_weight(self, x, t):
+        alpha, gamma = 0.25, 2. # in the original code, the gamma value is 1. In paper is 2.0. Why?
+        p = x.sigmoid()
+        pt = p * t + (1 - p) * (1 - t)
+        w = alpha * t + (1 - alpha) * (1 - t)
+        return w * (1 - pt).pow(gamma)
+```
+
+If you were wondering why `alpha` and `gamma` are `0.25` and `2`, here is another excellent thing about this paper, because they tried lots of different values and found that these work well.
+
+**Training**
+
+```Python
+loss_f = FocalLoss(len(id2cat))
+
+...     ...     ...
+...     ...     ...
+
+learn.fit(lrs, 1, cycle_len=10, use_clr=(20, 10))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss                            
+    0      15.550314  21.57637  
+    1      16.648582  18.164512                           
+    2      15.653142  14.748936                           
+    3      14.288999  15.339103                           
+    4      12.949968  12.573363                           
+    5      11.752214  12.210602                           
+    6      10.788599  11.682604                           
+    7      10.097296  11.840508                           
+    8      9.543635   11.384417                           
+    9      9.004486   11.148148                           
+[array([11.14815])]
+
+learn.save('fl0')
+learn.load('fl0')
+
+learn.freeze_to(-2)
+learn.fit(lrs / 4, 1, cycle_len=10, use_clr=(20, 10))
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss                            
+    0      8.384461   11.417507 
+    1      8.436978   11.682564                           
+    2      8.360014   11.665135                           
+    3      8.155825   11.368144                           
+    4      7.931341   11.36015                            
+    5      7.63321    11.13176                            
+    6      7.330255   11.283114                           
+    7      7.063865   11.128076                           
+    8      6.867503   11.084224                           
+    9      6.725401   11.066812                           
+[array([11.06681])]
+
+learn.save('drop4')
+learn.load('drop4')
+
+plot_results(0.75)
+```
+
+![Focal loss training result](/images/pascal_multi_notebook_focal_loss_training_res.png)
+
+This time things are looking quite a bit better.
+
+So our last step, for now, is to basically figure out how to pull out just the interesting ones.
+
