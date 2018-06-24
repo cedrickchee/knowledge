@@ -800,7 +800,7 @@ Tracing back even farther until we get back to the source image:
 
 What is more, the middle portion has lots of weights (or connections) coming out of where else, cells in the outside (edges) only have one (don't have many) weight coming out. In other words, the center of the box has more dependencies. So we call this 6 x 6 cells the receptive field of the one activation we picked.
 
-_Note that the receptive field is not just saying it’s this box but also that the center of the box has more dependencies [00:40:27]._ This is **a critically important concept when it comes to understanding architectures and understanding why conv nets work the way they do**.
+_Note that the receptive field is not just saying it's this box but also that the center of the box has more dependencies [00:40:27]._ This is **a critically important concept when it comes to understanding architectures and understanding why conv nets work the way they do**.
 
 #### Make a model to predict what shows up in a 4x4 grid
 
@@ -878,7 +878,7 @@ SSD_Head:
 1. We start with ReLU and dropout.
 2. Then stride 1 convolution.
 
-    The reason we start with a stride 1 convolution is because that does not change the geometry at all— it just lets us add an extra layer of calculation. It lets us create not just a linear layer but now we have a little **mini neural network** in our custom head. `StdConv` is defined above — it does convolution, ReLU, BatchNorm, and dropout. _Most research code you see won’t define a class like this, instead they write the entire thing again and again._ Don’t be like that. Duplicate code leads to errors and poor understanding.
+    The reason we start with a stride 1 convolution is because that does not change the geometry at all— it just lets us add an extra layer of calculation. It lets us create not just a linear layer but now we have a little **mini neural network** in our custom head. `StdConv` is defined above — it does convolution, ReLU, BatchNorm, and dropout. _Most research code you see won't define a class like this, instead they write the entire thing again and again._ Don't be like that. Duplicate code leads to errors and poor understanding.
 3. Stride 2 convolution [00:44:56].
 4. At the end, the output of step 3 is `4x4` which gets passed to `OutConv`.
 
@@ -1031,7 +1031,7 @@ The dimension:
 - 21 classes
 - 4 bounding box coords
 
-**Let’s now look at the ground truth `y`.**
+**Let's now look at the ground truth `y`.**
 
 We will look at image 7.
 
@@ -1088,7 +1088,7 @@ torch_gt(ax, ima, anchor_cnr, b_clasi.max(1)[1])
 
 ![4x4 grid cells from final conv layer](/images/pascal_multi_notebook_4_by_4_grid_from_fin_conv_layer.png)
 
-Each of these square boxes, different papers call them different things. The three terms you’ll hear are: anchor boxes, prior boxes, or default boxes. We will stick with the term **anchor boxes**.
+Each of these square boxes, different papers call them different things. The three terms you'll hear are: anchor boxes, prior boxes, or default boxes. We will stick with the term **anchor boxes**.
 
 What we are going to do for this **loss function** is we are going to go through a **matching problem** where we are going to **take every one of these 16 boxes and see which one of these three ground truth objects has the highest amount of overlap with a given square**.
 
@@ -1505,7 +1505,7 @@ def actn_to_bb(actn, anchors):
 
 Binary cross entropy is what we normally use for multi-label classification.
 
-If it has multiple things in it, you cannot use softmax because softmax really encourages just one thing to have the high number. In our case, each anchor box can only have one object associated with it, so it is not for that reason that we are avoiding softmax. It is something else — which is it is possible for an anchor box to have nothing associated with it. There are two ways to handle this idea of "background"; one would be to say background is just a class, so let’s use softmax and just treat background as one of the classes that the softmax could predict. A lot of people have done it this way. But that is a really hard thing to ask neural network to do—it is basically asking whether this grid cell does not have any of the 20 objects that I am interested with Jaccard overlap of more than 0.5. It is a really hard thing to put into a single computation. On the other hand, what if we just asked for each class; "is it a motorbike?", "is it a bus?", etc and if all the answer is no, consider that background. That is the way we do it here. It is not that we can have multiple true labels, but we can have zero.
+If it has multiple things in it, you cannot use softmax because softmax really encourages just one thing to have the high number. In our case, each anchor box can only have one object associated with it, so it is not for that reason that we are avoiding softmax. It is something else — which is it is possible for an anchor box to have nothing associated with it. There are two ways to handle this idea of "background"; one would be to say background is just a class, so let's use softmax and just treat background as one of the classes that the softmax could predict. A lot of people have done it this way. But that is a really hard thing to ask neural network to do—it is basically asking whether this grid cell does not have any of the 20 objects that I am interested with Jaccard overlap of more than 0.5. It is a really hard thing to put into a single computation. On the other hand, what if we just asked for each class; "is it a motorbike?", "is it a bus?", etc and if all the answer is no, consider that background. That is the way we do it here. It is not that we can have multiple true labels, but we can have zero.
 
 ```Python
 class BCE_Loss(nn.Module):
@@ -1538,7 +1538,7 @@ class BCE_Loss(nn.Module):
 
 This is a minor tweak, but it is the kind of minor tweak that Jeremy wants you to think about and understand because it makes a really big difference to your training and when there is some increment over a previous paper, it would be something like this [01:08:25]. It is important to understand what this is doing and more importantly why.
 
-Now all it’s left is SSD loss function.
+Now all it's left is SSD loss function.
 
 ```Python
 def ssd_1_loss(b_c, b_bb, bbox, clas, print_it=False):
@@ -1570,7 +1570,7 @@ The `ssd_loss` function which is what we set as the criteria, it loops through e
 
 `ssd_1_loss` is where it is all happening. It begins by de-structuring `bbox` and `clas`.
 
-Let’s take a closer look at `get_y`.
+Let's take a closer look at `get_y`.
 
 ```Python
 def get_y(bbox, clas):
@@ -1579,7 +1579,7 @@ def get_y(bbox, clas):
     return bbox[bb_keep], clas[bb_keep]
 ```
 
-A lot of code you find on the Internet does not work with mini-batches. It only does one thing at a time which we don’t want. In this case, all these functions (`get_y`, `actn_to_bb`, `map_to_ground_truth`) is working on, not exactly a mini-batch at a time, but a whole bunch of ground truth objects at a time. The data loader is being fed a mini-batch at a time to do the convolutional layers.
+A lot of code you find on the Internet does not work with mini-batches. It only does one thing at a time which we don't want. In this case, all these functions (`get_y`, `actn_to_bb`, `map_to_ground_truth`) is working on, not exactly a mini-batch at a time, but a whole bunch of ground truth objects at a time. The data loader is being fed a mini-batch at a time to do the convolutional layers.
 
 Because we can have _different numbers of ground truth objects in each image_ but a tensor has to be the strict rectangular shape, fastai automatically pads it with zeros (any target values that are shorter). This was something that was added recently and super handy, but that does mean that you then have to make sure that you get rid of those zeros. So `get_y` gets rid of any of the bounding boxes that are just padding.
 
@@ -1753,7 +1753,7 @@ plt.tight_layout()
 
 The key thing is this very first picture.
 
-The actual contribution of this paper is to add `(1 − pt)^γ` to the start of the equation [01:45:06] which sounds like nothing but actually people have been trying to figure out this problem for years. When you come across a paper like this which is game-changing, you shouldn’t assume you are going to have to write thousands of lines of code. Very often it is one line of code, or the change of a single constant, or adding log to a single place.
+The actual contribution of this paper is to add `(1 − pt)^γ` to the start of the equation [01:45:06] which sounds like nothing but actually people have been trying to figure out this problem for years. When you come across a paper like this which is game-changing, you shouldn't assume you are going to have to write thousands of lines of code. Very often it is one line of code, or the change of a single constant, or adding log to a single place.
 
 ##### Implementing Focal Loss
 
@@ -1863,3 +1863,131 @@ This time things are looking quite a bit better.
 
 So our last step, for now, is to basically figure out how to pull out just the interesting ones.
 
+#### Non Maximum Suppression (NMS)
+
+All we are going to do is we are going to go through every pair of these bounding boxes and if they overlap by more than some amount, say 0.5, using Jaccard and they are both predicting the same class, we are going to assume they are the same thing and we are going to pick the one with higher `p` value.
+
+```Python
+def nms(boxes, scores, overlap=0.5, top_k=100):
+    keep = scores.new(scores.size(0)).zero_().long()
+    if boxes.numel() == 0:
+        return keep
+    x1 = boxes[:, 0]
+    y1 = boxes[:, 1]
+    x2 = boxes[:, 2]
+    y2 = boxes[:, 3]
+    area = torch.mul(x2 - x1, y2 - y1)
+    v, idx = scores.sort(0)  # sort in ascending order
+    idx = idx[-top_k:]  # indices of the top-k largest vals
+    xx1 = boxes.new()
+    yy1 = boxes.new()
+    xx2 = boxes.new()
+    yy2 = boxes.new()
+    w = boxes.new()
+    h = boxes.new()
+
+    count = 0
+    while idx.numel() > 0:
+        i = idx[-1]  # index of current largest val
+        keep[count] = i
+        count += 1
+        if idx.size(0) == 1:
+            break
+        idx = idx[:-1]  # remove kept element from view
+        # load bboxes of next highest vals
+        torch.index_select(x1, 0, idx, out=xx1)
+        torch.index_select(y1, 0, idx, out=yy1)
+        torch.index_select(x2, 0, idx, out=xx2)
+        torch.index_select(y2, 0, idx, out=yy2)
+        # store element-wise max with next highest score
+        xx1 = torch.clamp(xx1, min=x1[i])
+        yy1 = torch.clamp(yy1, min=y1[i])
+        xx2 = torch.clamp(xx2, max=x2[i])
+        yy2 = torch.clamp(yy2, max=y2[i])
+        w.resize_as_(xx2)
+        h.resize_as_(yy2)
+        w = xx2 - xx1
+        h = yy2 - yy1
+        # check sizes of xx1 and xx2.. after each iteration
+        w = torch.clamp(w, min=0.0)
+        h = torch.clamp(h, min=0.0)
+        inter = w * h
+        # IoU = i / (area(a) + area(b) - i)
+        rem_areas = torch.index_select(area, 0, idx)  # load remaining areas)
+        union = (rem_areas - inter) + area[i]
+        IoU = inter / union  # store result in iou
+        # keep only elements with an IoU <= overlap
+        idx = idx[IoU.le(overlap)]
+    return keep, count
+
+def show_nmf(idx):
+    ima = md.val_ds.ds.denorm(x)[idx]
+    bbox, clas = get_y(y[0][idx], y[1][idx])
+    a_ic = actn_to_bb(b_bb[idx], anchors)
+    clas_pr, clas_ids = b_clas[idx].max(1)
+    clas_pr = clas_pr.sigmoid()
+    
+    conf_scores = b_clas[idx].sigmoid().t().data
+    
+    out1, out2, cc = [], [], []
+    
+    for cl in range(0, len(conf_scores) - 1):
+        c_mask = conf_scores[cl] > 0.25
+        if c_mask.sum() == 0:
+            continue
+        scores = conf_scores[cl][c_mask]
+        l_mask = c_mask.unsqueeze(1).expand_as(a_ic)
+        boxes = a_ic[l_mask].view(-1, 4)
+        ids, count = nms(boxes.data, scores, 0.4, 50)
+        ids = ids[:count]
+        out1.append(scores[ids])
+        out2.append(boxes.data[ids])
+        cc.append([cl] * count)
+    cc = T(np.concatenate(cc))
+    out1 = torch.cat(out1)
+    out2 = torch.cat(out2)
+    
+    fig, ax = plt.subplots(figsize=(8, 8))
+    torch_gt(ax, ima, out2, cc, out1, 0.1)
+
+for i in range(12):
+    show_nmf(i)    
+```
+
+![Full model result - image 1](/images/pascal_multi_notebook_full_model_res_01.png)
+
+![Full model result - image 2](/images/pascal_multi_notebook_full_model_res_02.png)
+
+![Full model result - image 3](/images/pascal_multi_notebook_full_model_res_03.png)
+
+![Full model result - image 4](/images/pascal_multi_notebook_full_model_res_04.png)
+
+![Full model result - image 5](/images/pascal_multi_notebook_full_model_res_05.png)
+
+![Full model result - image 6](/images/pascal_multi_notebook_full_model_res_06.png)
+
+![Full model result - image 7](/images/pascal_multi_notebook_full_model_res_07.png)
+
+![Full model result - image 8](/images/pascal_multi_notebook_full_model_res_08.png)
+
+![Full model result - image 9](/images/pascal_multi_notebook_full_model_res_09.png)
+
+![Full model result - image 10](/images/pascal_multi_notebook_full_model_res_10.png)
+
+There are some things still to fix here. The trick will be to use something called **feature pyramid**. That is what we are going to do in lesson 14.
+
+#### Talking a little more about SSD paper [01:54:03]
+
+When this paper came out, Jeremy was excited because this and YOLO were the first kind of single-pass good quality object detection method that come along. There has been this continuous repetition of history in the deep learning world which is things that involve multiple passes of multiple different pieces, over time, particularly where they involve some non-deep learning pieces (like R-CNN did), over time, they always get turned into a single end-to-end deep learning model. So I tend to ignore them until that happens because that's the point where people have figured out how to show this as a deep learning model, as soon as they do that they generally end up something much faster and much more accurate. So SSD and YOLO were really important.
+
+The model is 4 paragraphs. Papers are really concise which means you need to read them pretty carefully. Partly, though, you need to know which bits to read carefully. The bits where they say “here we are going to prove the error bounds on this model,” you could ignore that because you don't care about proving error bounds. But the bit which says here is what the model is, you need to read real carefully.
+
+Jeremy reads a section **2.1 Model** [01:56:37]
+
+If you jump straight in and read a paper like this, these 4 paragraphs would probably make no sense. But now that we've gone through it, you read those and hopefully thinking “oh that's just what Jeremy said, only they sad it better than Jeremy and less words [02:00:37]. If you start to read a paper and go “what the heck”, the trick is to then start reading back over the citations.
+
+Jeremy reads **Matching strategy** and **Training objective** (a.k.a. Loss function)[02:01:44]
+
+### Closing
+
+This week, we go through the code and go through the paper and see what is going on. Remember what Jeremy did to make it easier for you was he took that loss function, he copied it into a cell and split it up so that each bit was in a separate cell. Then after every sell, he printed or plotted that value. Hopefully this is a good starting point.
