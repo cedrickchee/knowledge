@@ -39,11 +39,40 @@ _These are my personal notes from fast.ai course and will continue to be updated
 
 #### Blog Posts and Articles
 
-* [Understanding SSD MultiBox — Real-Time Object Detection In Deep Learning](https://towardsdatascience.com/understanding-ssd-multibox-real-time-object-detection-in-deep-learning-495ef744fab)
+* Optional reading
+  * [Understanding SSD MultiBox — Real-Time Object Detection In Deep Learning](https://towardsdatascience.com/understanding-ssd-multibox-real-time-object-detection-in-deep-learning-495ef744fab)
+  * [Deep Learning for Object Detection: A Comprehensive Review](https://towardsdatascience.com/deep-learning-for-object-detection-a-comprehensive-review-73930816d8d9)
+  * [The effective receptive field on CNNs](http://blog.christianperone.com/2017/11/the-effective-receptive-field-on-cnns/)
+  * [The Modern History of Object Recognition — Infographic](https://medium.com/@nikasa1889/the-modern-history-of-object-recognition-infographic-aea18517c318)
 
 #### Other Useful Information
 
-* [Understanding Anchors](https://docs.google.com/spreadsheets/d/1ci7KMggF-_4kv8zRTE0B_u7z-mbrKEzgvqXXKy4-KYQ/edit#gid=0)
+* [Understanding Anchors](https://docs.google.com/spreadsheets/d/1ci7KMggF-_4kv8zRTE0B_u7z-mbrKEzgvqXXKy4-KYQ/edit#gid=0) by fast.ai's fellow, Hiromi Suenaga
+* [A guide to receptive field arithmetic for CNNs](https://medium.com/mlreview/a-guide-to-receptive-field-arithmetic-for-convolutional-neural-networks-e0f514068807)
+* [Convolution arithmetic tutorial](http://deeplearning.net/software/theano/tutorial/conv_arithmetic.html)
+* Stanford CS231n videos:
+  * [Summer 2016, Lesson 8 - Localization and Detection](https://youtu.be/GxZrEKZfW2o)
+  * [Winter 2017, Lesson 11 - Detection and Segmentation](https://youtu.be/nDPWywWRIRo)
+* Coursera's deeplearning.ai course videos:
+  * [Object Detection](https://www.youtube.com/watch?v=UBTRCUJEZww&index=25&list=PLBAGcD3siRDjBU8sKRk0zX9pMz9qeVxud)
+  * [Bounding Box Predictions](https://www.youtube.com/watch?v=DFjHkXhkYzA&index=27&list=PLBAGcD3siRDjBU8sKRk0zX9pMz9qeVxud)
+  * [Intersection Over Union](https://www.youtube.com/watch?v=DNEm4fJ-rto&index=28&list=PLBAGcD3siRDjBU8sKRk0zX9pMz9qeVxud)
+  * [Non-Max Suppression (NMS)](https://www.youtube.com/watch?v=A46HZGR5fMw&index=29&list=PLBAGcD3siRDjBU8sKRk0zX9pMz9qeVxud)
+  * [Anchor Boxes](https://www.youtube.com/watch?v=Pf7iFeRPYK8&index=30&list=PLBAGcD3siRDjBU8sKRk0zX9pMz9qeVxudd)
+  * [YOLO Algorithm](https://www.youtube.com/watch?v=YQYtgzOf9g4&index=31&list=PLBAGcD3siRDjBU8sKRk0zX9pMz9qeVxud)
+* Other videos:
+  * [YOLO CVPR 2016 talk](https://youtu.be/NM6lrxy0bxs) -- the idea of using grid cells and treating detection as a regression problem is focused on in more detail.
+  * [YOLOv2 talk](https://www.youtube.com/watch?v=GBu2jofRJtk&t=4s) -- there is some good information in this talk, although some drawn explanations are omitted from the video. What I found interesting was the bit on learning anchor boxes from the dataset. There's also the crossover with NLP at the end.
+  * [Focal Loss ICCV17 talk](https://youtu.be/44tlnmmt3h0)
+
+#### Frequently Sought Pieces of Information in the Wiki Thread
+
+* [Visualization of SSD_MultiHead](http://forums.fast.ai/t/part-2-lesson-9-in-class/14028/375) by Chloe Sultan (@chloews)
+* [Why in the `BCE_Loss` we add a column for the background (bg) class and then chop it off?](http://forums.fast.ai/t/part-2-lesson-9-in-class/14028/363)
+
+### Useful Tools and Libraries
+
+* [Receptive Field Calculator](http://fomoro.com/tools/receptive-fields/)
 
 ## My Notes
 
