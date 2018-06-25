@@ -89,13 +89,24 @@ So you suddenly realize with this idea of a backbone plus a custom head, you can
 
 ### ([0:16:40](https://youtu.be/h5Tz7gZT9Fo?t=16m40s)) Introducing fastai.text
 
-_WIP_
+We've moved from torchtext to fastai.text.
+
+For NLP, last part, we relied on a library called torchtext but as good as it was, Jeremy have since then found the limitation of it too problematic to keep using it.
+
+- Very slow. No parrallel processing.
+- Doesn't remember what you did last time and it does it all over again from scratch.
+- Hard to do fairly simple things (like multi-label problem).
+- Somewhat convoluted API.
+
+To fix all these problems, we've created a new library called fastai.text. Fastai.text is a replacement for the combination of torchtext and fastai.nlp. So don't use fastai.nlp anymore — that's obsolete. It's slower, it's more confusing, it's less good in every way, but there's a lot of overlaps. Intentionally, a lot of the classes and functions have the same names, but this is the non-torchtext version.
 
 ### IMDB
 
 #### ([0:20:30](https://youtu.be/h5Tz7gZT9Fo?t=16m40s)) IMDB with fastai.text
 
-_WIP_
+[imdb.ipynb](https://nbviewer.jupyter.org/github/fastai/fastai/blob/master/courses/dl2/imdb.ipynb)
+
+We will work with IMDb again. For those of you who have forgotten, go back and checkout [lesson 4](https://medium.com/@hiromi_suenaga/deep-learning-2-part-1-lesson-4-2048a26d58aa). This is a dataset of movie reviews.
 
 #### ([0:23:10](https://youtu.be/h5Tz7gZT9Fo?t=23m10s)) The standard format of text classification dataset
 
