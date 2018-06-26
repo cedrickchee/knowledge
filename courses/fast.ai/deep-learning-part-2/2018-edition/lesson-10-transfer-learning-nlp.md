@@ -63,7 +63,7 @@ What Chloe's done here is she's focused particularly on the dimensions of the te
   - Not enough people are reading papers! What we are doing in class now is implementing papers, the papers are the real ground truth. And I think you know from talking to people a lot of the reason people aren't reading paper is because a lot of people don't think they are capable of reading papers. They don't think they are the kind of people that read papers, but you are. You are here. We started looking at a paper last week and we read the words that were in English and we largely understood them. If you look at the picture above carefully, you’ll realize `SSD_MultiHead.forward` is not doing the same. You might then wonder if this is better. My answer is probably. Because `SSD_MultiHead.forward` was the first thing I tried just to get something out there. Between this and YOLO v3 paper, they are probably much better ways.
   - One thing you'll notice in particular they use a smaller `k` but they have a lot more sets of grids 1x1, 3x3, 5x5, 10x10, 19x19, 38x38 — 8732 per class. A lot more than we had, so that'll be an interesting thing to experiment with.
   - Another thing I noticed is that we had 4x4, 2x2, 1c1 which means there are a lot of overlap — every set fits within every other set. In this case where you've got 1, 3, 5, you don't have that overlap. So it might actually make it easier to learn.
-  
+
     :memo: There's lots of interesting you can play with.
 - Match the equations to the code.
   - :bookmark: Perhaps most important thing I would recommend is to put the code and the equations next to each other. You are either math person or code person. By having them side by side, you will learn a little bit of the other.
@@ -107,6 +107,41 @@ To fix all these problems, we've created a new library called fastai.text. Fasta
 [imdb.ipynb](https://nbviewer.jupyter.org/github/fastai/fastai/blob/master/courses/dl2/imdb.ipynb)
 
 We will work with IMDb again. For those of you who have forgotten, go back and checkout [lesson 4](https://medium.com/@hiromi_suenaga/deep-learning-2-part-1-lesson-4-2048a26d58aa). This is a dataset of movie reviews.
+
+> Quick review of lesson 4 NLP `bptt` concept
+>
+> ```Python
+> bptt = 2
+>
+> Example of text data: 'a b c d e f g h i j k l m n o p q r s t u v w x'
+>
+> Tokenized: [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24]
+>
+> Split into 8:
+> [1 2 3], [4 5 6],  [7 8 9], [10 11 12], [13 14 15], [16 17 18], [19 20 21], [22 23 24]
+>
+> Stack and transpose:
+>
+> a d g j m p s v
+> b e h k n q t v
+> c f i l o r u x
+>
+> Transpose vectors:
+> [1  [4  [7  [10  [13  [16  [19  [22
+>  2   5   8   11   14   17   20   23
+>  3]  6]  9]  12]  15]  18]  21]  24]
+>
+> Stack vectors:
+> [1  4  7  10  13  16  19  22
+>  2  5  8  11  14  17  20  23
+>  3  6  9  12  15  18  21  24]
+> Result
+> matrix with dimension (3 x 8)
+>
+> # We then grab a little chunk at time and those chunk lengths are approximately equal to `BPTT`. Here, we grab a little `2` long section and that is the first thing we chuck into our GPU (i.e. the batch).
+>
+> # The first 3 chunks looks like: [1 2], [3 4], [5 6], ...
+> ```
 
 #### ([0:23:10](https://youtu.be/h5Tz7gZT9Fo?t=23m10s)) The standard format of text classification dataset
 
