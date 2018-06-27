@@ -100,6 +100,11 @@ For NLP, last part, we relied on a library called torchtext but as good as it wa
 
 To fix all these problems, we've created a new library called fastai.text. Fastai.text is a replacement for the combination of torchtext and fastai.nlp. So don't use fastai.nlp anymore — that's obsolete. It's slower, it's more confusing, it's less good in every way, but there's a lot of overlaps. Intentionally, a lot of the classes and functions have the same names, but this is the non-torchtext version.
 
+```Python
+from fastai.text import *
+import html
+```
+
 ### IMDB
 
 #### ([0:20:30](https://youtu.be/h5Tz7gZT9Fo?t=16m40s)) IMDB with fastai.text
@@ -142,6 +147,50 @@ We will work with IMDb again. For those of you who have forgotten, go back and c
 >
 > # The first 3 chunks looks like: [1 2], [3 4], [5 6], ...
 > ```
+
+##### Dataset
+
+We need to download the IMDB large movie reviews from this site: http://ai.stanford.edu/~amaas/data/sentiment/
+Direct link : [link](http://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz) and `untar` it into the `PATH` location. We use `pathlib` which makes directory traveral a breeze.
+
+```bash
+%cd data
+!aria2c --file-allocation=none -c -x 5 -s 5 http://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz
+
+[#6acf06 79MiB/80MiB(99%) CN:1 DL:14MiB]
+06/26 15:59:49 [NOTICE] Download complete: /home/ubuntu/data/aclImdb_v1.tar.gz
+
+Download Results:
+gid   |stat|avg speed  |path/URI
+======+====+===========+=======================================================
+6acf06|OK  |    14MiB/s|/home/ubuntu/data/aclImdb_v1.tar.gz
+
+Status Legend:
+(OK):download completed.
+
+!tar -zxf aclImdb_v1.tar.gz
+%cd ..
+```
+
+Initial setup:
+
+```Python
+PATH = Path('data/aclImdb/')
+
+BOS = 'xbos'  # beginning-of-sentence tag
+FLD = 'xfld'  # data field tag
+
+!ls -lah {PATH}
+
+total 1.7M
+drwxr-xr-x 4 ubuntu ubuntu 4.0K Jun 26  2011 .
+drwxrwxr-x 8 ubuntu ubuntu 4.0K Jun 26 16:17 ..
+-rw-r--r-- 1 ubuntu ubuntu 882K Jun 11  2011 imdbEr.txt
+-rw-r--r-- 1 ubuntu ubuntu 827K Apr 12  2011 imdb.vocab
+-rw-r--r-- 1 ubuntu ubuntu 4.0K Jun 26  2011 README
+drwxr-xr-x 4 ubuntu ubuntu 4.0K Jun 26 16:02 test
+drwxr-xr-x 5 ubuntu ubuntu 4.0K Jun 26 16:02 train
+```
 
 #### ([0:23:10](https://youtu.be/h5Tz7gZT9Fo?t=23m10s)) The standard format of text classification dataset
 
