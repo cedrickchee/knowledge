@@ -472,11 +472,145 @@ Here is an example of some of the vocabulary [00:38:28]. The `Counter` class in 
 
 :bookmark: Time permitting, we may look at some work Jeremy has been doing recently on handling larger vocabularies, otherwise that might have to come in a future course. But actually for classification, doing more than about 60,000 words doesn't seem to help anyway.
 
-### Pre-trained Language Model - Pre-Training
+```python
+freq = Counter(p for o in tok_trn for p in o)
+freq.most_common(25)
 
-#### ([0:42:16](https://youtu.be/h5Tz7gZT9Fo?t=42m16s)) Pre-trained language model
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+[('the', 887988),
+ ('.', 728554),
+ (',', 723734),
+ ('and', 431261),
+ ('a', 428883),
+ ('of', 385045),
+ ('to', 356708),
+ ('is', 289156),
+ ('it', 250838),
+ ('in', 247829),
+ ('i', 226869),
+ ('this', 198753),
+ ('that', 192237),
+ ('"', 175326),
+ ("'s", 162388),
+ ('-', 137672),
+ ('was', 132132),
+ ('\n\n', 131699),
+ ('as', 122074),
+ ('with', 117296),
+ ('for', 117044),
+ ('movie', 115864),
+ ('but', 110438),
+ ('film', 105423),
+ ('you', 91306)]
+```
+So we are going to limit our vocabulary to 60,000 words, things that appear at least twice [00:39:33]. Here is a simple way to do that. Use `.most_common`, pass in the max vocab size. That'll sort it by the frequency and if it appears less often than a minimum frequency, then don't bother with it at all. That gives us `itos` — that's the same name that torchtext used and it means integer-to-string. This is just the list of unique tokens in the vocab. We'll insert two more tokens — a vocab item for unknown (`_unk_`) and a vocab item for padding (`_pad_`).
 
-_WIP_
+```python
+max_vocab = 60000
+min_freq = 2
+
+itos = [o for o, c in freq.most_common(max_vocab) if c > min_freq]
+itos.insert(0, '_pad_')
+itos.insert(0, '_unk_')
+```
+
+We can then create the dictionary which goes in the opposite direction (string to integer)[00:40:19]. That won't cover everything because we intentionally truncated it down to 60,000 words. If we come across something that is not in the dictionary, we want to replace it with zero for unknown so we can use `defaultdict` with a lambda function that always returns zero.
+
+```python
+stoi = collections.defaultdict(lambda: 0, { v: k for k, v in enumerate(itos) })
+len(itos)
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+59901
+```
+
+So now we have our `stoi` dictionary defined, we can then call that for every word for every sentence [00:40:50].
+
+```python
+trn_lm = np.array([ [stoi[o] for o in p] for p in tok_trn ])
+val_lm = np.array([ [stoi[o] for o in p] for p in tok_val ])
+```
+
+Here is our numericalized version:
+
+```python
+' '.join(str(o) for o in trn_lm[0])
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+'40 41 42 39 15 2803 8 38 868 15 18 37 7 2 107 125 12 231 20 6 521 3 10 18 100 37 7 2 107 31 1913 6523 14 12 4765 3 12 84 29 129 2 23 11 171 4 51 4193 12 882 8 1316 2 1920 11 5 124 10 3 1361 3 2 78 9 20 939 166 20 10 18 2 107 74 12 231 10 3 12 121 166 14 12 257 948 12 77 145 46187 2 1199 14 33 17067 11 2 23 3 30 545 17 11832 4 2 1080 7 2088 4 5 2 130 7 947 27 10 9 6 15 624 15 23 4 8 38 271 4 24 10 16 37 14 26 259 418 22 171 4 282 61 26 83 10 20 6 521 3'
+```
+
+Of course, the nice thing is we can save that step as well. Each time we get to another step, we can save it. These are not very big files compared to what you are used with images. Text is generally pretty small.
+
+Very important to also save that vocabulary (`itos`). The list of numbers means nothing unless you know what each number refers to, and that's what `itos` tells you.
+
+```python
+np.save(LM_PATH / 'tmp' / 'trn_ids.npy', trn_lm)
+np.save(LM_PATH / 'tmp' / 'val_ids.npy', val_lm)
+pickle.dump(itos, open(LM_PATH / 'tmp' / 'itos.pkl', 'wb'))
+```
+
+So you save those three things, and later on you can load them back up.
+
+```python
+trn_lm = np.load(LM_PATH / 'tmp' / 'trn_ids.npy')
+val_lm = np.load(LM_PATH / 'tmp' / 'val_ids.npy')
+itos = pickle.load(open(LM_PATH / 'tmp' / 'itos.pkl', 'rb'))
+```
+
+Now our vocab size is 60,002 and our training language model has 66,000 documents in it.
+
+```python
+vs = len(itos)
+vs, len(trn_lm)
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+(60002, 66000)
+```
+
+That's the preprocessing you do [00:42:01]. We can probably wrap a little bit more of that in utility functions if we want to but it's all pretty straight forward and that exact code will work for any dataset you have once you've got it in that CSV format.
+
+### ([0:42:16](https://youtu.be/h5Tz7gZT9Fo?t=42m16s)) Pre-Training
+
+Instead of pre-training on ImageNet, for NLP we can pre-train on a large subset of Wikipedia.
+
+Here is kind of a new insight that's not new at all which is that we'd like to pre-train something. We know from lesson 4 that if we pre-train our classifier by first creating a language model and then fine-tuning that as a classifier, that was helpful. It actually got us a new state-of-the-art result — we got the best IMDb classifier result that had been published by quite a bit. We are not going that far enough though, because IMDb movie reviews are not that different to any other English document; compared to how different they are to a random string or even to a Chinese document. So just like ImageNet allowed us to train things that recognize stuff that kind of looks like pictures, and we could use it on stuff that was nothing to do with ImageNet like satellite images. Why don't we train a language model that's good at English and then fine-tune it to be good at movie reviews.
+
+So this basic insight led Jeremy to try building a language model on Wikipedia. Stephen Merity has already processed Wikipedia, found a subset of nearly the most of it, but throwing away the stupid little articles leaving bigger articles. He calls that wikitext103. Jeremy grabbed wikitext103 and trained a language model on it. He used exactly the same approach he's about to show you for training an IMDb language model, but instead he trained a wikitext103 language model. He saved it and made it available for anybody who wants to use it at [this URL](http://files.fast.ai/models/wt103/). The idea now is let's train an IMDb language model which starts with these weights. Hopefully to you folks, this is an extremely obvious, extremely non-controversial idea because it's basically what we've done in nearly every class so far. *But when Jeremy first mentioned this to people in the NLP community June or July of last year, there couldn't have been less interest and was told it was stupid* [00:45:03]. Because Jeremy was obstreperous, he ignored them even though they know much more about NLP and tried it anyway. And let's see what happened.
+
+#### ([00:46:11](https://youtu.be/h5Tz7gZT9Fo?t=46m11s)) wikitext103 conversion
+
+Here is how we do it. Grab the wikitext models. If you do `wget -r`, it will recursively grab the whole directory which has a few things in it.
+
+```python
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #### ([0:47:13](https://youtu.be/h5Tz7gZT9Fo?t=47m13s)) Map IMDb index to wiki text index
 
