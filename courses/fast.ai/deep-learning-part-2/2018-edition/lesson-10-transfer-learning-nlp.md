@@ -564,7 +564,7 @@ val_lm = np.load(LM_PATH / 'tmp' / 'val_ids.npy')
 itos = pickle.load(open(LM_PATH / 'tmp' / 'itos.pkl', 'rb'))
 ```
 
-Now our vocab size is 60,002 and our training language model has 66,000 documents in it.
+Now our vocab size is 60,002 and our training language model has 90,000 documents in it.
 
 ```python
 vs = len(itos)
@@ -573,7 +573,7 @@ vs, len(trn_lm)
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
-(60002, 66000)
+(60002, 90000)
 ```
 
 That's the preprocessing you do [00:42:01]. We can probably wrap a little bit more of that in utility functions if we want to but it's all pretty straight forward and that exact code will work for any dataset you have once you've got it in that CSV format.
@@ -584,55 +584,212 @@ Instead of pre-training on ImageNet, for NLP we can pre-train on a large subset 
 
 Here is kind of a new insight that's not new at all which is that we'd like to pre-train something. We know from lesson 4 that if we pre-train our classifier by first creating a language model and then fine-tuning that as a classifier, that was helpful. It actually got us a new state-of-the-art result — we got the best IMDb classifier result that had been published by quite a bit. We are not going that far enough though, because IMDb movie reviews are not that different to any other English document; compared to how different they are to a random string or even to a Chinese document. So just like ImageNet allowed us to train things that recognize stuff that kind of looks like pictures, and we could use it on stuff that was nothing to do with ImageNet like satellite images. Why don't we train a language model that's good at English and then fine-tune it to be good at movie reviews.
 
-So this basic insight led Jeremy to try building a language model on Wikipedia. Stephen Merity has already processed Wikipedia, found a subset of nearly the most of it, but throwing away the stupid little articles leaving bigger articles. He calls that wikitext103. Jeremy grabbed wikitext103 and trained a language model on it. He used exactly the same approach he's about to show you for training an IMDb language model, but instead he trained a wikitext103 language model. He saved it and made it available for anybody who wants to use it at [this URL](http://files.fast.ai/models/wt103/). The idea now is let's train an IMDb language model which starts with these weights. Hopefully to you folks, this is an extremely obvious, extremely non-controversial idea because it's basically what we've done in nearly every class so far. *But when Jeremy first mentioned this to people in the NLP community June or July of last year, there couldn't have been less interest and was told it was stupid* [00:45:03]. Because Jeremy was obstreperous, he ignored them even though they know much more about NLP and tried it anyway. And let's see what happened.
+So this basic insight led Jeremy to try building a language model on Wikipedia. Stephen Merity has already processed Wikipedia, found a subset of nearly the most of it, but throwing away the stupid little articles leaving bigger articles. He calls that WikiText-103. Jeremy grabbed WikiText-103 and trained a language model on it. He used exactly the same approach he's about to show you for training an IMDb language model, but instead he trained a WikiText-103 language model. He saved it and made it available for anybody who wants to use it at [this URL](http://files.fast.ai/models/wt103/). The idea now is let's train an IMDb language model which starts with these weights. Hopefully to you folks, this is an extremely obvious, extremely non-controversial idea because it's basically what we've done in nearly every class so far. *But when Jeremy first mentioned this to people in the NLP community June or July of last year, there couldn't have been less interest and was told it was stupid* [00:45:03]. Because Jeremy was obstreperous, he ignored them even though they know much more about NLP and tried it anyway. And let's see what happened.
 
-#### ([00:46:11](https://youtu.be/h5Tz7gZT9Fo?t=46m11s)) wikitext103 conversion
+#### ([00:46:11](https://youtu.be/h5Tz7gZT9Fo?t=46m11s)) WikiText-103 conversion
 
-Here is how we do it. Grab the wikitext models. If you do `wget -r`, it will recursively grab the whole directory which has a few things in it.
+We are now going to build an English language model (LM) for the IMDb corpus. We could start from scratch and try to learn the structure of the English language. But we use a technique called transfer learning to make this process easier. In transfer learning (a fairly recent idea for NLP) a pre-trained LM that has been trained on a large generic corpus(_like wikipedia articles_) can be used to transfer it's knowledge to a target LM and the weights can be fine-tuned.
+
+Our source LM is the WikiText-103 LM created by Stephen Merity at Salesforce research: [link to dataset](https://www.salesforce.com/products/einstein/ai-research/the-wikitext-dependency-language-modeling-dataset/). The language model for WikiText-103 (AWD LSTM) has been pre-trained and the weights can be downloaded here: [Link](http://files.fast.ai/models/wt103/). Our target LM is the IMDb LM.
+
+Here is how we do it. Grab the WikiText models. If you do `wget -r`, it will recursively grab the whole directory which has a few things in it.
 
 ```python
+# wget options:
+# -nH don't create host directories
+# -r specify recursive download
+# -np don't ascend to the parent directory
+# -P get all images, etc. needed to display HTML page
+!wget -nH -r -np -P {PATH} http://files.fast.ai/models/wt103/
 
+... ... ...
+... ... ...
+
+--2018-06-28 04:49:17--  http://files.fast.ai/models/wt103/bwd_wt103.h5
+Reusing existing connection to files.fast.ai:80.
+HTTP request sent, awaiting response... 200 OK
+Length: 462387687 (441M) [text/plain]
+Saving to: ‘data/aclImdb/models/wt103/bwd_wt103.h5'
+
+models/wt103/bwd_wt 100%[===================>] 440.97M  7.69MB/s    in 59s
+
+2018-06-28 04:50:16 (7.45 MB/s) - ‘data/aclImdb/models/wt103/bwd_wt103.h5' saved [462387687/462387687]
+
+... ... ...
+... ... ...
+
+FINISHED --2018-06-28 04:53:14--
+Total wall clock time: 4m 0s
+Downloaded: 14 files, 1.7G in 3m 56s (7.50 MB/s)
+
+!ls -lh {PATH}/models/wt103/*.h5
+
+-rw-rw-r-- 1 ubuntu ubuntu 441M Mar 29 00:31 data/aclImdb/models/wt103/bwd_wt103_enc.h5
+-rw-rw-r-- 1 ubuntu ubuntu 441M Mar 29 00:34 data/aclImdb/models/wt103/bwd_wt103.h5
+-rw-rw-r-- 1 ubuntu ubuntu 441M Mar 29 00:36 data/aclImdb/models/wt103/fwd_wt103_enc.h5
+-rw-rw-r-- 1 ubuntu ubuntu 441M Mar 29 00:39 data/aclImdb/models/wt103/fwd_wt103.h5
 ```
 
+We need to make sure that our language model has exactly the same embedding size, number of hidden, and number of layers as Jeremy's WikiText one did otherwise you can't load the weights in.
 
+```python
+em_sz, nh, nl = 400, 1150, 3
+```
 
+Here are our pre-trained path and our pre-trained language model path.
 
+```python
+PRE_PATH = PATH / 'models' / 'wt103'
+PRE_LM_PATH = PRE_PATH / 'fwd_wt103.h5'
+```
 
+Let's go ahead and `torch.load` in those weights from the forward WikiText-103 model. We don't normally use `torch.load`, but that's the PyTorch way of grabbing a file. It basically gives you a dictionary containing the name of the layer and a tensor/array of those weights.
 
+```python
+wgts = torch.load(PRE_LM_PATH, map_location=lambda storage, loc: storage)
+```
 
+#### ([0:47:13](https://youtu.be/h5Tz7gZT9Fo?t=47m13s)) Map IMDb vocab to WikiText vocab
 
+Now the problem is that WikiText language model was built with a certain vocabulary which was not the same as ours [00:47:14]. Our #40 is not the same as WikiText-103 model's #40. So we need to map one to the other. That's very very simple because luckily Jeremy saved `itos` for the WikiText vocab.
 
+```python
+enc_wgts = to_np(wgts['0.encoder.weight']) # converts np.ndarray from torch.FloatTensor.output shape: (238462, 400)
+row_m = enc_wgts.mean(0) # returns the average of the array elements along axis 0. output shape: (400,)
+```
 
+`row_m = enc_wgts.mean(0)` : We calculate the mean of the layer 0 encoder weights (`0.encoder.weight`). This can be used to assign weights to unknown tokens when we transfer to target IMDb LM.
 
+Here is the list of what each word is for WikiText-103 model, and we can do the same `defaultdict` trick to map it in reverse (string to integer). We'll use -1 to mean that it is not (found) in the WikiText dictionary when we look it up.
 
+```python
+itos2 = pickle.load( (PRE_PATH / 'itos_wt103.pkl').open('rb') )
+stoi2 = collections.defaultdict(lambda: -1, { v: k for k, v in enumerate(itos2) })
+```
 
+So now we can just say our new set of weights is just a whole bunch of zeros with vocab size by embedding size (i.e. we are going to create an embedding matrix) [00:47:57]. We then go through every one of the words in our IMDb vocabulary. We are going to look it up in `stoi2` (string-to-integer for the WikiText-103 vocabulary) and see if it's a word there. If that is a word there, then we won't get the `-1`. So `r` will be greater than or equal to zero, so in that case, we will just set that row of the embedding matrix to the weight which was stored inside the named element `'0.encoder.weight'`. You can look at this dictionary `wgts` and it's pretty obvious what each name corresponds to. It looks very similar to the names that you gave it when you set up your module, so here are the encoder weights.
 
+If we don't find it [00:49:02], we will use the row mean (`row_m`) — in other words, here is the average embedding weight across all of the WikiText-103. So we will end up with an embedding matrix for every word that's in both our vocabulary for IMDb and the WikiText-103 vocab, we will use the WikiText-103 embedding matrix weights; for anything else, we will just use whatever was the average weight from the WikiText-103 embedding matrix.
 
+```python
+new_w = np.zeros((vs, em_sz), dtype=np.float32) # shape: (60002, 400)
 
+for i, w in enumerate(itos):
+    r = stoi2[w]
+    new_w[i] = enc_wgts[r] if r >= 0 else row_m
+```
 
+We will then replace the encoder weights with `new_w` turn into a tensor [00:49:35]. We haven't talked much about **weight tying**, but basically the decoder (the thing that turns the final prediction back into a word) uses exactly the same weights, so we pop it there as well. Then there is a bit of weird thing with how we do embedding dropout that ends up with a whole separate copy of them for a reason that doesn't matter much. So we popped the weights back where they need to go. So this is now a set of torch state which we can load in.
 
+```python
+wgts['0.encoder.weight'] = T(new_w)
+wgts['0.encoder_with_dropout.embed.weight'] = T(np.copy(new_w)) # weird thing with how we do embedding dropout
+wgts['1.decoder.weight'] = T(np.copy(new_w))
+```
 
-#### ([0:47:13](https://youtu.be/h5Tz7gZT9Fo?t=47m13s)) Map IMDb index to wiki text index
+#### ([00:50:18](https://youtu.be/h5Tz7gZT9Fo?t=50m18s)) Language Model
 
-_WIP_
+Now that we have the weights prepared, we are ready to create and start training our new IMDb language PyTorch model!
 
-#### ([0:53:09](https://youtu.be/h5Tz7gZT9Fo?t=53m09s)) fastai documentation project
+Basic approach we are going to use is we are going to concatenate all of the documents together into a single list of tokens of length 24,998,320. That is going to be what we pass in as a training set. So for the language model:
 
-_WIP_
+- We take all our documents and just concatenate them back to back.
+- We are going to be continuously trying to predict what's the next word after these words.
+- We will set up a whole bunch of dropouts.
+- Once we have a model data object, we can grab the model from it, so that's going to give us a learner.
+- Then as per usual, we can call `learner.fit`. We do a single epoch on the last layer just to get that okay. The way it's set up is the last layer is the embedding words because that's obviously the thing that's going to be the most wrong because a lot of those embedding weights didn't even exist in the vocab. So we will train a single epoch of just the embedding weights.
+- Then we'll start doing a few epochs of the full model. How is it looking? In lesson 4, we had the loss of 4.23 after 14 epochs. In this case, we have 4.12 loss after 1 epoch. So by pre-training on WikiText-103, we have a better loss after 1 epoch than the best loss we got for the language model otherwise.
+
+:question: What is the WikiText-103 model? Is it a AWD LSTM again [00:52:41]? Yes, we are about to dig into that. The way I trained it was literally the same lines of code that you see above, but without pre-training it on WikiText-103.
+
+---
+
+#### ([0:53:09](https://youtu.be/h5Tz7gZT9Fo?t=53m09s)) A quick discussion about fastai documentation project
+
+The goal of fastai doc project is to create documentation that makes readers say "wow, that's the most fantastic documentation I've ever read" and we have some specific ideas about how to do that. It's the same kind of idea of top-down, thoughtful, take full advantage of the medium approach, interactive experimental code first that we are all familiar with. If you are interested in getting involved, you can see the basic approach [in the docs directory](https://github.com/fastai/fastai/tree/master/docs). In there, there is, amongst other things, [transforms-tmpl.adoc](https://raw.githubusercontent.com/fastai/fastai/master/docs/transforms-tmpl.adoc). `adoc` is [AsciiDoc](http://asciidoc.org/). AsciiDoc is like markdown but it's like what markdown needs to be to create actual books. A lot of actual books are written in AsciiDoc and it's as easy to use as markdown but there's way more cool stuff you can do with it. [Here](https://raw.githubusercontent.com/fastai/fastai/master/docs/transforms.adoc) is more standard AsciiDoc example. You can do things like inserting a table of contents (`:toc:`). `::` means put a definition list here. `+` means this is a continuation of the previous list item. So there are many super handy features and it is like turbo-charged markdown. So this AsciiDoc creates this HTML and no custom CSS or anything added:
+
+![Sample of rendered fastai doc](/images/imdb_notebook_003.png)
+
+We literally started this project 4 hours ago. So you have a table of contents with hyper links to specific sections. We have cross reference we can click on to jump straight to the cross reference. Each method comes along with its details and so on. To make things even easier, they've created a special template for argument, cross reference, method, etc. The idea is, it will almost be like a book. There will be tables, pictures, video segments, and hyperlink throughout.
+
+You might be wondering what about docstrings. But actually, if you look at the Python standard library and look at the docstring for `re.compile()`, for example, it's a single line. Nearly every docstring in Python is a single line. And Python then does exactly this — they have a website containing the documentation that says "this is what regular expressions are, and this is what you need to know about them, and if you want do them fast, you need to compile, and here is some information about compile" etc. These information is not in the docstring and that's how we are going to do as well — our docstring will be one line unless you need like two sometimes. Everybody is welcome to help contribute to the documentation.
+
+---
 
 #### ([0:58:24](https://youtu.be/h5Tz7gZT9Fo?t=58m24s)) Difference between pre-trained LM and embeddings - word2vec
 
-_WIP_
+:question: How does this compare to word2vec [00:58:31]?
+
+This is actually a great thing for you to spend time thinking about during the week. I'll give you the summary now but it's a very important conceptual difference. The main conceptual difference is "what is word2vec?" Word2vec is a single embedding matrix — each word has a vector and that's it. In other words, it's a single layer from a pre-trained model — specifically that layer is the input layer. Also specifically that pre-trained model is a linear model that is pre-trained on something called a co-occurrence matrix. So we have no particular reason to believe that this model has learned anything much about English language or that it has any particular capabilities because it's just a single linear layer and that's it. What's this WikiText-103 model? It's a language model and it has a 400 dimensional embedding matrix, 3 hidden layers with 1,150 activations per layer, and regularization and all that stuff tied input output matrices — it's basically a state-of-the-art [ASGD Weight-Dropped LSTM (AWD LSTM)](https://openreview.net/forum?id=SyyGPP0TZ). What's the difference between a single layer of a single linear model vs. a three layer recurrent neural network? Everything! They are very different levels of capabilities. So you will see when you try using a pre-trained language model vs. word2vec layer, you'll get very different results for the vast majority of tasks.
+
+:question: What if the NumPy array does not fit in memory? Is it possible to write a PyTorch data loader directly from a large CSV file [01:00:32]?
+
+It almost certainly won't come up, so I'm not going to spend time on it. These things are tiny — they are just integers. Think about how many integers you would need to run out of memories? That's not gonna happen. They don't have to fit in GPU memory, just in your memory. I've actually done another Wikipedia model which I called giga wiki which was on all of Wikipedia and even that easily fits in memory. The reason I'm not using it is because it turned out not to really help very much vs. WikiText-103. I've built a bigger model than anybody else I've found in the academic literature and it fits in memory on a single machine.
 
 #### ([1:01:25](https://youtu.be/h5Tz7gZT9Fo?t=1h1m25s)) The idea behind using average of embeddings for non-equivalent tokens
 
-_WIP_
+:question: What is the idea behind averaging the weights of embeddings [01:01:24]?
 
-### Pre-trained Language Model - Training
+They have to be set to something. These are words that weren't there, so the other option is we could leave them as zero. But that seems like a very extreme thing to do. Zero is a very extreme number. Why would it be zero? We could set it equal to some random numbers, but if so, what would be the mean and standard deviation of those random numbers? Should they be uniform? If we just average the rest of the embeddings, then we have something that's reasonably scaled. Just to clarify, this is how we are initializing words that didn't appear in the training corpus.
 
-#### ([1:02:34](https://youtu.be/h5Tz7gZT9Fo?t=1h2m34s)) Dive into source code of LanguageModelLoader()
+### ([01:02:20](https://youtu.be/h5Tz7gZT9Fo?t=1h2m20s)) Back to Language Model
 
-_WIP_
+This is a ton of stuff we've seen before, but it's changed a little bit. It's actually a lot easier than it was in part 1, but I want to go a little bit deeper into the language model loader.
+
+```python
+wd = 1e-7
+bptt = 70
+bs = 52
+opt_fn = partial(optim.Adam, betas=(0.8, 0.99))
+```
+
+#### ([1:02:34](https://youtu.be/h5Tz7gZT9Fo?t=1h2m34s)) Dive into source code of `LanguageModelLoader()`
+
+This is the `LanguageModelLoader` and I really hope that by now, you've learned in your editor or IDE how to jump to symbols [01:02:37]. I don't want it to be a burden for you to find out what the source code of `LanguageModelLoader` is. If your editor doesn't make it easy, don't use that editor anymore. There's lots of good free editors that make this easy.
+
+So this is the source code for `LanguageModelLoader`, and it's interesting to notice that it's not doing anything particularly tricky. It's not deriving from anything at all. What makes something that's capable of being a data loader is that it's something you can iterate over.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #### ([1:09:55](https://youtu.be/h5Tz7gZT9Fo?t=1h9m55s)) Create a custom Learner and ModelData class
 
