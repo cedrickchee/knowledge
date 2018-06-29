@@ -925,74 +925,201 @@ Varying dropout is really interesting and there are some recent papers that sugg
 
 :question: Am I correct in thinking that this language model is build on word embeddings? Would it be valuable to try this with phrase or sentence embeddings? I ask this because I saw from Google the other day, universal sentence encoder [01:28:45].
 
-This is much better than that. This is not just an embedding of a sentence, this is an entire model. An embedding by definition is like a fixed thing. A sentence or a phase embedding is always a model that creates that. We've got a model that's trying to understand language. It's not just as phrase or as sentence — it's a document in the end, and it's not just an embedding that we are training through the whole thing. This has been a huge problem with NLP for years now is this attachment they have to embeddings. Even the paper that the community has been most excited about recently from AI2 (Allen Institute for Artificial Intelligence) called ELMo — they found much better results across lots of models, but again it was an embedding. They took a fixed model and created a fixed set of numbers which they then fed into a model. But in computer vision, we've known for years that that approach of having fixed set of features, they're called hyper columns in computer vision, people stopped using them like 3 or 4 years ago because fine-tuning the entire model works much better. For those of you that have spent quite a lot of time with NLP and not much time with computer vision, you're going to have to start re-learning. All that stuff you have been told about this idea that there are these things called embeddings and that you learn them ahead of time and then you apply these fixed things whether it be word level or phrase level or whatever level — don't do that. You want to actually create a pre-trained model and fine-tune it end-to-end, then you'll see some specific results.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+This is much better than that. This is not just an embedding of a sentence, this is an entire model. An embedding by definition is like a fixed thing. A sentence or a phrase embedding is always a model that creates that. We've got a model that's trying to understand language. It's not just as phrase or as sentence — it's a document in the end, and it's not just an embedding that we are training through the whole thing. This has been a huge problem with NLP for years now is this attachment they have to embeddings. Even the paper that the community has been most excited about recently from [AI2](http://allenai.org/) (Allen Institute for Artificial Intelligence) called [ELMo ](https://allennlp.org/elmo)— they found much better results across lots of models, but again it was an embedding. They took a fixed model and created a fixed set of numbers which they then fed into a model. But in computer vision, we've known for years that that approach of having fixed set of features, they're called hyper columns in computer vision, people stopped using them like 3 or 4 years ago because fine-tuning the entire model works much better. For those of you that have spent quite a lot of time with NLP and not much time with computer vision, you're going to have to start re-learning. All that stuff you have been told about this idea that there are these things called embeddings and that you learn them ahead of time and then you apply these fixed things whether it be word level or phrase level or whatever level — don't do that. You want to actually create a pre-trained model and fine-tune it end-to-end, then you'll see some specific results.
 
 #### ([1:31:21](https://youtu.be/h5Tz7gZT9Fo?t=1h31m21s)) Accuracy vs cross entropy as a loss function
 
-_WIP_
+:question: For using accuracy instead of perplexity as a metric for the model, could we work that into the loss function rather than just use it as a metric [01:31:21]?
+
+No, you never want to do that whether it be computer vision or NLP or whatever. It's too bumpy. So cross entropy is fine as a loss function. And I'm not saying instead of, I use it in addition to. I think it's good to look at the accuracy and to look at the cross entropy. But for your loss function, you need something nice and smoothy. Accuracy doesn't work very well.
+
+```python
+learner.save('lm1')
+learner.save_encoder('lm1_enc')
+```
+
+#### `save_encoder`
+
+You'll see there are two different versions of save. `save` saves the whole model as per usual. `save_encoder` just saves that bit:
+
+![`rnn_enc` code](/images/imdb_notebook_012.png)
+
+In other words, in the sequential model, it saves just `rnn_enc` and not `LinearDecoder(n_tok, emb_sz, dropout, tie_encoder=enc)` (which is the bit that actually makes it into a language model). We don't care about that bit in the classifier, we just care about `rnn_enc`. That's why we save two different models here.
+
+```python
+learner.sched.plot_loss()
+```
+
+![Training loss](/images/imdb_notebook_013.png)
+
+### ([01:32:31](https://youtu.be/h5Tz7gZT9Fo?t=1h32m31s)) Classifier tokens
+
+Let's now create the classifier. We will go through this pretty quickly because it's the same. But when you go back during the week and look at the code, convince yourself it's the same.
+
+```python
+df_trn = pd.read_csv(CLAS_PATH / 'train.csv', header=None, chunksize=chunksize)
+df_val = pd.read_csv(CLAS_PATH /'test.csv', header=None, chunksize=chunksize)
+
+tok_trn, trn_labels = get_all(df_trn, 1)
+tok_val, val_labels = get_all(df_val, 1)
+
+(CLAS_PATH / 'tmp').mkdir(exist_ok=True)
+
+np.save(CLAS_PATH / 'tmp' / 'tok_trn.npy', tok_trn)
+np.save(CLAS_PATH /'tmp' / 'tok_val.npy', tok_val)
+
+np.save(CLAS_PATH /'tmp' / 'trn_labels.npy', trn_labels)
+np.save(CLAS_PATH /'tmp' / 'val_labels.npy', val_labels)
+
+tok_trn = np.load(CLAS_PATH / 'tmp' / 'tok_trn.npy')
+tok_val = np.load(CLAS_PATH / 'tmp' / 'tok_val.npy')
+```
+
+We don't create a new `itos` vocabulary, we obviously want to use the same vocabulary we had in the language model because we are about to reload the same encoder [01:32:48].
+
+```python
+itos = pickle.load((LM_PATH / 'tmp' / 'itos.pkl').open('rb'))
+stoi = collections.defaultdict(lambda: 0, { v: k for k, v in enumerate(itos) })
+len(itos)
+
+trn_clas = np.array([[stoi[o] for o in p] for p in tok_trn])
+val_clas = np.array([[stoi[o] for o in p] for p in tok_val])
+
+np.save(CLAS_PATH / 'tmp' / 'trn_ids.npy', trn_clas)
+np.save(CLAS_PATH / 'tmp' / 'val_ids.npy', val_clas)
+```
+
+#### Classifier
+
+Now we can create our final model, a classifier which is really a custom linear head over our trained IMDb backbone. The steps to create the classifier model are similar to the ones for the LM.
+
+```python
+trn_clas = np.load(CLAS_PATH / 'tmp' / 'trn_ids.npy')
+val_clas = np.load(CLAS_PATH / 'tmp' / 'val_ids.npy')
+
+trn_labels = np.squeeze(np.load(CLAS_PATH / 'tmp' / 'trn_labels.npy'))
+val_labels = np.squeeze(np.load(CLAS_PATH / 'tmp' / 'val_labels.npy'))
+```
+
+The construction of the model hyper parameters are the same [01:33:16]. We can change the dropout. Pick a batch size that is as big as you can that doesn't run out of memory.
+
+```python
+bptt, em_sz, nh, nl = 70, 400, 1150, 3
+vs = len(itos)
+opt_fn = partial(optim.Adam, betas=(0.8, 0.99))
+bs = 48
+
+min_lbl = trn_labels.min()
+trn_labels -= min_lbl
+val_labels -= min_lbl
+c = int(trn_labels.max()) + 1
+```
 
 #### ([1:33:37](https://youtu.be/h5Tz7gZT9Fo?t=1h33m37s)) Shuffle documents; Sort-ish to save computation
 
-_WIP_
+`TextDataset` ([01:33:37](https://youtu.be/h5Tz7gZT9Fo?t=1h33m37s)) This bit is interesting. There's fun stuff going on here.
+
+```python
+trn_ds = TextDataset(trn_clas, trn_labels)
+val_ds = TextDataset(val_clas, val_labels)
+```
+
+The basic idea here is that for the classifier, we do really want to look at one document. Is this document positive or negative? So we do want to shuffle the documents. But those documents have different lengths and so if we stick them all into one batch (this is a handy thing that fastai does for you) — you can stick things of different lengths into a batch and it will automatically pad them, so you don't have to worry about that. But if they are wildly different lengths, then you're going to be wasting a lot of computation times. If there is one thing that's 2,000 words long and everything else is 50 words long, that means you end up with 2000 wide tensor. That's pretty annoying. So James Bradbury who is one of Stephen Merity's colleagues and the guy who came up with torchtext came up with a neat idea which was "let's sort the dataset by length-ish". So kind of make it so the first things in the list are, on the whole, shorter than the things at the end, but a little bit random as well.
+
+Here is how Jeremy implemented that [01:35:10]. The first thing we need is a Dataset. So we have a Dataset passing in the documents and their labels. Here is `TextDataSet` which inherits from `Dataset` and `Dataset` from PyTorch is also shown below:
+
+![`TextDataset class code`](/images/imdb_notebook_014.png)
+
+Actually `Dataset` doesn't do anything at all [01:35:34]. It says you need `__getitem__` if you don't have one, you're going to get an error. Same is true for `__len__`. So this is an abstract class. To `TextDataset`, we are going to pass in our `x` and `y`, and `__getitem__` will grab `x` and `y`, and return them — it couldn't be much simpler. Optionally,
+
+1. they could reverse it,
+2. stick an end of stream at the end,
+3. stick start of stream at the beginning.
+
+But we are not doing any of those things, so literally all we are doing is putting `x` and `y` and `__getitem__` returns them as a tuple. The length is however long the `x` is. That's all `Dataset` is — something with a length that you can index.
+
+**Turning it to a DataLoader** ([1:36:27](https://youtu.be/h5Tz7gZT9Fo?t=1h36m27s))
+
+```python
+trn_samp = SortishSampler(trn_clas, key=lambda x: len(trn_clas[x]), bs=bs // 2)
+val_samp = SortSampler(val_clas, key=lambda x: len(val_clas[x]))
+
+trn_dl = DataLoader(trn_ds, bs // 2, transpose=True, num_workers=1, pad_idx=1, sampler=trn_samp)
+val_dl = DataLoader(val_ds, bs, transpose=True, num_workers=1, pad_idx=1, sampler=val_samp)
+
+md = ModelData(PATH, trn_dl, val_dl)
+```
+
+To turn it into a DataLoader, you simply pass the `Dataset` to the `DataLoader` constructor, and it's now going to give you a batch of that at a time. Normally you can say shuffle equals true or shuffle equals false, it'll decide whether to randomize it for you. In this case though, we are actually going to pass in a sampler parameter and sampler is a class we are going to define that tells the data loader how to shuffle.
+
+- For validation set, we are going to define something that actually just sorts. It just deterministically sorts it so that all the shortest documents will be at the start, all the longest documents will be at the end, and that's going to minimize the amount of padding.
+- For training sampler, we are going to create this thing called sort-ish sampler which also sorts (ish!)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### Paper ULMFiT (FiTLaM)
 
