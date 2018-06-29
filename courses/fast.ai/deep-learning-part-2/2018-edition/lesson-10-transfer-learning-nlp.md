@@ -749,71 +749,242 @@ This is the `LanguageModelLoader` and I really hope that by now, you've learned 
 
 So this is the source code for `LanguageModelLoader`, and it's interesting to notice that it's not doing anything particularly tricky. It's not deriving from anything at all. What makes something that's capable of being a data loader is that it's something you can iterate over.
 
+![Source code for `LanguageModelLoader`](/images/imdb_notebook_004.png)
 
+Here is the `fit` function inside fastai.model [01:03:41]. This is where everything ends up eventually which goes through each epoch, creates an iterator from the data loader, and then just does a for loop through it. So anything you can do a for loop through can be a data loader. Specifically it needs to return tuples of independent and dependent variables for mini-batches.
 
+![`fit` function source code](/images/imdb_notebook_005.png)
 
+So anything with a `__iter__` method is something that can act as an iterator [01:04:09].
 
+:bookmark: `yield` is a neat little Python keywords you probably should learn about if you don't already know it. But it basically spits out a thing and waits for you to ask for another thing — normally in a for loop or something.
 
+In this case, we start by initializing the language model passing it in the numbers `nums` this is the numericalized long list of all of our documents concatenated together. The first thing we do is to "batchfy" it. This is the thing which quite a few of you got confused about last time. If our batch size is 64 and we have 25 million numbers in our list. We are not creating items of length 64 — we are creating 64 items in total. So each of them is of size `t` divided by 64 which is 390k. So that's what we do here:
 
+`data = data.view(self.bs, -1).t().contiguous()`
 
+We reshape it so that this axis is of length 64 and -1 is everything else (390k blob), and we transpose it. So that means that we now have 64 columns, 390k rows. Then what we do each time we do an iterate is we grab one batch of some sequence length, which is approximately equal to `bptt` (back prop through time) which we set to 70. We just grab that many rows. So from `i` to `i + 70` rows, we try to predict that plus one. Remember, we are trying to predict one past where we are up to.
 
+So we have 64 columns and each of those is 1/64th of our 25 million tokens, and hundreds of thousands long, and we just grab 70 at a time [01:06:29]. So each of those columns, each time we grab it, it's going to kind of hook up to the previous column. That's why we get this consistency. This language model is stateful which is really important.
 
+Pretty much all of the cool stuff in the language model is stolen from Stephen Merity's AWD-LSTM [01:06:59] including this little trick here:
 
+![Snippet from AWD-LSTM code](/images/imdb_notebook_006.png)
 
+If we always grab 70 at a time and then we go back and do a new epoch, we're going to grab exactly the same batches every time — there is no randomness. Normally, we shuffle our data every time we do an epoch or every time we grab some data we grab it at random. You can't do that with a language model because this set has to join up to the previous set because it's trying to learn the sentence. If you suddenly jump somewhere else, that doesn't make any sense as a sentence. So Stephen's idea is to say "okay, since we can't shuffle the order, let's instead randomly change the sequence length". Basically, 95% of the time, we will use `bptt` (i.e. 70) but 5% of the time, we'll use half that. Then he says "you know what, I'm not even going to make that the sequence length, I'm going to create a normally distributed random number with that average and a standard deviation of 5, and I'll make that the sequence length." So the sequence length is seventy-ish and that means every time we go through, we are getting slightly different batches. So we've got that little bit of extra randomness. Jeremy asked Stephen Merity where he came up with this idea, did he think of it? and he said "I think I thought of it, but it seemed so obvious that I bet I didn't think of it" — which is true of every time Jeremy comes up with an idea in deep learning. It always seems so obvious that you just assume somebody else has thought of it. But Jeremy thinks Stephen thought of it.
 
+`LanguageModelLoader` is a nice thing to look at if you are trying to do something a bit unusual with a data loader [01:08:55]. It's a simple role model you can use as to creating a data loader from scratch — something that spits out batches of data.
 
+Our language model loader took in all of the documents concatenated together along with batch size and bptt [01:09:14].
 
+```python
+trn_dl = LanguageModelLoader(np.concatenate(trn_lm), bs, bptt)
+val_dl = LanguageModelLoader(np.concatenate(val_lm), bs, bptt)
+md = LanguageModelData(PATH, 1, vs, trn_dl, val_dl, bs=bs, bptt=bptt)
+```
 
+Now generally speaking, we want to create a learner and the way we normally do that is by getting a model data object and calling some kind of method which have various names but often we call that method `get_model`. The idea is that the model data object has enough information to know what kind of model to give you. So we have to create that model data object which means we need `LanguageModelData` class which is very easy to do [01:09:51].
 
+#### ([1:09:55](https://youtu.be/h5Tz7gZT9Fo?t=1h9m55s)) Create a custom Learner and `ModelData` class
 
+Here are all of the pieces. We are going to create a custom learner, a custom model data class, and a custom model class. So a model data class, again this one doesn't inherit from anything so you really see there's almost nothing to do. You need to tell it most importantly what's your training set (give it a data loader), what's the validation set (give it a data loader), and optionally, give it a test set (data loader), plus anything else that needs to know. It might need to know the bptt, it needs to know number of tokens(i.e. the vocab size), and it needs to know what is the padding index. And so that it can save temporary files and models, model datas as always need to know the path. So we just grab all that stuff and we dump it. That's it. That's the entire initializer. There is no logic there at all.
 
+![Custom model data code](/images/imdb_notebook_007.png)
 
+Then all of the work happens inside `get_model` [01:10:55]. `get_model` calls something we will look at later, which just grabs a normal PyTorch `nn.Module` architecture, and chucks it on GPU. Note: with PyTorch, we would say `.cuda()`, with fastai it's better to say `to_gpu()`, the reason is that if you don't have GPU, it will leave it on the CPU. It also provides a global variable you can set to choose whether it goes on the GPU or not, so it's a better approach. We wrapped the model in a `LanguageModel` and the `LanguageModel` is a subclass of `BasicModel` which almost does nothing except it defines layer groups. Remember when we do discriminative learning rates where different layers have different learning rates or we freeze different amounts, we don't provide a different learning rate for every layer because there can be a thousand layers. We provide a different learning rate for every layer group. So when you create a custom model, you just have to override this one thing which returns a list of all of your layer groups. In this case, the last layer group contains the last part of the model and one bit of dropout. The rest of it (`*` here means pull this apart) so this is going to be one layer per RNN layer. So that's all that is.
 
+Then finally turn that into a learner [01:12:41]. So a learner, you just pass in the model and it turns it into a learner. In this case, we have overridden learner and the only thing we've done is to say I want the default loss function to be cross entropy. This entire set of custom model, custom model data, custom learner all fits on a single screen. They always basically look like this.
 
+The interesting part of this code base is `get_language_model` [01:13:18]. Because that gives us our AWD LSTM. It actually contains the big idea. The big, incredibly simple idea that everybody else here thinks it's really obvious that everybody in the NLP community Jeremy spoke to thought was insane. That is, every model can be thought of as a backbone plus a head, and if you pre-train the backbone and stick on a random head, you can do fine-tuning and that's a good idea.
 
+![The big (simple!) idea slide](/images/imdb_notebook_008.png)
 
+These two bits of code, literally right next to each other, this is all there is inside `fastai.lm_rnn`.
 
+`get_language_model`: Creates an RNN encoder and then creates a sequential model that sticks on top of that — a linear decoder.
 
+`get_rnn_classifier`: Creates an RNN encoder, then a sequential model that sticks on top of that — a pooling linear classifier.
 
+We'll see what these differences are in a moment, but you get the basic idea. They are doing pretty much the same thing. They've got this head and they are sticking on a simple linear layer on top.
 
+:question: There was a question earlier about whether that any of this translates to other languages [01:14:52].
 
+Yes, this whole thing works in any languages. Would you have to retrain your language model on a corpus from that language? Absolutely! So the WikiText-103 pre-trained language model knows English. You could use it maybe as a pre-trained start for like French or German model, start by retraining the embedding layer from scratch might be helpful. Chinese, maybe not so much. But given that a language model can be trained from any unlabeled documents at all, you'll never have to do that. Because almost every language in the world has plenty of documents — you can grab newspapers, web pages, parliamentary records, etc. As long as you have a few thousand documents showing somewhat normal usage of that language, you can create a language model. One of our students tried this approach for Thai and he said the first model he built easily beat the previous state-of-the-art Thai classifier. For those of you that are international fellow, this is an easy way for you to whip out a paper in which you either create the first ever classifier in your language or beat everybody else's classifier in your language. Then you can tell them that you've been a student of deep learning for six months and piss off all the academics in your country. :laughing:
 
+Here is our RNN encoder [01:16:49]. It is a standard `nn.Module`. It looks like there is more going on in it than there actually is, but really all there is is we create an embedding layer, create an LSTM for each layer that's been asked for, that's it. Everything else in it is dropout. Basically all of the interesting stuff (just about) in the AWS LSTM paper is all of the places you can put dropout. Then the forward is basically the same thing. Call the embedding layer, add some dropout, go through each layer, call that RNN layer, append it to our list of outputs, add dropout, that's about it. So it's pretty straight forward.
 
+![Custom RNN encoder code](/images/imdb_notebook_009.png)
 
+:memo: The paper you want to be reading is the AWD LSTM paper which is [Regularizing and Optimizing LSTM Language Models](https://arxiv.org/abs/1708.02182). It's well written, pretty accessible, and entirely implemented inside fastai as well — so you can see all of the code for that paper. A lot of the code actually is shamelessly plagiarized with Stephen's permission from his excellent GitHub repo [AWD LSTM](https://github.com/Smerity/awd-lstm-lm).
 
+The paper refers to other papers. For things like why is it that the encoder weight and the decoder weight are the same. It's because there is this thing called "tie weights". Inside `get_language_model`, there is a thing called `tie_weights` which defaults to true. If it's true, then we literally use the same weight matrix for the encoder and the decoder. They are pointing at the same block of memory. Why is that? What's the result of it? That's one of the citations in Stephen's paper which is also a well written paper you can look up and learn about weight tying.
 
+![Weight Tying code](/images/imdb_notebook_010.png)
 
+We have basically a standard RNN [01:19:52]. The only reason where it's not standard is it has lots more types of dropout in it. In a sequential model on top of the RNN, we stick a linear decoder which is literally half the screen of code. It has a single linear layer, we initialize the weights to some range, we add some dropout, and that's it. So it's a linear layer with dropout.
 
+![Linear Decoder class code](/images/imdb_notebook_011.png)
 
+So the language model is:
 
-
-
-
-
-
-#### ([1:09:55](https://youtu.be/h5Tz7gZT9Fo?t=1h9m55s)) Create a custom Learner and ModelData class
-
-_WIP_
+- RNN :arrow_right: A linear layer with dropout
 
 #### ([1:20:35](https://youtu.be/h5Tz7gZT9Fo?t=1h20m35s)) Guidance to tune dropout in LM
 
-_WIP_
+What dropout you choose matters a lot .Through a lot of experimentation, Jeremy found a bunch of dropouts that tend to work pretty well for language models. But if you have less data for your language model, you'll need more dropout. If you have more data, you can benefit from less dropout. You don't want to regularize more than you have to. Rather than having to tune every one of these five things, Jeremy's claim is they are already pretty good ratios to each other, so just tune this number (`0.7` below), we just multiply it all by something. If you are overfitting, then you'll need to increase the number, if you are underfitting, you'll need to decrease this. Because other than that, these ratio seem pretty good.
 
-#### ([1:21:43](https://youtu.be/h5Tz7gZT9Fo?t=1h21m43s)) The reason to measure accuracy than cross entropy loss in LM
+```python
+drops = np.array([0.25, 0.1, 0.2, 0.02, 0.15]) * 0.7
+```
 
-_WIP_
+We first tune the last embedding layer so that the missing tokens initialized with mean weights get tuned properly. So we freeze everything except the last layer.
+
+We also keep track of the *accuracy* metric.
+
+```python
+learner = md.get_model(opt_fn, em_sz, nh, nl,
+                       dropouti=drops[0], dropout=drops[1], wdrop=drops[2], dropoute=drops[3], dropouth=drops[4])
+
+learner.metrics = [accuracy]
+learner.freeze_to(-1)
+```
+
+#### ([1:21:43](https://youtu.be/h5Tz7gZT9Fo?t=1h21m43s)) Measuring accuracy
+
+One important idea which may seem minor but again it's incredibly controversial is that we should measure accuracy when we look at a language model . Normally for language models, we look at a loss value which is just cross entropy loss but specifically we nearly always take `e` to the power of that which the NLP community calls "perplexity". So perplexity is just `e^(cross entropy)`. There is a lot of problems with comparing things based on cross entropy loss. Not sure if there's time to go into it in detail now, but the basic problem is that it is like that thing we learned about focal loss. Cross entropy loss — if you are right, it wants you to be really confident that you are right. So it really penalizes a model that doesn't say "I'm so sure this is wrong" and it's wrong. Whereas accuracy doesn't care at all about how confident you are — it cares about whether you are right. This is much more often the thing which you care about in real life. The accuracy is how often do we guess the next word correctly and it's a much more stable number to keep track of. So that's a simple little thing that Jeremy does.
+
+```python
+learner.model.load_state_dict(wgts)
+
+lr = 1e-3
+lrs = lr
+
+learner.fit(lrs / 2, 1, wds=wd, use_clr=(32, 2), cycle_len=1)
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss   accuracy
+    0      4.663849   4.442456   0.258212
+
+[array([4.44246]), 0.2582116474118943]
+
+learner.save('lm_last_ft')
+
+learner.load('lm_last_ft')
+
+learner.unfreeze()
+
+learner.lr_find(start_lr=lrs / 10, end_lr=lrs * 10, linear=True)
+
+learner.sched.plot()
+```
+
+We train for a while and we get down to a 3.9 cross entropy loss which is equivalent of ~49.40 perplexity (`e^3.9`) [01:23:14]. To give you a sense of what's happening with language models, if you look at academic papers from about 18 months ago, you'll see them talking about state-of-the-art perplexity of over a hundred. The rate at which our ability to understand language and measuring language model accuracy or perplexity is not a terrible proxy for understanding language. If I can guess what you are going to say next, I need to understand language well and the kind of things you might talk about pretty well. The perplexity number has just come down so much that it's been amazing, and it will come down a lot more. NLP in the last 12–18 months, it really feels like 2011–2012 computer vision. We are starting to understand transfer learning and fine-tuning, and basic models are getting so much better. Everything you thought about what NLP can and can't do is rapidly going out of date. There's still lots of things NLP is not good at to be clear. Just like in 2012, there were lots of stuff computer vision wasn't good at. But it's changing incredibly rapidly and now is a very very good time to be getting very good at NLP or starting startups base on NLP because there is a whole bunch of stuff which computers would absolutely terrible at two years ago and now not quite good as people and then next year, they'll be much better than people.
+
+```python
+learner.fit(lrs, 1, wds=wd, use_clr=(20, 10), cycle_len=15)
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss   accuracy
+    0      4.332359   4.120674   0.289563
+    1      4.247177   4.067932   0.294281
+    2      4.175848   4.027153   0.298062
+    3      4.140306   4.001291   0.300798
+    4      4.112395   3.98392    0.302663
+    5      4.078948   3.971053   0.304059
+    6      4.06956    3.958152   0.305356
+    7      4.025542   3.951509   0.306309
+    8      4.019778   3.94065    0.30756
+    9      4.027846   3.931385   0.308232
+    10     3.98106    3.928427   0.309011
+    11     3.97106    3.920667   0.30989
+    12     3.941096   3.917029   0.310515
+    13     3.924818   3.91302    0.311015
+    14     3.923296   3.908476   0.311586
+
+[3.9084756, 0.3115861900150776]
+```
 
 #### ([1:25:23](https://youtu.be/h5Tz7gZT9Fo?t=1h25m23s)) Guidance of reading paper vs coding
 
-_WIP_
+:question: What is your ratio of paper reading vs. coding in a week [01:25:24]?
 
-#### ([1:28:10](https://youtu.be/h5Tz7gZT9Fo?t=1h28m10s)) Tips to vary dropout for eash layer
+Gosh, what do you think, Rachel? You see me. I mean, it's more coding, right? "It's a lot more coding. I feel like it also really varies from week to week" (Rachel). With that bounding box stuff, there were all these papers and no map through them, so I didn't even know which one to read first and then I'd read the citations and didn't understand any of them. So there was a few weeks of just kind of reading papers before I even know what to start coding. That's unusual though. Anytime I start reading a paper, I'm always convinced that I'm not smart enough to understand it, always, regardless of the paper. And somehow eventually I do. But I try to spend as much time as I can coding.
 
-_WIP_
+Nearly always after I've read a paper [01:26:34], even after I've read the bit that says this is the problem I'm trying to solve, I'll stop there and try to implement something that I think might solve that problem. And then I'll go back and read the paper, and I read little bits about these are how I solve these problem bits, and I'll be like "oh that's a good idea" and then I'll try to implement those. That's why for example, I didn't actually implement SSD. My custom head is not the same as their head. It's because I kind of read the gist of it and then I tried to create something as best as I could, then go back to the papers and try to see why. So by the time I got to the focal loss paper, Rachel will tell you, I was driving myself crazy with how come I can't find small objects? How come it's always predicting background? I read the focal loss paper and I was like "that's why!!" It's so much better when you deeply understand the problem they are trying to solve. I do find the vast majority of the time, by the time I read that bit of the paper which is solving a problem, I'm then like "yeah, but these three ideas I came up with, they didn't try." Then you suddenly realize that you've got new ideas. Or else, if you just implement the paper mindlessly, you tend not to have these insights about better ways to do it.
 
-#### ([1:28:44](https://youtu.be/h5Tz7gZT9Fo?t=1h28m44s)) Difference between pre-trained LM and embeddings - Comparison of NLP and CV
+#### ([1:28:10](https://youtu.be/h5Tz7gZT9Fo?t=1h28m10s)) Tips to vary dropout for each layer
 
-_WIP_
+:question: Is your dropout rate the same through the training or do you adjust it and weights accordingly [01:26:27]?
+
+Varying dropout is really interesting and there are some recent papers that suggest gradually changing dropout [01:28:09]. It was either good idea to gradually make it smaller or gradually make it bigger, I'm not sure which. :bookmark: Maybe one of us can try and find it during the week. I haven't seen it widely used. I tried it a little bit with the most recent paper I wrote and I had some good results. I think I was gradually make it smaller, but I can't remember.
+
+#### ([1:28:44](https://youtu.be/h5Tz7gZT9Fo?t=1h28m44s)) Difference between pre-trained LM and embeddings - Comparison of NLP and Computer Vision
+
+:question: Am I correct in thinking that this language model is build on word embeddings? Would it be valuable to try this with phrase or sentence embeddings? I ask this because I saw from Google the other day, universal sentence encoder [01:28:45].
+
+This is much better than that. This is not just an embedding of a sentence, this is an entire model. An embedding by definition is like a fixed thing. A sentence or a phase embedding is always a model that creates that. We've got a model that's trying to understand language. It's not just as phrase or as sentence — it's a document in the end, and it's not just an embedding that we are training through the whole thing. This has been a huge problem with NLP for years now is this attachment they have to embeddings. Even the paper that the community has been most excited about recently from AI2 (Allen Institute for Artificial Intelligence) called ELMo — they found much better results across lots of models, but again it was an embedding. They took a fixed model and created a fixed set of numbers which they then fed into a model. But in computer vision, we've known for years that that approach of having fixed set of features, they're called hyper columns in computer vision, people stopped using them like 3 or 4 years ago because fine-tuning the entire model works much better. For those of you that have spent quite a lot of time with NLP and not much time with computer vision, you're going to have to start re-learning. All that stuff you have been told about this idea that there are these things called embeddings and that you learn them ahead of time and then you apply these fixed things whether it be word level or phrase level or whatever level — don't do that. You want to actually create a pre-trained model and fine-tune it end-to-end, then you'll see some specific results.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #### ([1:31:21](https://youtu.be/h5Tz7gZT9Fo?t=1h31m21s)) Accuracy vs cross entropy as a loss function
 
