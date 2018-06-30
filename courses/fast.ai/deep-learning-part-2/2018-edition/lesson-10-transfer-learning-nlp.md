@@ -986,7 +986,7 @@ In other words, in the sequential model, it saves just `rnn_enc` and not `Linear
 learner.sched.plot_loss()
 ```
 
-![Training loss](/images/imdb_notebook_013.png)
+![Training loss](/images/imdb_notebook_026.png)
 
 ### ([01:32:31](https://youtu.be/h5Tz7gZT9Fo?t=1h32m31s)) Classifier tokens
 
@@ -1144,21 +1144,29 @@ wd = 0
 learn.load_encoder('lm2_enc')
 ```
 
-We start out just training the last layer and we get 92.9% accuracy:
+We start out just training the last layer and we get 93.4% accuracy:
 
 ```python
 learn.freeze_to(-1)
 
 learn.lr_find(lrs / 1000)
 learn.sched.plot()
+```
 
+![](/images/imdb_notebook_027.png)
+
+```python
 learn.fit(lrs, 1, wds=wd, use_clr=(8, 3), cycle_len=1)
 
 learn.save('clas_0')
 learn.load('clas_0')
 ```
 
-Then we unfreeze one more layer, get 93.3% accuracy:
+![](/images/imdb_notebook_028.png)
+
+It took me ~13 minutes to train 1 epoch, roughly ~2.2 iteration/s.
+
+Then we unfreeze one more layer, get 93.9% accuracy:
 
 ```python
 learn.freeze_to(-2)
@@ -1167,7 +1175,15 @@ learn.fit(lrs, 1, wds=wd, use_clr=(8, 3), cycle_len=1)
 
 learn.save('clas_1')
 learn.load('clas_1')
+```
 
+![](/images/imdb_notebook_029.png)
+
+It took me ~14 minutes to train 1 epoch, roughly ~1.74 iteration/s.
+
+Then we fine-tune the whole thing [01:40:47]. This was the main attempt before our paper came along at using a pre-trained model:
+
+```python
 learn.unfreeze()
 
 learn.fit(lrs, 1, wds=wd, use_clr=(32, 10), cycle_len=14)
@@ -1177,7 +1193,9 @@ learn.sched.plot_loss()
 learn.save('clas_2')
 ```
 
-Then we fine-tune the whole thing [01:40:47]. This was the main attempt before our paper came along at using a pre-trained model:
+![]()
+
+It took me ~25 minutes (1470.71s) to train 1 epoch, roughly 1.35 iteration/s. The full training took me ~5 hours 43 minutes.
 
 [Learned in Translation: Contextualized Word Vectors](https://arxiv.org/abs/1708.00107)
 
@@ -1243,67 +1261,73 @@ So you might have noticed, the first layer of our classifier was equal to embedd
 
 One of the kind of interesting pieces is the difference between `RNN_Encoder` which you've already seen and MultiBatchRNN encoder. So what's the difference there? The key difference is that the normal RNN encoder for the language model, we could just do `bptt` chunk at a time. But for the classifier, we need to do the whole document. We need to do the whole movie review before we decide if it's positive or negative. And the whole movie review can easily be 2,000 words long and we can't fit 2,000 words worth of gradients in my GPU memory for every single one of my weights. So what do we do? So the idea was very simple which is I go through my whole sequence length one batch of `bptt` at a time. And I call `super().forward` (in other words, the `RNN_Encoder`) to grab its outputs, and then I've got this maximum sequence length parameter where it says "okay, as long as you are doing no more than that sequence length, then start appending it to my list of outputs." So in other words, the thing that it sends back to this pooling is only as many activations as we've asked it to keep. That way, you can figure out what `max_seq` can your particular GPU handle. So it's still using the whole document, but let's say `max_seq` is 1,000 words and your longest document length is 2,000 words. It's still going through RNN creating states for those first thousand words, but it's not actually going to store the activations for the backprop of the first thousand. It's only going to keep the last thousand. So that means that it can't back-propagate the loss back to any state that was created in the first thousand words — basically that's now gone. So it's a really simple piece of code and honestly when I wrote it I didn't spend much time thinking about it, it seems so obviously the only way this could possibly work. But again, it seems to be a new thing, so we now have backprop through time for text classification. You can see there's lots of little pieces in this paper.
 
+:memo: *Note-to-self: I have skimmed through the paper. TODO: read the paper throughly.*
+
 ![The idea behind MultiBatchRNN is called BPT3C](/images/imdb_notebook_022.png)
 
+#### ([01:55:56](https://youtu.be/h5Tz7gZT9Fo?t=1h55m56s)) Results
 
+What was the result? On every single dataset we tried, we got better result than any previous academic paper for text classification. All different types. Honestly, IMDb was the only one I spent any time trying to optimize the model, so most of them, we just did it whatever came out first. So if we actually spent time with it, I think this would be a lot better. The things that these are comparing to, most of them are different on each table because they are customized algorithms on the whole. So this is saying one simple fine-tuning algorithm can beat these really customized algorithms.
 
+![Test error on text classification datasets from ULMFiT paper](/images/imdb_notebook_030.png)
 
+### ([01:56:56](https://youtu.be/h5Tz7gZT9Fo?t=1h56m56s)) Ablation studies
 
+Here is the ablation studies Sebastian did. I was really keen that if you are going to publish a paper, we had to say why it works. So Sebastian went through and tried removing all of those different contributions I mentioned. So what is we don't use gradual freezing? What if we don't use discriminative learning rates? What if instead of discrimination rates, we use cosign annealing? What if we don't do any pre-training with Wikipedia? What if we don't do any fine tuning? And the really interesting one to me was, what's the validation error rate on IMDb if we only used a hundred training examples (vs. 200, vs. 500, etc). And you can see, very interestingly, the full version of this approach is nearly as accurate on just a hundred training examples — it's still very accurate vs. full 20,000 training examples. Where as if you are training from scratch on 100, it's almost random. It's what I expected. I've said to Sebastian I really think that this is most beneficial when you don't have much data. This is where fastai is most interested in contributing — small data regimes, small compute regimes, and so forth. So he did these studies to check.
 
+![Ablation studies are important](/images/imdb_notebook_031.png)
 
+#### ([1:58:32](https://youtu.be/h5Tz7gZT9Fo?t=1h58m32s)) Tricks to run ablation studies
 
+**Trick #1: VNC**
 
+The first trick is something which I know you're all going to find really handy. I know you've all been annoyed when you are running something in a Jupyter notebook, and you lose your internet connection for long enough that it decides you've gone away, and then your session disappears, and you have to start it again from scratch. So what do you do? There is a very simple cool thing called VNC where you can install on your AWS instance or PaperSpace, or whatever:
 
+- X Windows (`xorg`)
+- Lightweight window manager (`lxde-core`)
+- VNC server (`tightvncserver`)
+- Firefox (`firefox`)
+- Terminal (`lxterminal`)
+- Some fonts (`xfonts-100dpi`)
 
+Chuck the lines at the end of your `./vnc/xstartup` configuration file, and then run this command (`tightvncserver :13 -geometry 1200x900`):
 
+![VNC client and server](/images/imdb_notebook_032.png)
 
+It's now running a server where you can then run the TightVNC Viewer or any VNC viewer on your computer and you point it at your server. But specifically, what you do is you use SSH port forwarding to forward :5913 to localhost:5913:
 
+`(fastai) ubuntu@server:~$ ssh -L 5913:localhost:5913 ubuntu@{insert-your-server-ipaddress}`
 
+Then you connect to port 5013 on localhost. It will send it off to port 5913 on your server which is the VNC port (because you said :13) and it will display an X Windows desktop. Then you can click on the Linux start like button and click on Firefox and you now have Firefox. You see here in Firefox, it says localhost because this Firefox is running on my AWS server. So you now run Firefox, you start your thing running, and then you close your VNC viewer remembering that Firefox is displaying on this virtual VNC display, not in a real display, so then later on that day, you log back into VNC viewer and it pops up again. So it's like a persistent desktop, and it's shockingly fast. It works really well. There's lots of different VNC servers and clients, but this one works fine for me.
 
+**Trick #2: Google Fire** ([02:01:27](https://youtu.be/h5Tz7gZT9Fo?t=2h1m27s))
 
+![Google's Fire library is helpful for running ablation studies](/images/imdb_notebook_033.png)
 
+Trick #2 is to create Python scripts, and this is what we ended up doing. So I ended up creating a little Python script for Sebastian to kind of say this is the basic steps you need to do, and now you need to create different versions for everything else. And I suggested to him that he tried using this thing called Google Fire. What Google Fire does is, you create a function with tons of parameters, so these are all the things that Sebastian wanted to try doing — different dropout amounts, different learning rates, do I use pre-training or not, do I use CLR or not, do I use discriminative learning rate or not, etc. So you create a function, and then you add something saying:
 
+`if __name__ == '__main__': fire.Fire(train_clas)`
 
+You do nothing else at all — you don't have to add any metadata, any docstrings, anything at all, and you then call that script and automatically you now have a command line interface. That's a super fantastic easy way to run lots of different variations in a terminal. This ends up being easier if you want to do lots of variations than using a notebook because you can just have a bash script that tries all of them and spits them all out.
 
+**Trick #3: IMDb scripts** ([02:02:47](https://youtu.be/h5Tz7gZT9Fo?t=2h2m47s))
 
+You'll find inside the `courses/dl2` directory in fastai GitHub repo, there's now something called `imdb_scripts`, and I put all the scripts Sebastian and I used. Because we needed to tokenize and numericalize every dataset, then train a language model and a classifier for every dataset. And we had to do all of those things in a variety of different ways to compare them, so we had scripts for all those things. You can check out and see all of the scripts that we used.
 
+![IMDb scripts - terminal](/images/imdb_notebook_034.png)
 
+![IMDb scripts - codes](/images/imdb_notebook_035.png)
 
+**Trick #4: pip install -e** ([02:03:32](https://youtu.be/h5Tz7gZT9Fo?t=2h3m32s))
 
+When you are doing a lot of scripts, you got different code all over the place. Eventually it might get frustrating that you don't want to symlink your fastai library again and again. But you probably don't want to pip install it because that version tends to be a little bit old as we move so fast that you want to use the current version in Git. If you say `pip install -e` . from fastai repo base, it does something quite neat which is basically creates a symlink to the fastai library (i.e. your locally cloned Git repo) inside site-packages directory. Your site-packages directory is your main Python library. So if you do this, you can then access fastai from anywhere but every time you do `git pull`, you've got the most recent version. One downside of this is that it installs any updated versions of packages from pip which can confuse Conda a little bit, so another alternative here is just do symlink the fastai library to your site packages library. That works just as well. You can use fastai from anywhere and it's quite handy when you want to run scripts that use fastai from different directories on your system.
 
+![`pip -e` (*editable install*) can be handy](/images/imdb_notebook_036.png)
 
+**Trick #5: SentencePiece; Tokenize sub-word units** ([02:05:06](https://youtu.be/h5Tz7gZT9Fo?t=2h5m6s))
 
+[SentencePiece GitHub repo](https://github.com/google/sentencepiece)
 
+This is something you can try if you like. You don't have to tokenize. Instead of tokenizing words, you can tokenize what are called sub-word units. For example, "unsupervised" could be tokenized as "un" and "supervised". "Tokenizer" can be tokenized as ["token", "izer"]. Then you could do the same thing. The language model that works on sub-word units, a classifier that works on sub-word units, etc. How well does that work? I started playing with it and with not too much playing, I was getting classification results that were nearly as good as using word level tokenization — not quite as good, but nearly as good. I suspect with more careful thinking and playing around, maybe I could have gotten as good or better. But even if I couldn't, if you create a sub-word-unit WikiText model, then IMDb language model, and then classifier forwards and backwards and then ensemble it with the forwards and backwards word level ones, you should be able to beat us. So here is an approach you may be able to beat our state-of-the-art result.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### Tricks to conduct ablation studies
-
-#### ([1:58:35](https://youtu.be/h5Tz7gZT9Fo?t=1h58m35s)) VNC and Google Fire Library
-
-_WIP_
-
-#### ([2:05:10](https://youtu.be/h5Tz7gZT9Fo?t=2h05m10s)) SentencePiece; Tokenize sub-word units
-
-_WIP_
+Sebastian told me this particular project — Google has a project called SentencePiece which actually uses a neural net to figure out the optimal splitting up of words and so you end up with vocabulary of sub-word units. In my playing around, I found that create vocabulary of about 30,000 sub-word units seems to be about optimal. If you are interested, there is something you can try. It is a bit of a pain to install — it's C++, doesn't have create error message, but it will work. There is a Python library for it. If anybody tries this, I'm happy to help them get it working. There's been little, if any, experiments with ensembling sub-word and word level classification, and I do think it should be the best approach.
