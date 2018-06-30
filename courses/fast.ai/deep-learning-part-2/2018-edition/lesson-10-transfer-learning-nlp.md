@@ -803,7 +803,7 @@ These two bits of code, literally right next to each other, this is all there is
 
 `get_language_model`: Creates an RNN encoder and then creates a sequential model that sticks on top of that — a linear decoder.
 
-`get_rnn_classifier`: Creates an RNN encoder, then a sequential model that sticks on top of that — a pooling linear classifier.
+`get_rnn_classifer`: Creates an RNN encoder, then a sequential model that sticks on top of that — a pooling linear classifier.
 
 We'll see what these differences are in a moment, but you get the basic idea. They are doing pretty much the same thing. They've got this head and they are sticking on a simple linear layer on top.
 
@@ -888,24 +888,60 @@ learner.fit(lrs, 1, wds=wd, use_clr=(20, 10), cycle_len=15)
 # Output
 # -----------------------------------------------------------------------------
 epoch      trn_loss   val_loss   accuracy
-    0      4.332359   4.120674   0.289563
-    1      4.247177   4.067932   0.294281
-    2      4.175848   4.027153   0.298062
-    3      4.140306   4.001291   0.300798
-    4      4.112395   3.98392    0.302663
-    5      4.078948   3.971053   0.304059
-    6      4.06956    3.958152   0.305356
-    7      4.025542   3.951509   0.306309
-    8      4.019778   3.94065    0.30756
-    9      4.027846   3.931385   0.308232
-    10     3.98106    3.928427   0.309011
-    11     3.97106    3.920667   0.30989
-    12     3.941096   3.917029   0.310515
-    13     3.924818   3.91302    0.311015
-    14     3.923296   3.908476   0.311586
+    0      4.133916   4.017627   0.300258
+    1      4.127663   4.023184   0.299315
+ 70%|███████   | 4818/6872 [57:53<24:40,  1.39it/s, loss=4.14]
 
-[3.9084756, 0.3115861900150776]
+---------------------------------------------------------------------------
+KeyboardInterrupt                         Traceback (most recent call last)
+
+# Save trained model weights and encoder part as well
+learner.save('lm1')
+learner.save_encoder('lm1_enc')
+
+learner.sched.plot_loss()
 ```
+
+![Training LM model - interrupted at epoch 3](/images/imdb_notebook_023.png)
+
+![Training loss](/images/imdb_notebook_024.png)
+
+Resume training (after disconnected from network):
+
+```python
+learner.load('lm1')
+learner.load_encoder('lm1_enc')
+
+learner.fit(lrs, 1, wds=wd, use_clr=(20, 10), cycle_len=13)
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss   accuracy
+    0      4.089766   3.987413   0.303426
+    1      4.110863   3.993293   0.302394
+    2      4.05779    3.982436   0.304094
+    3      4.026278   3.972332   0.30501
+    4      4.020928   3.95975    0.306272
+    5      4.052557   3.951147   0.307224
+    6      3.980955   3.941334   0.308409
+    7      3.962256   3.937269   0.309225
+    8      3.918868   3.932689   0.309884
+    9      3.922733   3.924108   0.310882
+    10     3.948124   3.914877   0.311638
+    11     3.885483   3.914468   0.312277
+    12     3.868742   3.910146   0.312858
+[array([3.91015]), 0.31285761840572784]
+
+learner.sched.plot_loss()
+```
+
+![Training LM model](/images/imdb_notebook_025.png)
+
+![Training loss](/images/imdb_notebook_026.png)
+
+It took me ~1 hour 25 minutes (5147.63s) to train 1 epoch on K80, roughly 1.39 iteration/s.
+The full training took me ~20 hours.
 
 #### ([1:25:23](https://youtu.be/h5Tz7gZT9Fo?t=1h25m23s)) Guidance of reading paper vs coding
 
@@ -1055,89 +1091,212 @@ To turn it into a DataLoader, you simply pass the `Dataset` to the `DataLoader` 
 - For validation set, we are going to define something that actually just sorts. It just deterministically sorts it so that all the shortest documents will be at the start, all the longest documents will be at the end, and that's going to minimize the amount of padding.
 - For training sampler, we are going to create this thing called sort-ish sampler which also sorts (ish!)
 
+![DataLoader lets us customize how batches are created by using a custom Sampler](/images/imdb_notebook_015.png)
 
+What's great about PyTorch is that they came up with this idea for an API for their data loader where we can hook in new classes to make it behave in different ways [01:37:27]. `SortSampler` is something which has a length which is the length of the data source and has an iterator which is simply an iterator which goes through the data source sorted by length (which is passed in as `key`). For the `SortishSampler`, it basically does the same thing with a little bit of randomness. It's just another of those beautiful design things in PyTorch that Jeremy discovered. He could take James Bradbury's ideas which he had written a whole new set of classes around, and he could just use in-built hooks inside PyTorch. You will notice data loader is not actually PyTorch's data loader — it's actually fastai's data loader. But it's basically almost entirely plagiarized from PyTorch but customized in some ways to make it faster mainly using multi-threading instead of multi-processing.
 
+:question: Does the pre-trained LSTM depth and bptt need to match with the new one we are training [01:39:00]?
 
+No, the bptt doesn't need to match at all. That's just like how many things we look at at a time. It has nothing to do with the architecture.
 
+So now we can call that function we just saw before `get_rnn_classifer` [01:39:16]. It's going to create exactly the same encoder more or less, and we are going to pass in the same architectural details as before. But this time, with the head we add on, you have a few more things you can do. One is you can add more than one hidden layer. In `layers = [em_sz * 3, 50, c]`:
 
+- `em_sz * 3`: this is what the input to my head (i.e. classifier section) is going to be.
+- `50`: this is the output of the first layer
+- `c`: this is the output of the second layer
 
+And you can add as many as you like. So you can basically create a little multi-layer neural net classifier at the end. Similarly, for `drops=[dps[4], 0.1]`, these are the dropouts to go after each of these layers.
 
+```python
+# part 1
+dps = np.array([0.4, 0.5, 0.05, 0.3, 0.1])
+dps = np.array([0.4, 0.5, 0.05, 0.3, 0.4]) * 0.5
 
+m = get_rnn_classifer(bptt, 20 * 70, c, vs, emb_sz=em_sz, n_hid=nh, n_layers=nl, pad_token=1,
+            layers=[em_sz * 3, 50, c], drops=[dps[4], 0.1],
+            dropouti=dps[0], wdrop=dps[1], dropoute=dps[2], dropouth=dps[3])
 
+opt_fn = partial(optim.Adam, betas=(0.7, 0.99))
+```
 
+We are going to use `RNN_Learner` just like before.
 
+```python
+learn = RNN_Learner(md, TextModel(to_gpu(m)), opt_fn=opt_fn)
+learn.reg_fn = partial(seq2seq_reg, alpha=2, beta=1)
+learn.clip = 25.
+learn.metrics = [accuracy]
+```
 
+We are going to use discriminative learning rates for different layers [01:40:20].
 
+```python
+lr = 3e-3
+lrm = 2.6
+lrs = np.array([lr / (lrm**4), lr / (lrm**3), lr / (lrm**2), lr / lrm, lr])
+```
 
+You can try using weight decay or not. Jeremy has been fiddling around a bit with that to see what happens.
 
+```python
+wd = 1e-7
+wd = 0
+learn.load_encoder('lm2_enc')
+```
 
+We start out just training the last layer and we get 92.9% accuracy:
 
+```python
+learn.freeze_to(-1)
 
+learn.lr_find(lrs / 1000)
+learn.sched.plot()
 
+learn.fit(lrs, 1, wds=wd, use_clr=(8, 3), cycle_len=1)
 
+learn.save('clas_0')
+learn.load('clas_0')
+```
 
+Then we unfreeze one more layer, get 93.3% accuracy:
 
+```python
+learn.freeze_to(-2)
 
+learn.fit(lrs, 1, wds=wd, use_clr=(8, 3), cycle_len=1)
 
+learn.save('clas_1')
+learn.load('clas_1')
 
+learn.unfreeze()
 
+learn.fit(lrs, 1, wds=wd, use_clr=(32, 10), cycle_len=14)
 
+learn.sched.plot_loss()
 
+learn.save('clas_2')
+```
 
+Then we fine-tune the whole thing [01:40:47]. This was the main attempt before our paper came along at using a pre-trained model:
 
+[Learned in Translation: Contextualized Word Vectors](https://arxiv.org/abs/1708.00107)
 
+What they did is they used a pre-trained translation model but they didn't fine tune the whole thing. They just took the activations of the translation model and when they tried IMDb, they got 91.8% — which we beat easily after only fine-tuning one layer. They weren't state-of-the-art, the state-of-the-art is 94.1% which we beat after fine-tuning the whole thing for 3 epochs and by the end, we are at 94.8% which is obviously a huge difference because in terms of error rate, that's gone done from 5.9%. A simple little trick is go back to the start of this notebook and reverse the order of all of the documents, and then re-run the whole thing. When you get to the bit that says `fwd_wt_103`, replace `fwd` for forward with `bwd` for backward. That's a backward English language model that learns to read English backward. So if you redo this whole thing, put all the documents in reverse, and change this to backward, you now have a second classifier which classifies things by positive or negative sentiment based on the reverse document. If you then take the two predictions and take the average of them, you basically have a bi-directional model (which you trained each bit separately) and that gets you to 95.4% accuracy. So we basically lowered it from 5.9% to 4.6%. So this kind of 20% change in the state-of-the-art is almost unheard of. It doesn't happen very often. **So you can see this idea of using transfer learning, it's ridiculously powerful that every new field thinks their new field is too special and you can't do it.** So it's a big opportunity for all of us.
 
+### ([1:44:02](https://youtu.be/h5Tz7gZT9Fo?t=1h44m2s)) Universal Language Model Fine-tuning for Text Classification (ULMFiT / FiTLaM) Paper
 
+![ULMFiT paper](/images/imdb_notebook_016.png)
 
+So we turned this into a paper, and when I say we, I did it with this guy Sebastian Ruder. Now you might remember his name because in lesson 5, I told you that I actually had shared lesson 4 with Sebastian because I think he is an awesome researcher who I thought might like it. I didn't know him personally at all. Much to my surprise, he actually watched the video. He watched the whole video and said:
 
+Sebastian: "That's actually quite fantastic! We should turn this into a paper."
 
+Jeremy: "I don't write papers. I don't care about papers and am not interested in papers — that sounds really boring"
 
+Sebastian: "Okay, how about I write the paper for you."
 
+Jeremy: "You can't really write a paper about this yet because you'd have to do like studies to compare it to other things (they are called ablation studies) to see which bit actually works. There's no rigor here, I just put in everything that came in my head and chucked it all together and it happened to work"
 
+Sebastian: "Okay, what if I write all the paper and do all your ablation studies, then can we write the paper?"
 
+Jeremy: "Well, it's like a whole library that I haven't documented and I'm not going to yet and you don't know how it all works"
 
+Sebastian: "Okay, if I wrote the paper, and do the ablation studies, and figure out from scratch how the code works without bothering you, then can we write the paper?"
 
+Jeremy: "Um… yeah, if you did all those things, then we can write the paper. Okay!"
 
+Then two days later, he comes back and says "okay, I've done a draft of the paper." So, I share this story to say, if you are some student in Ireland and you want to do good work, don't let anybody stop you. I did not encourage him to say the least. But in the end, he said "I want to do this work, I think it's going to be good, and I'll figure it out" and he wrote a fantastic paper. He did the ablation study and he figured out how fastai works, and now we are planning to write another paper together. You've got to be a bit careful because sometimes I get messages from random people saying like "I've got lots of good ideas, can we have coffee?" — "I don't want… I can have coffee in my office anytime, thank you". But it's very different to say "hey, I took your ideas and I wrote a paper, and I did a bunch of experiments, and I figured out how your code works, and I added documentation to it — should we submit this to a conference?" You see what I mean? There is nothing to stop you doing amazing work and if you do amazing work that helps somebody else, in this case, I'm happy that we have a paper. I don't particularly care about papers but I think it's cool that these ideas now have this rigorous study.
 
+**Let me show you what he did**
 
+He took all my code, so I'd already done all the fastai.text and as you have seen, it lets us work with large corpuses. Sebastian is fantastically well-read and he said "here's a paper that Yann LeCun and some guys just came out with where they tried lots of classification datasets so I'm going to try running your code on all these datasets." So these are the datasets:
 
+![Text classification datasets](/images/imdb_notebook_017.png)
 
+Some of them had many many hundreds of thousands of documents and they were far bigger than I had tried — but I thought it should work.
 
+And he had a few good ideas as we went along and so you should totally make sure you read the paper. He said "well, this thing that you called in the lessons differential learning rates, differential kind of means something else. Maybe we should rename it" so we renamed it. It's now called **discriminative learning rate**. So this idea that we had from part one where we use different learning rates for different layers, after doing some literature research, it does seem like that hasn't been done before so it's now officially a thing — discriminative learning rates. This is something we learnt in lesson 1 but it now has an equation with Greek and everything [01:48:41]:
 
+![Discriminative learning rates](/images/imdb_notebook_018.png)
 
+When you see an equation with Greek and everything, that doesn't necessarily mean it's more complex than anything we did in lesson 1 because this one isn't.
 
+Again, that idea of like unfreezing a layer at a time, also seems to never been done before so it's now a thing and it's got the very clever name "gradual unfreezing" [01:48:57].
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### Paper ULMFiT (FiTLaM)
-
-#### ([1:44:00](https://youtu.be/h5Tz7gZT9Fo?t=1h44m00s)) Paper: ULMFiT - pre-trained LM
-
-_WIP_
+![Gradual unfreezing](/images/imdb_notebook_019.png)
 
 #### ([1:49:09](https://youtu.be/h5Tz7gZT9Fo?t=1h49m09s)) New version of Cyclical Learning Rate
 
-_WIP_
+So then, as promised, we will look at **slanted triangular learning rates** . This actually was not my idea. Leslie Smith, one of my favorite researchers who you all now know about, emailed me a while ago and said "I'm so over cyclical learning rates. I don't do that anymore. I now do a slightly different version where I have one cycle which goes up quickly at the start, and then slowly down afterwards. I often find it works better." I've tried going back over all of my old datasets and it works better for all of them — every one I tried. So this is what the learning rate look like. You can use it in fastai just by adding `use_clr=` to your `fit`. The first number is the ratio between the highest learning rate and the lowest learning rate so the initial learning rate is 1/32 of the peak. The second number is the ratio between the first peak and the last peak. The basic idea is if you are doing a cycle length 10, that you want the first epoch to be the upward bit and the other 9 epochs to be the downward bit, then you would use 10. I find that works pretty well and that was also Leslie's suggestion is make about 1/10 of it the upward bit and 9/10 the downward bit. Since he told me about it, maybe two days ago, he wrote this amazing paper: [A DISCIPLINED APPROACH TO NEURAL NETWORK HYPER-PARAMETERS](https://arxiv.org/abs/1803.09820). In which, he describes something very slightly different to this again, but the same basic idea. This is a **must read paper**. It's got all the kinds of ideas that fastai talks about a lot in great depth and nobody else is talking about this. It's kind of a slog, unfortunately Leslie had to go away on a trip before he really had time to edit it properly, so it's a little bit slow reading, but don't let that stop you. It's amazing.
+
+![We introduced a tweaked approach to Cyclical Learning Rates (CLR), based on Leslie Smith's paper](/images/imdb_notebook_020.png)
+
+The equation on the right is from my paper with Sebastian. Sebastian asked "Jeremy, can you send me the math equation behind that code you wrote?" and I said "no, I just wrote the code. I could not turn it into math" so he figured out the math for it.
 
 #### ([1:51:34](https://youtu.be/h5Tz7gZT9Fo?t=1h51m34s)) Concat Pooling
 
-_WIP_
+So you might have noticed, the first layer of our classifier was equal to embedding size*3 . Why times 3? Times 3 because, and again, this seems to be something which people haven't done before, so a new idea "concat pooling". It is that we take the average pooling over the sequence of the activations, the max pooling of the sequence over the activations, and the final set of activations, and just concatenate them all together. This is something which we talked about in part 1 but doesn't seem to be in the literature before so it's now called "concat pooling" and it's now got an equation and everything but this is the entirety of the implementation. So you can go through this paper and see how the fastai code implements each piece.
+
+![The idea of concat pooling in part 1](/images/imdb_notebook_021.png)
 
 #### ([1:52:44](https://youtu.be/h5Tz7gZT9Fo?t=1h52m44s)) RNN encoder and `MultiBatchRNN` encoder - BPTT for text classification (BPT3C)
 
-_WIP_
+One of the kind of interesting pieces is the difference between `RNN_Encoder` which you've already seen and MultiBatchRNN encoder. So what's the difference there? The key difference is that the normal RNN encoder for the language model, we could just do `bptt` chunk at a time. But for the classifier, we need to do the whole document. We need to do the whole movie review before we decide if it's positive or negative. And the whole movie review can easily be 2,000 words long and we can't fit 2,000 words worth of gradients in my GPU memory for every single one of my weights. So what do we do? So the idea was very simple which is I go through my whole sequence length one batch of `bptt` at a time. And I call `super().forward` (in other words, the `RNN_Encoder`) to grab its outputs, and then I've got this maximum sequence length parameter where it says "okay, as long as you are doing no more than that sequence length, then start appending it to my list of outputs." So in other words, the thing that it sends back to this pooling is only as many activations as we've asked it to keep. That way, you can figure out what `max_seq` can your particular GPU handle. So it's still using the whole document, but let's say `max_seq` is 1,000 words and your longest document length is 2,000 words. It's still going through RNN creating states for those first thousand words, but it's not actually going to store the activations for the backprop of the first thousand. It's only going to keep the last thousand. So that means that it can't back-propagate the loss back to any state that was created in the first thousand words — basically that's now gone. So it's a really simple piece of code and honestly when I wrote it I didn't spend much time thinking about it, it seems so obviously the only way this could possibly work. But again, it seems to be a new thing, so we now have backprop through time for text classification. You can see there's lots of little pieces in this paper.
+
+![The idea behind MultiBatchRNN is called BPT3C](/images/imdb_notebook_022.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### Tricks to conduct ablation studies
 
