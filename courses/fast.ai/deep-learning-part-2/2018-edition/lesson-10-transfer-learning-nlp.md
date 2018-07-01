@@ -1190,12 +1190,35 @@ learn.fit(lrs, 1, wds=wd, use_clr=(32, 10), cycle_len=14)
 
 learn.sched.plot_loss()
 
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss   accuracy
+    0      0.24981    0.172563   0.93528
+    1      0.263968   0.160485   0.93976
+    2      0.202914   0.148376   0.9454
+    3      0.156502   0.182274   0.94648
+    4      0.134656   0.168832   0.94548
+    5      0.107242   0.156522   0.9484
+    6      0.102729   0.180831   0.94348
+    7      0.075103   0.172596   0.94548
+    8      0.07143    0.1826     0.94396
+    9      0.066486   0.194617   0.94256
+    10     0.047482   0.211435   0.9434
+    11     0.049275   0.221188   0.94312
+    12     0.0459     0.219328   0.94628
+    13     0.040396   0.22585    0.94604
+
+[array([0.22585]), 0.9460399997520447]
+
 learn.save('clas_2')
 ```
 
-![]()
+![Training results](/images/imdb_notebook_037.png)
 
-It took me ~25 minutes (1470.71s) to train 1 epoch, roughly 1.35 iteration/s. The full training took me ~5 hours 43 minutes.
+![Training loss curve](/images/imdb_notebook_038.png)
+
+It took me ~25 minutes (1470.71s) to train 1 epoch, roughly 1.35 iteration/s. The full training took me ~6 hours 11 minutes.
 
 [Learned in Translation: Contextualized Word Vectors](https://arxiv.org/abs/1708.00107)
 
