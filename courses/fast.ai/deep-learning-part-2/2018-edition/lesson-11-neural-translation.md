@@ -1090,3 +1090,282 @@ epoch      trn_loss   val_loss
 
 It took me ~1 minute (78.62s) to train 1 epoch on K80, roughly 5.0 iteration/s.
 The full training took me ~16 minutes.
+
+And now our loss is down to 3.43. We needed to make sure at least do 10 epochs because before that, it was cheating by using the teacher forcing.
+
+#### Trick #3 Attentional model [[01:31:00](https://youtu.be/tY0n9OT5_nA?t=1h31m)]
+
+This next trick is a bigger and pretty cool trick. It’s called "attention." The basic idea of attention is this — expecting the entirety of the sentence to be summarized into this single hidden vector is asking a lot. It has to know what was said, how it was said, and everything necessary to create the sentence in German. The idea of attention is basically maybe we are asking too much. Particularly because we could use this form of model (below) where we output every step of the loop to not just have a hidden state at the end but to have a hidden state after every single word. Why not try and use that information? It’s already there but so far we’ve just been throwing it away. Not only that but bi-directional, we got two vectors of state every step that we can use. How can we do this?
+
+![](/images/translate_notebook_023.png)
+
+Let’s say we are translating a word "liebte" right now [01:32:34]. Which of previous 5 pieces of state do we want? We clearly want "love" because it is the word. How about "zu"? We probably need "eat" and "to" and loved" to make sure we have gotten the tense right and know that I actually need this part of the verb and so forth. So depending on which bit we are translating, we would need one or more bits of these various hidden states. In fact, we probably want some weighting of them. In other words, for these five pieces of hidden state, we want a weighted average [01:33:47]. We want it weighted by something that can figure out which bits of the sentence is the most important right now. How do we figure out something like which bits of the sentence are important right now? We create a neural net and we train the neural net to figure it out. When do we train that neural net? End to end. So let’s now train two neural nets [01:34:18]. Well, we’ve already got a bunch — RNN encoder, RNN decoder, a couple of linear layers, what the heck, let’s add another neural net into the mix. This neural net is going to spit out a weight for every one of these states and we will take the weighted average at every step, and it’s just another set of parameters that we learn all at the same time. So that is called "attention".
+
+![](/images/translate_notebook_024.png)
+
+The idea is that once that attention has been learned, each word is going to take a weighted average as you can see in this terrific demo from Chris Olah and Shan Carter [01:34:50]. Check out this [distill.pub article](https://distill.pub/2016/augmented-rnns/) — these things are interactive diagrams that shows you how the attention works and what the actual attention looks like in a trained translation model.
+
+![Diagram derived from Fig. 3 of "Neural Machine Translation by Jointly Learning to Align and Translate" Bahdanau, et al.](/images/translate_notebook_025.png)
+
+Let’s try and implement attention [01:35:47]:
+
+```python
+def rand_t(*sz):
+    return torch.randn(sz) / math.sqrt(sz[0])
+
+def rand_p(*sz):
+    return nn.Parameter(rand_t(*sz))
+
+class Seq2SeqAttnRNN(nn.Module):
+    def __init__(self, vecs_enc, itos_enc, em_sz_enc, vecs_dec, itos_dec, em_sz_dec, nh, out_sl, nl=2):
+        super().__init__()
+        self.emb_enc = create_emb(vecs_enc, itos_enc, em_sz_enc)
+        self.nl,self.nh,self.out_sl = nl,nh,out_sl
+        self.gru_enc = nn.GRU(em_sz_enc, nh, num_layers=nl, dropout=0.25)
+        self.out_enc = nn.Linear(nh, em_sz_dec, bias=False)
+        self.emb_dec = create_emb(vecs_dec, itos_dec, em_sz_dec)
+        self.gru_dec = nn.GRU(em_sz_dec, em_sz_dec, num_layers=nl, dropout=0.1)
+        self.emb_enc_drop = nn.Dropout(0.15)
+        self.out_drop = nn.Dropout(0.35)
+        self.out = nn.Linear(em_sz_dec, len(itos_dec))
+        self.out.weight.data = self.emb_dec.weight.data
+
+        # these 4 lines are addition for 'attention'
+        self.W1 = rand_p(nh, em_sz_dec) # random matrix
+        self.l2 = nn.Linear(em_sz_dec, em_sz_dec) # this is the mini NN that will calculate the weights
+        self.l3 = nn.Linear(em_sz_dec + nh, em_sz_dec)
+        self.V = rand_p(em_sz_dec)
+
+    def forward(self, inp, y=None, ret_attn=False):
+        sl, bs = inp.size()
+        h = self.initHidden(bs)
+        emb = self.emb_enc_drop(self.emb_enc(inp))
+        enc_out, h = self.gru_enc(emb, h)
+        h = self.out_enc(h)
+
+        dec_inp = V(torch.zeros(bs).long())
+        res, attns = [], [] # attns is addition for 'attention'
+        w1e = enc_out @ self.W1 # this line is addition for 'attention'. matrix multiply.
+
+        for i in range(self.out_sl):
+            # these 5 lines are addition for 'attention'.
+
+            # create a little neural network.
+            # use softmax to generate the probabilities.
+            w2h = self.l2(h[-1]) # take last layers hidden state put into linear layer
+            u = F.tanh(w1e + w2h) # nonlinear activation
+            a = F.softmax(u @ self.V, 0) # matrix multiply
+            attns.append(a)
+            # take a weighted average. Use the weights from mini NN.
+            # note we are using all the encoder states
+            Xa = (a.unsqueeze(2) * enc_out).sum(0)
+
+            emb = self.emb_dec(dec_inp)
+            # adding the hidden states to the encoder weights
+            wgt_enc = self.l3(torch.cat([emb, Xa], 1)) # this line is addition for 'attention'
+
+            outp, h = self.gru_dec(wgt_enc.unsqueeze(0), h) # this line has changed for 'attention'
+            outp = self.out(self.out_drop(outp[0]))
+            res.append(outp)
+            dec_inp = V(outp.data.max(1)[1])
+            if (dec_inp==1).all():
+                break
+            if (y is not None) and (random.random() < self.pr_force): # why is teacher forcing logic still here? bug?
+                if i >= len(y):
+                    break
+                dec_inp = y[i]
+
+        res = torch.stack(res)
+        if ret_attn:
+            res = torch.stack(attns) # bug? fixed!
+        return res
+
+    def initHidden(self, bs):
+        return V(torch.zeros(self.nl, bs, self.nh))
+```
+
+With attention, most of the code is identical. The one major difference is this line: `Xa = (a.unsqueeze(2) * enc_out).sum(0)`. We are going to take a weighted average and the way we are going to do the weighted average is we create a little neural net which we are going to see here:
+
+```python
+w2h = self.l2(h[-1])
+u = F.tanh(w1e + w2h)
+a = F.softmax(u @ self.V, 0)
+```
+
+We use softmax because the nice thing about softmax is that we want to ensure all of the weights that we are using add up to 1 and we also expect that one of those weights should probably be higher than the other ones [01:36:38]. Softmax gives us the guarantee that they add up to 1 and because it has `e^` in it, it tends to encourage one of the weights to be higher than the other ones.
+
+Let’s see how this works [01:37:09]. We are going to take the last layer’s hidden state and we are going to stick it into a linear layer. Then we are going to stick it into a nonlinear activation, then we are going to do a matrix multiply. So if you think about it — a linear layer, nonlinear activation, matrix multiply — it's a neural net. It is a neural net with one hidden layer. Stick it into a softmax and then we can use that to weight our encoder outputs. Now rather than just taking the last encoder output, we have the whole tensor of all of the encoder outputs which we just weight by this neural net we created.
+
+In Python, `A @ B` is the matrix product, `A * B` the element-wise product.
+
+#### Papers [[01:38:18](https://youtu.be/tY0n9OT5_nA?t=1h38m18s)]
+
+- [Neural Machine Translation by Jointly Learning to Align and Translate](https://arxiv.org/abs/1409.0473)—One amazing paper that originally introduced this idea of attention as well as a couple of key things which have really changed how people work in this field. They say area of attention has been used not just for text but for things like reading text out of pictures or doing various things with computer vision.
+- [Grammar as a Foreign Language ](https://arxiv.org/abs/1412.7449)—The second paper which Geoffrey Hinton was involved in that used this idea of RNN with attention to try to replace rules based grammar with an RNN which automatically tagged each word based on the grammar. It turned out to do it better than any rules based system which today seems obvious but at that time it was considered really surprising. They are summary of how attention works which is really nice and concise.
+
+:question: Could you please explain attention again? [01:39:46]
+
+Sure! Let’s go back and look at our original encoder.
+
+![](/images/translate_notebook_026.png)
+
+The RNN spits out two things: it spits out a list of the state after every time step (`enc_out`), and it also tells you the state at the last time step (`h`)and we used the state at the last time step to create the input state for our decoder which is one vector `s` below:
+
+![](/images/translate_notebook_027.png)
+
+But we know that it’s creating a vector at every time steps (orange arrows), so wouldn’t it be nice to use them all? But wouldn’t it be nice to use the one or ones that’s most relevant to translating the word we are translating now? So wouldn’t it be nice to be able to take a weighted average of the hidden state at each time step weighted by whatever is the appropriate weight right now. For example, "liebte" would definitely be time step #2 is what it’s all about because that is the word I’m translating. So how do we get a list of weights that is suitable for the word we are training right now? The answer is by training a neural net to figure out the list of weights. So anytime we want to figure out how to train a little neural net that does any task, the easiest way, normally always to do that is to include it in your module and train it in line with everything else. The minimal possible neural net is something that contains two layers and one nonlinear activation function, so `self.l2` is one linear layer.
+
+In fact, instead of a linear layer, we can even just grab a random matrix if we do not care about bias [01:42:18]. `self.W1` is a random tensor wrapped up in a Parameter.
+
+`Parameter` : Remember, a `Parameter` is identical to PyTorch `Variable` but it just tells PyTorch "I want you to learn the weights for this please." [01:42:35]
+
+So when we start out our decoder, let’s take the current hidden state of the decoder, put that into a linear layer (`self.l2`) because what is the information we use to decide what words we should focus on next — the only information we have to go on is what the decoder’s hidden state is now. So let’s grab that:
+
+- put it into the linear layer (`self.l2`)
+- put it through a non-linearity (`F.tanh`)
+- put it through one more nonlinear layer (`u @ self.V` doesn’t have a bias in it so it’s just matrix multiply)
+- put that through softmax
+
+That’s it — a little neural net. It doesn’t do anything. It’s just a neural net and no neural nets do anything they are just linear layers with nonlinear activations with random weights. But it starts to do something if we give it a job to do. In this case, the job we give it to do is to say don’t just take the final state but now let’s use all of the encoder states and let’s take all of them and multiply them by the output of that little neural net. So given that the things in this little neural net are learnable weights, hopefully it’s going to learn to weight those encoder hidden states by something useful. That is all neural net ever does is we give it some random weights to start with and a job to do, and hope that it learns to do the job. It turns out, it does.
+
+Everything else in here is identical to what it was before. We have teacher forcing, it’s not bi-directional, so we can see how this goes.
+
+```python
+rnn = Seq2SeqAttnRNN(fr_vecd, fr_itos, dim_fr_vec, en_vecd, en_itos, dim_en_vec, nh, enlen_90)
+learn = RNN_Learner(md, SingleModel(to_gpu(rnn)), opt_fn=opt_fn)
+learn.crit = seq2seq_loss
+
+lr = 2e-3
+
+learn.fit(lr, 1, cycle_len=15, use_clr=(20, 10), stepper=Seq2SeqStepper)
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss
+    0      3.780541   14.757052
+    1      3.221531   5.661915
+    2      2.901307   4.924356
+    3      2.875144   4.647381
+    4      2.704298   3.912943
+    5      2.69899    4.401953
+    6      2.78165    3.864044
+    7      2.765688   3.614325
+    8      2.873574   3.417437
+    9      2.826172   3.370511
+    10     2.845763   3.293398
+    11     2.66649    3.300835
+    12     2.697862   3.258844
+    13     2.659374   3.267969
+    14     2.585613   3.240595
+[array([3.24059])]
+```
+
+![Training loss curve](/images/translate_notebook_028.png)
+
+It took me ~1 min 22s (82.42s) to train 1 epoch on K80, roughly 4.65 iteration/s.
+The full training took me ~25 minutes.
+
+Teacher forcing had 3.49 and now with nearly exactly the same thing but we’ve got this little minimal neural net figuring out what weightings to give our inputs and we are down to 3.37. Remember, these loss are logs, so `e^3.37` is quite a significant change.
+
+```python
+x, y = next(iter(val_dl))
+probs, attns = learn.model(V(x), ret_attn=True)
+preds = to_np(probs.max(2)[1])
+
+for i in range(180, 190):
+    print(' '.join([fr_itos[o] for o in x[:, i] if o != 1]))
+    print(' '.join([en_itos[o] for o in y[:, i] if o != 1]))
+    print(' '.join([en_itos[o] for o in preds[:, i] if o != 1]))
+    print()
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+quelles composantes des différents aspects de la performance devraient être mesurées , quelles données pertinentes recueillir et comment ? _eos_
+which components within various performance areas should be measured , whatkinds of data are appropriate to collect , and how should this be done ? _eos_
+what components of the performance should be be be data be and and how ? ? _eos_ ?
+
+le premier ministre doit - il nommer un ministre d’ état à la santé mentale , à la maladie mentale et à la toxicomanie ? _eos_
+what role can the federal government play to ensure that individuals with mental illness and addiction have access to the drug therapy they need ? _eos_
+what is the minister minister ’s minister minister to to minister to health health ? and mental mental health _eos_ _eos_ mental _eos_
+
+quelles sont les conséquences de la hausse des formes d’ emploi non conformes aux normes chez les travailleurs hautement qualifiés et chez ceux qui occupent des emplois plus marginaux ? _eos_
+what is the impact of growing forms of non - standard employment for highly skilled workers and for those employed in more marginal occupations ? _eos_
+what are the implications of of - statistics - workers - workers workers and and skilled workers workers workers older workers _eos_ ? workers ? _eos_ _eos_
+
+que se produit - il si le gestionnaire n’ est pas en mesure de donner à l’ employé nommé pour une période déterminée un préavis de cessation d’ emploi d’ un mois ou s’ il néglige de le
+what happens if the manager is unable to or neglects to give a term employee the one - month notice of non - renewal ? _eos_
+what if the manager is not to to employee employee employee a employee the employee for retirement time hours employee after a employee of ? after _eos_
+
+quelles personnes , communautés ou entités sont considérées comme potentiels i ) bénéficiaires de la protection et ii ) titulaires de droits ? _eos_
+which persons , communities or entities are identified as potential ( i ) beneficiaries of protection and / or ( ii ) rights holders ? _eos_
+who , or or or or considered as as recipients of of of protection protection protection _eos_ ? _eos_ _eos_
+
+quelles conditions particulières doivent être remplies pendant l’ examen préliminaire international en ce qui concerne les listages des séquences de nucléotides ou d’ acides aminés ou les tableaux y relatifs ? _eos_
+what special requirements apply during the international preliminary examination to nucleotide and / or amino acid sequence listings and / or tables related thereto ? _eos_
+what specific conditions conditions be be during the international examination examination in the for nucleotide or amino amino / or or ? _eos_ ? ? _eos_ tables _eos_ ?
+
+pourquoi cette soudaine réticence à promouvoir l’ égalité des genres et à protéger les femmes de ce que , dans la plupart des cas , on peut qualifier de violations grossières des droits humains ? _eos_
+why this sudden reluctance to effectively promote gender equality and protect women from what are – in many cases – egregious human rights violations ? _eos_
+why this this to to to to to to women to and and and women to , of _eos_ of many people ? ? of _eos_ ? human human
+
+pouvez - vous dire comment votre bagage culturel vous a aidée à aborder votre nouvelle vie au canada ( à vous adapter au mode de vie canadien ) ? _eos_
+what are some things from your cultural background that have helped you navigate canadian life ( helped you adjust to life in canada ) ? _eos_
+what is your your of your you to you to to in canada canada canada life canada canada canada _eos_ _eos_ _eos_ _eos_ _eos_
+
+selon vous , quels seront , dans les dix prochaines années , les cinq enjeux les plus urgents en matière d' environnement et d' avenir viable pour vous et votre région ? _eos_
+which do you think will be the five most pressing environmental and sustainability issues for you and your region in the next ten years ? _eos_
+what do you think in the next five five next , , next and and and and and and you and in ? _eos_ ? ? _eos_ ?
+
+dans quelle mesure l’ expert est-il motivé et capable de partager ses connaissances , et dans quelle mesure son successeur est-il motivé et capable de recevoir ce savoir ? _eos_
+what is the expert ’s level of motivation and capability for sharing knowledge , and the successor ’s motivation and capability of acquiring it ? _eos_
+what is the the of the the and and and and and and and to and to and and ? ? ? _eos_ _eos_
+```
+
+Not bad. It’s still not perfect but quite a few of them are correct and again considering that we are asking it to learn about the very idea of language for two different languages and how to translate them between the two, and grammar, and vocabulary, and we only have 50,000 sentences and a lot of the words only appear once, I would say this is actually pretty amazing.
+
+:question: Why do we use tanh instead of ReLU for the attention mini net? [01:46:23]
+
+I don’t quite remember — it’s been a while since I looked at it. You should totally try using value and see how it goes. Obviously tanh the key difference is that it can go in each direction and it’s limited both at the top and the bottom. I know very often for the gates inside RNNs, LSTMs, and GRUs, tanh often works out better but it’s been about a year since I actually looked at that specific question so I’ll look at it during the week. The short answer is you should try a different activation function and see if you can get a better result.
+
+> From Lesson 7 [[00:44:06](https://youtu.be/H3g26EVADgY?t=44m6s)]: As we have seen last week, tanh is forcing the value to be between -1 and 1. Since we are multiplying by this weight matrix again and again, we would worry that relu (since it is unbounded) might have more gradient explosion problem. Having said that, you can specify `RNNCell` to use different nonlineality whose default is tanh and ask it to use relu if you wanted to.
+
+#### Visualization [[01:47:12](https://youtu.be/tY0n9OT5_nA?t=1h47m12s)]
+
+What we can do also is we can grab the attentions out of the model by adding return attention parameter to `forward` function. You can put anything you’d like in `forward` function argument. So we added a return attention parameter, false by default because obviously the training loop it doesn’t know anything about it but then we just had something here says if return attention, then stick the attentions on as well (`if ret_attn: res = res,torch.stack(attns)`). The attentions is simply the value `a` just chuck it on a list (`attns.append(a)`). We can now call the model with return attention equals true and get back the probabilities and the attentions [01:47:53]:
+
+```python
+probs, attns = learn.model(V(x), ret_attn=True)
+```
+
+We can now draw pictures, at each time step, of the attention.
+
+```python
+attn = to_np(attns[..., 180])
+
+fig, axes = plt.subplots(3, 3, figsize=(15, 10))
+for i, ax in enumerate(axes.flat):
+    ax.plot(attn[i])
+```
+
+![](/images/translate_notebook_029.png)
+
+When you are Chris Olah and Shan Carter, you make things that looks like :point_down: when you are Jeremy Howard, the exact same information looks like :point_up: [01:48:24]. You can see at each different time step, we have a different attention.
+
+![](/images/translate_notebook_030.png)
+
+It’s very important when you try to build something like this, you don’t really know if it’s not working right because if it’s not working (as per usual Jeremy’s first 12 attempts of this were broken) and they were broken in a sense that it wasn’t really learning anything useful. Therefore, it was giving equal attention to everything and it wasn’t worse — it just wasn’t much better. Until you actually find ways to visualize the thing in a way that you know what it ought to look like ahead of time, you don’t really know if it’s working [01:49:16]. So it’s really important that you try to find ways to check your intermediate steps in your outputs.
+
+:question: What is the loss function of the attentional neural network? [01:49:31]
+
+No, there is no loss function for the attentional neural network. It is trained end-to-end. It is just sitting inside our decoder loop. The loss function for the decoder loop is the same loss function because the result contains exactly same thing as before — the probabilities of the words. How come the mini neural net learning something? Because in order to make the outputs better and better, it would be great if it made the weights of weighted-average better and better. So part of creating our output is to please do a good job of finding a good set of weights and if it doesn’t do a good job of finding good set of weights, then the loss function won’t improve from that bit. So end-to-end learning means you throw in everything you can into one loss function and the gradients of all the different parameters point in a direction that says "hey, you know if you had put more weight over there, it would have been better." And thanks to the magic of the chain rule, it knows to put more weight over there, change the parameter in the matrix multiply a little, etc. That is the magic of end-to-end learning. It is a very understandable question but you have to realize there is nothing particular about this code that says this particular bits are separate mini neural network anymore than the GRU is a separate little neural network, or a linear layer is a separate little function. It’s all ends up pushed into one output which is a bunch of probabilities which ends up in one loss function that returns a single number that says this either was or wasn’t a good translation. So thanks to the magic of the chain rule, we then back propagate little updates to all the parameters to make them a little bit better. This is a big, weird, counterintuitive idea and it’s totally okay if it’s a bit mind-bending. It is the bit where even back to lesson 1 "how did we make it find dogs vs. cats?" — we didn’t. All we did was we said "this is our data, this is our architecture, this is our loss function. Please back propagate into the weights to make them better and after you’ve made them better a while, it will start finding cats from dogs." In this case (i.e. translation), we haven’t used somebody else’s convolutional network architecture. We said "here is a custom architecture which we hope is going to be particularly good at this problem." Even without this custom architecture, it was still okay. But we made it in a way that made more sense or we think it ought to do worked even better. But at no point, did we do anything different other than say "here is a data, here is an architecture, here is a loss function — go and find the parameters please" And it did it because that’s what neural nets do.
+
+So that is sequence-to-sequence learning [01:53:19].
+
+- If you want to encode an image into a CNN backbone of some kind, and then pass that into a decoder which is like RNN with attention, and you make your y-values the actual correct caption of each of those image, you will end up with an image caption generator.
+- If you do the same thing with videos and captions, you will end up with a video caption generator.
+- If you do the same thing with 3D CT scan and radiology reports, you will end up with a radiology report generator.
+- If you do the same thing with Github issues and people’s chosen summaries of them, you’ll get a Github issue summary generator.
+
+> Seq-to-seq is magical but they work [01:54:07]. And I don’t feel like people have begun to scratch the surface of how to use seq-to-seq models in their own domains. Not being a Github person, it would never have occurred to me that "it would be kind of cool to start with some issue and automatically create a summary". But now, of course, next time I go into Github, I want to see a summary written there for me. I don’t want to write my own commit message. Why should I write my own summary of the code review when I finished adding comments to lots of lines — it should do that for me as well. Now I’m thinking Github so behind, it could be doing this stuff. So what are the thing in your industry? You could start with a sequence and generate something from it. I can’t begin to imagine. Again, it is a fairly new area and the tools for it are not easy to use — they are not even built into fastai yet. Hopefully there will be soon. I don’t think anybody knows what the opportunities are.
