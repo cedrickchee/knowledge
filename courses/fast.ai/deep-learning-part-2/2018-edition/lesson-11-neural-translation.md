@@ -856,3 +856,98 @@ For classification, the approach to bi-directional Jeremy suggested to use is ta
 
 In this particular case, you will see all the changes that had to be made [01:19:38]. For example ,when we added `bidirectional = True`, the `Linear` layer now needs number of hidden times 2 (i.e. `nh * 2`) to reflect the fact that we have that second direction in our hidden state. Also in `initHidden` it’s now `self.nl * 2`.
 
+```python
+class Seq2SeqRNN_Bidir(nn.Module):
+    def __init__(self, vecs_enc, itos_enc, em_sz_enc, vecs_dec, itos_dec, em_sz_dec, nh, out_sl, nl=2):
+        super().__init__()
+        self.nl, self.nh, self.out_sl = nl, nh, out_sl
+        self.emb_enc = create_emb(vecs_enc, itos_enc, em_sz_enc)
+        self.emb_enc_drop = nn.Dropout(0.15)
+        self.gru_enc = nn.GRU(em_sz_enc, nh, num_layers=nl, dropout=0.25, bidirectional=True) # for bidir, bidirectional=True
+        self.out_enc = nn.Linear(nh * 2, em_sz_dec, bias=False) # for bidir, nh * 2
+        self.drop_enc = nn.Dropout(0.05) # additional for bidir
+
+        self.emb_dec = create_emb(vecs_dec, itos_dec, em_sz_dec)
+        self.gru_dec = nn.GRU(em_sz_dec, em_sz_dec, num_layers=nl, dropout=0.1)
+        self.out_drop = nn.Dropout(0.35)
+        self.out = nn.Linear(em_sz_dec, len(itos_dec))
+        self.out.weight.data = self.emb_dec.weight.data
+
+    def forward(self, inp):
+        sl, bs = inp.size()
+
+        # ==================================================
+        # Encoder version
+        # ==================================================
+
+        h = self.initHidden(bs)
+        emb = self.emb_enc_drop(self.emb_enc(inp))
+        enc_out, h = self.gru_enc(emb, h)
+        # Additional for bidir
+        h = h.view(2, 2, bs, -1).permute(0, 2, 1, 3).contiguous().view(2, bs, -1)
+        h = self.out_enc(self.drop_enc(h)) # new for bidir; dropout hidden state.
+
+        # ==================================================
+        # Decoder version
+        # ==================================================
+
+        dec_inp = V(torch.zeros(bs).long())
+        res = []
+
+        for i in range(self.out_sl):
+            emb = self.emb_dec(dec_inp).unsqueeze(0)
+            outp, h = self.gru_dec(emb, h)
+            outp = self.out(self.out_drop(outp[0]))
+            res.append(outp)
+            dec_inp = V(outp.data.max(1)[1])
+
+            if (dec_inp == 1).all():
+                break
+
+        return torch.stack(res)
+
+    def initHidden(self, bs):
+        return V(torch.zeros(self.nl * 2, bs, self.nh)) # for bidir, sel.nl * 2
+```
+
+```python
+rnn = Seq2SeqRNN_Bidir(fr_vecd, fr_itos, dim_fr_vec, en_vecd, en_itos, dim_en_vec, nh, enlen_90)
+learn = RNN_Learner(md, SingleModel(to_gpu(rnn)), opt_fn=opt_fn)
+learn.crit = seq2seq_loss
+
+learn.fit(lr, 1, cycle_len=12, use_clr=(20, 10))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss
+    0      4.766771   4.495123
+    1      3.918195   4.018911
+    2      3.682928   3.852527
+    3      3.654867   3.653316
+    4      3.540806   3.581977
+    5      3.38937    3.518663
+    6      3.337964   3.461221
+    7      2.868424   3.439734
+    8      2.783658   3.426322
+    9      2.743709   3.375462
+    10     2.662714   3.39351
+    11     2.551906   3.373751
+[array([3.37375])]
+```
+
+![](/images/translate_notebook_018.png)
+
+It took me ~2 minutes (115.30s) to train 1 epoch on K80, roughly 3.10 iteration/s.
+The full training took me ~23 minutes.
+
+:question: Why is making the decoder bi-directional considered cheating? [01:20:13]
+
+It’s not just cheating but we have this loop going on so it is not as simple as having two tensors. Then how do you turn those two separate loops into a final result? After talking about it during the break, Jeremy has gone from "everybody knows it doesn’t work" to "maybe it could work", but it requires more thought. It is quite possible during the week, he’ll realize it’s a dumb idea, but we’ll think about it.
+
+:question: Why do you need to set a range to the loop? [01:20:58]
+
+Because when we start training, everything is random so `if (dec_inp == 1).all(): break` will probably never be true. Later on, it will pretty much always break out eventually but basically we are going to go forever. It’s really important to remember when you are designing an architecture that when you start, the model knows nothing about anything. So you want to make sure if it’s going to do something at least it’s vaguely sensible.
+
+We got 3.5963 cross entropy loss with single direction [01:21:46]. With bi-direction, we got down to 3.37375, so that improved a little. It shouldn’t really slow things down too much. Bi-directional does mean there is a little bit more sequential processing have to happen, but it is generally a good win. In the Google translation model, of the 8 layers, only the first layer is bi-directional because it allows it to do more in parallel, so if you create really deep models you may need to think about which ones are bi-directional otherwise we have performance issues.
+
