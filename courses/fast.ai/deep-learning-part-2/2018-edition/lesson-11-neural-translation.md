@@ -936,7 +936,7 @@ epoch      trn_loss   val_loss
 [array([3.37375])]
 ```
 
-![](/images/translate_notebook_018.png)
+![Training loss curve](/images/translate_notebook_018.png)
 
 It took me ~2 minutes (115.30s) to train 1 epoch on K80, roughly 3.10 iteration/s.
 The full training took me ~23 minutes.
@@ -951,3 +951,142 @@ Because when we start training, everything is random so `if (dec_inp == 1).all()
 
 We got 3.5963 cross entropy loss with single direction [01:21:46]. With bi-direction, we got down to 3.37375, so that improved a little. It shouldn’t really slow things down too much. Bi-directional does mean there is a little bit more sequential processing have to happen, but it is generally a good win. In the Google translation model, of the 8 layers, only the first layer is bi-directional because it allows it to do more in parallel, so if you create really deep models you may need to think about which ones are bi-directional otherwise we have performance issues.
 
+#### Trick #2 Teacher Forcing [[01:22:39](https://youtu.be/tY0n9OT5_nA?t=1h22m39s)]
+
+Now let’s talk about teacher forcing. When a model starts learning, it knows nothing about nothing. So when the model starts learning, it is not going to spit out "Er" at the first step, it is going to spit out some random meaningless word because it doesn’t know anything about German or about English or about the idea of language. And it is going to feed it to the next process as an input and be totally unhelpful. That means, early learning is going to be very difficult because it is feeding in an input that is stupid into a model that knows nothing and somehow it’s going to get better. So it is not asking too much eventually it gets there, but it’s definitely not as helpful as we can be. So what if instead of feeing in the thing I predicted just now, what if we instead we feed in the actual correct word was meant to be. We can’t do that at inference time because by definition we don’t know the correct word - it has to translate it. We can’t require the correct translation in order to do translation.
+
+![](/images/translate_notebook_019.png)
+
+So the way it’s set up is we have this thing called `pr_force` which is probability of forcing [01:24:01]. If some random number is less than that probability then we are going to replace our decoder input with the actual correct thing. If we have already gone too far and if it is already longer than the target sequence, we are just going to stop because obviously we can’t give it the correct thing. So you can see how beautiful PyTorch is for this. The key reasons that we switched to PyTorch at this exact point in last year’s class was because Jeremy tried to implement teacher forcing in Keras and TensorFlow and went even more insane than he started. It was weeks of getting nowhere then he saw on Twitter Andrej Karpathy said something about this thing called PyTorch that just came out and it’s really cool. He tried it that day, by the next day, he had teacher forcing. All this stuff of trying to debug things was suddenly so much easier and and this kind of dynamic thing is so much easier. So this is a great example of "hey, I get to use random numbers and if statements".
+
+```python
+class Seq2SeqStepper(Stepper):
+    def step(self, xs, y, epoch):
+        self.m.pr_force = (10 - epoch) * 0.1 if epoch < 10 else 0
+        xtra = []
+        output = self.m(*xs, y)
+        if isinstance(output, tuple):
+            output, *xtra = output
+        self.opt.zero_grad()
+        loss = raw_loss = self.crit(output, y)
+        if self.reg_fn:
+            loss = self.reg_fn(output, xtra, raw_loss)
+        loss.backward()
+        if self.clip: # gradient clipping
+            nn.utils.clip_grad_norm(trainable_params_(self.m), self.clip)
+        self.opt.step()
+
+        return raw_loss.data[0]
+```
+
+Here is the basic idea [01:25:29]. At the start of training, let’s set `pr_force` really high so that nearly always it gets the actual correct previous word and so it has a useful input. Then as we trained a bit more, let’s decrease `pr_force` so that by the end `pr_force` is zero and it has to learn properly which is fine because it is now actually feeding in sensible inputs most of the time anyway.
+
+```python
+class Seq2SeqRNN_TeacherForcing(nn.Module):
+    def __init__(self, vecs_enc, itos_enc, em_sz_enc, vecs_dec, itos_dec, em_sz_dec, nh, out_sl, nl=2):
+        super().__init__()
+        self.nl, self.nh, self.out_sl = nl, nh, out_sl
+        self.emb_enc = create_emb(vecs_enc, itos_enc, em_sz_enc)
+        self.emb_enc_drop = nn.Dropout(0.15)
+        self.gru_enc = nn.GRU(em_sz_enc, nh, num_layers=nl, dropout=0.25)
+        self.out_enc = nn.Linear(nh, em_sz_dec, bias=False)
+        self.emb_dec = create_emb(vecs_dec, itos_dec, em_sz_dec)
+        self.gru_dec = nn.GRU(em_sz_dec, em_sz_dec, num_layers=nl, dropout=0.1)
+        self.out_drop = nn.Dropout(0.35)
+        self.out = nn.Linear(em_sz_dec, len(itos_dec))
+        self.out.weight.data = self.emb_dec.weight.data
+        self.pr_force = 1. # new for teacher forcing
+
+    def forward(self, inp, y=None): # argument y is new for teacher forcing
+        sl, bs = inp.size()
+        h = self.initHidden(bs)
+        emb = self.emb_enc_drop(self.emb_enc(inp))
+        enc_out, h = self.gru_enc(emb, h)
+        h = self.out_enc(h)
+
+        dec_inp = V(torch.zeros(bs).long())
+        res = []
+
+        for i in range(self.out_sl):
+            emb = self.emb_dec(dec_inp).unsqueeze(0)
+            outp, h = self.gru_dec(emb, h)
+            outp = self.out(self.out_drop(outp[0]))
+            res.append(outp)
+            dec_inp = V(outp.data.max(1)[1])
+
+            if (dec_inp == 1).all():
+                break
+            if (y is not None) and (random.random() < self.pr_force): # new for teacher forcing
+                if i >= len(y):
+                    break
+                dec_inp = y[i]
+        return torch.stack(res)
+
+    def initHidden(self, bs):
+        return V(torch.zeros(self.nl, bs, self.nh))
+```
+
+`pr_force`: "probability of forcing". High in the beginning zero by the end.
+
+Let’s now write something such that in the training loop, it gradually decreases `pr_force` [01:26:01]. How do we do that? One approach would be to write our own training loop but let’s not do that because we already have a training loop that has progress bars, uses exponential weighted averages to smooth out the losses, keeps track of metrics, and does bunch of things. They also keep track of calling the reset for RNN at the start of the epoch to make sure the hidden state is set to zeros. What we’ve tended to find is that as we start to write some new thing and we need to replace some part of the code, we then add some little hook so that we can all use that hook to make things easier. In this particular case, there is a hook that Jeremy has ended up using all the time which is the hook called the stepper. If you look at the source code, `model.py` is where our fit function lives which is the lowest level thing that does not require learner or anything much at all — just requires a standard PyTorch model and a model data object. You just need to know how many epochs, a standard PyTorch optimizer, and a standard PyTorch loss function. We hardly ever used in the class, we normally call `learn.fit`, but `learn.fit` calls this.
+
+![](/images/translate_notebook_020.png)
+
+We have to look at the source code sometime [01:27:49]. We’ve seen how it loop through each epoch and that loops through each thing in our batch and calls `stepper.step`. `stepper.step` is the thing that is responsible for:
+
+- calling the model
+- getting the loss
+- finding the loss function
+- calling the optimizer
+
+![](/images/translate_notebook_021.png)
+
+So by default, `stepper.step` uses a particular class called `Stepper` which basically calls the model, zeros the gradient, calls the loss function, calls backward, does gradient clipping if necessary, then calls the optimizer. They are basic steps that back when we looked at "PyTorch from scratch" we had to do. The nice thing is, we can replace that with something else rather than replacing the training loop. If you inherit from `Stepper`, then write your own version of `step`, you can just copy and paste the contents of `step` and add whatever you like. Or if it’s something that you’re going to do before or afterwards, you could even call `super.step`. In this case, Jeremy rather suspects he has been unnecessarily complicated [01:29:12] — he probably could have done something like:
+
+```python
+class Seq2SeqStepper(Stepper):
+    def step(self, xs, y, epoch):
+        self.m.pr_force = (10 - epoch) * 0.1 if epoch < 10 else 0
+        return super.step(xs, y, epoch)
+```
+
+But as he said, when he is prototyping, he doesn’t think carefully about how to minimize his code — he copied and pasted the contents of the `step` and he added a single line to the top which was to replace `pr_force` in the module with something that gradually decreased linearly for the first 10 epochs, and after 10 epochs, it is zero. So total hack but good enough to try it out. The nice thing is that everything else is the same except for the addition of these three lines:
+
+```python
+if (y is not None) and (random.random() < self.pr_force):
+    if i >= len(y): break
+    dec_inp = y[i]
+```
+
+And the only thing we need to do differently is when we call `fit`, we pass in our customized stepper class.
+
+```python
+rnn = Seq2SeqRNN_TeacherForcing(fr_vecd, fr_itos, dim_fr_vec, en_vecd, en_itos, dim_en_vec, nh, enlen_90)
+learn = RNN_Learner(md, SingleModel(to_gpu(rnn)), opt_fn=opt_fn)
+learn.crit = seq2seq_loss
+
+learn.fit(lr, 1, cycle_len=12, use_clr=(20, 10), stepper=Seq2SeqStepper)
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss
+    0      3.972275   11.894288
+    1      3.75144    8.904335
+    2      3.147096   5.737202
+    3      3.205919   4.434411
+    4      2.89941    4.337346
+    5      2.837049   4.195613
+    6      2.9374     3.801485
+    7      2.919509   3.679037
+    8      2.974855   3.600216
+    9      2.98231    3.551779
+    10     2.871864   3.418646
+    11     2.674465   3.432893
+[array([3.43289])]
+```
+
+![Training loss curve](/images/translate_notebook_022.png)
+
+It took me ~1 minute (78.62s) to train 1 epoch on K80, roughly 5.0 iteration/s.
+The full training took me ~16 minutes.
