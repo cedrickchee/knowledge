@@ -22,6 +22,7 @@ _These are my personal notes from fast.ai course and will continue to be updated
   * [devise.ipynb](https://nbviewer.jupyter.org/github/fastai/fastai/blob/master/courses/dl2/devise.ipynb)
 * Dataset
   * [Parallel Giga French-English corpus](http://www.statmt.org/wmt15/translation-task.html) / [direct download link](http://www.statmt.org/wmt10/training-giga-fren.tar) (2.3 GB)
+  * [ImageNet train set sample](http://files.fast.ai/data/imagenet-sample-train.tar.gz) (a subset of the full ImageNet data which is a large 156 GB)
 
 ## Assignments
 
@@ -1369,3 +1370,557 @@ So that is sequence-to-sequence learning [01:53:19].
 - If you do the same thing with Github issues and people’s chosen summaries of them, you’ll get a Github issue summary generator.
 
 > Seq-to-seq is magical but they work [01:54:07]. And I don’t feel like people have begun to scratch the surface of how to use seq-to-seq models in their own domains. Not being a Github person, it would never have occurred to me that "it would be kind of cool to start with some issue and automatically create a summary". But now, of course, next time I go into Github, I want to see a summary written there for me. I don’t want to write my own commit message. Why should I write my own summary of the code review when I finished adding comments to lots of lines — it should do that for me as well. Now I’m thinking Github so behind, it could be doing this stuff. So what are the thing in your industry? You could start with a sequence and generate something from it. I can’t begin to imagine. Again, it is a fairly new area and the tools for it are not easy to use — they are not even built into fastai yet. Hopefully there will be soon. I don’t think anybody knows what the opportunities are.
+
+### DeViSE [[01:55:23](https://youtu.be/tY0n9OT5_nA?t=1h55m23s)]
+
+[devise.ipynb](https://nbviewer.jupyter.org/github/fastai/fastai/blob/master/courses/dl2/devise.ipynb)
+
+We are going to do something bringing together for the first time our two little worlds we focused on — text and images [01:55:49]. This idea came up in a paper by an extraordinary deep learning practitioner and researcher named Andrea Frome. Andrea was at Google at the time and her crazy idea was words can have a distributed representation, a space, which particularly at that time was just word vectors. And images can be represented in a space. In the end, if we have a fully connected layer, they ended up as a vector representation. Could we merge the two? Could we somehow encourage the vector space that the images end up with be the same vector space that the words are in? And if we could do that, what would that mean? What could we do with that? So what could we do with that covers things like well, what if I’m wrong what if I’m predicting that this image is a beagle and I predict jumbo jet and Yannet’s model predicts corgi. The normal loss function says that Yannet’s and Jeremy’s models are equally good (i.e. they are both wrong). But what if we could somehow say though you know what corgi is closer to beagle than it is to jumbo jets. So Yannet’s model is better than Jeremy’s. We should be able to do that because in word vector space, beagle and corgi are pretty close together but jumbo jet not so much. So it would give us a nice situation where hopefully our inferences would be wrong in saner ways if they are wrong. It would also allow us to search for things that are not in ImageNet Synset ID (i.e. a category in ImageNet). Why did we have to train a whole new model to find dog vs. cats when we already have something that found corgis and tabbies. Why can’t we just say find me dogs? If we had trained it in word vector space, we totally could because they are word vector, we can find things with the right image vector and so forth. We will look at some cool things we can do with it in a moment but first of all let’s train a model where this model is not learning a category (one hot encoded ID) where every category is equally far from every other category, let’s instead train a model where we’re finding a dependent variable which is a word vector. So, what is word vector? Obviously the word vector for the word you want. So if it’s corgi, let’s train it to create a word vector that’s the corgi word vector, and if it’s a jumbo jet, let’s train it with a dependent variable that says this is the word vector for a jumbo jet.
+
+```python
+from fastai.conv_learner import *
+torch.backends.cudnn.benchmark = True
+
+import fastText as ft
+
+import torchvision.transforms as transforms
+
+# Normalize ImageNet images
+normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
+# Image processing
+tfms = transforms.Compose([
+    transforms.RandomResizedCrop(224),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    normalize,
+])
+```
+
+Download ImageNet dataset:
+
+For me, I will use a subset of ImageNet training set this time.
+
+```python
+%mkdir data/imagenet
+%cd data/imagenet/
+
+!aria2c --file-allocation=none -c -x 5 -s 5 http://files.fast.ai/data/imagenet-sample-train.tar.gz
+
+!tar -xzf imagenet-sample-train.tar.gz
+
+%cd ../..
+```
+
+Setup directory and file paths:
+
+```python
+PATH = Path('data/imagenet/')
+TMP_PATH = PATH / 'tmp'
+TRANS_PATH = Path('data/translate/') # for fastText word vectors
+PATH_TRN = PATH / 'train'
+```
+
+**Load the Word Vectors**
+
+It is shockingly easy [01:59:17]. Let’s grab the fastText word vectors again, load them in (we only need English this time).
+
+```python
+# fastText word vectors
+ft_vecs = ft.load_model(str((TRANS_PATH / 'wiki.en.bin')))
+
+np.corrcoef( ft_vecs.get_word_vector('jeremy'), ft_vecs.get_word_vector('Jeremy') )
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+array([[1.     , 0.60866],
+       [0.60866, 1.     ]])
+```
+
+So for example, "jeremy" and "Jeremy" have a correlation of .6.
+
+```python
+np.corrcoef(ft_vecs.get_word_vector('banana'), ft_vecs.get_word_vector('Jeremy'))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+array([[1.     , 0.14482],
+       [0.14482, 1.     ]])
+```
+
+Jeremy doesn’t like bananas at all, and "banana" and "Jeremy" .14. So words that you would expect to be correlated are correlated and words that should be as far away from each other as possible, unfortunately, they are still slightly correlated but not so much [01:59:41].
+
+#### Map ImageNet classes to word vectors
+
+Let’s now grab all of the ImageNet classes because we actually want to know which one is corgi and which one is jumbo jet.
+
+```python
+ft_words = ft_vecs.get_words(include_freq=True)
+ft_word_dict = { k: v for k, v in zip(*ft_words) }
+ft_words = sorted(ft_word_dict.keys(), key=lambda x: ft_word_dict[x])
+
+len(ft_words)
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+2519370
+```
+
+We have a list of all of those up on files.fast.ai that we can grab them.
+
+```python
+from fastai.io import get_data
+
+CLASSES_FN = 'imagenet_class_index.json'
+get_data(f'http://files.fast.ai/models/{CLASSES_FN}', TMP_PATH / CLASSES_FN)
+```
+
+Let’s also grab a list of all of the nouns in English which Jeremy made available here:
+
+```python
+WORDS_FN = 'classids.txt'
+get_data(f'http://files.fast.ai/data/{WORDS_FN}', PATH / WORDS_FN)
+```
+
+So we have the names of each of the thousand ImageNet classes and all of the nouns in English according to WordNet which is a popular thing for representing what words are and are not. We can now load that list of ImageNet classes, turn that into a dictionary, so `classids_1k` contains the class IDs for the 1000 images that are in the competition dataset.
+
+```python
+class_dict = json.load((TMP_PATH / CLASSES_FN).open())
+classids_1k = dict(class_dict.values())
+nclass = len(class_dict)
+nclass
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+1000
+```
+
+Here is an example. A "tench" apparently is a kind of fish.
+
+```python
+class_dict['0']
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+['n01440764', 'tench']
+```
+
+Let’s do the same thing for all those WordNet nouns [02:01:11]. It turns out that ImageNet is using WordNet class names so that makes it nice and easy to map between the two.
+
+```python
+classid_lines = (PATH / WORDS_FN).open().readlines()
+classid_lines[:5]
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+['n00001740 entity\n',
+ 'n00001930 physical_entity\n',
+ 'n00002137 abstraction\n',
+ 'n00002452 thing\n',
+ 'n00002684 object\n']
+
+ classids = dict( l.strip().split() for l in classid_lines )
+len(classids), len(classids_1k)
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+(82115, 1000)
+```
+
+So these are our two worlds — we have the ImageNet thousand and we have the 82,000 which are in WordNet.
+
+```python
+lc_vec_d = { w.lower(): ft_vecs.get_word_vector(w) for w in ft_words[-1000000:] }
+```
+
+So we want to map the two together which is as simple as creating a couple of dictionaries to map them based on the Synset ID or the WordNet ID.
+
+```python
+syn_wv = [(k, lc_vec_d[v.lower()]) for k, v in classids.items()
+           if v.lower() in lc_vec_d]
+syn_wv_1k = [(k, lc_vec_d[v.lower()]) for k, v in classids_1k.items()
+             if v.lower() in lc_vec_d]
+syn2wv = dict(syn_wv)
+len(syn2wv)
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+49469
+```
+
+What we need to do now is grab the 82,000 nouns in WordNet and try and look them up in fastText. We’ve managed to look up 49,469 of them in fastText. We now have a dictionary that goes from synset ID which is what WordNet calls them to word vectors. We also have the same thing specifically for the 1k ImageNet classes.
+
+```python
+pickle.dump(syn2wv, (TMP_PATH / 'syn2wv.pkl').open('wb'))
+pickle.dump(syn_wv_1k, (TMP_PATH / 'syn_wv_1k.pkl').open('wb'))
+
+syn2wv = pickle.load((TMP_PATH / 'syn2wv.pkl').open('rb'))
+syn_wv_1k = pickle.load((TMP_PATH / 'syn_wv_1k.pkl').open('rb'))
+```
+
+Now we grab all of the ImageNet which you can download from Kaggle now [02:02:54]. If you look at the Kaggle ImageNet localization competition, that contains the entirety of the ImageNet classifications as well.
+
+```python
+images = []
+img_vecs = []
+
+for d in (PATH / 'train').iterdir():
+    if d.name not in syn2wv:
+        continue
+    vec = syn2wv[d.name]
+    for f in d.iterdir():
+        images.append(str(f.relative_to(PATH)))
+        img_vecs.append(vec)
+
+n_val=0
+for d in (PATH/'valid').iterdir():
+    if d.name not in syn2wv: continue
+    vec = syn2wv[d.name]
+    for f in d.iterdir():
+        images.append(str(f.relative_to(PATH)))
+        img_vecs.append(vec)
+        n_val += 1
+
+n_val
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+28650
+```
+
+It has a validation set of 28,650 items in it. For every image in ImageNet, we can grab its fastText word vector using the synset to word vector (`syn2wv`) and we can stick that into the image vectors array (`img_vecs`), stack that all up into a single matrix and save that away.
+
+```python
+img_vecs = np.stack(img_vecs)
+img_vecs.shape
+```
+
+Now what we have is something for every ImageNet image, we also have the fastText word vector that it is associated with [02:03:43] by looking up the synset ID → WordNet → fastText → word vector.
+
+```python
+pickle.dump(images, (TMP_PATH / 'images.pkl').open('wb'))
+pickle.dump(img_vecs, (TMP_PATH / 'img_vecs.pkl').open('wb'))
+
+images = pickle.load((TMP_PATH / 'images.pkl').open('rb'))
+img_vecs = pickle.load((TMP_PATH / 'img_vecs.pkl').open('rb'))
+```
+
+Here is a cool trick [02:04:06]. We can now create a model data object which specifically is an image classifier data object and we have this thing called `from_names_and_array`. I’m not sure if we’ve used it before but we can pass it a list of file names (all of the file names in ImageNet) and an array of our dependent variables (all of the fastText word vectors). We can then pass in the validation indexes which in this case is just all of the last IDs — we need to make sure that they are the same as ImageNet uses otherwise we will be cheating. Then we pass in `continuous = True` which means this puts a lie again to this image classifier data is now an image regressive data so continuous equals True means don’t one hot encode my outputs but treat them just as continuous values. So now we have a model data object that contains all of our file names and for every file name a continuous array representing the word vector for that. So we have data, now we need an architecture and the loss function.
+
+```python
+# transformers of images for training
+tfms = tfms_from_model(arch, 224, transforms_side_on, max_zoom=1.1)
+
+# we can pass all the names from imagenet + word vecs
+# then pass the indexes
+# continuous = True - since we are predicting vectors
+md = ImageClassifierData.from_names_and_array(PATH, images, img_vecs, val_idxs=val_idxs,
+                                              classes=None, tfms=tfms, continuous=True, bs=256)
+
+x, y = next(iter(md.val_dl))
+```
+
+Let’s create an architecture [02:05:26]. We’ll revise this next week, but we can use the tricks we’ve learnt so far and it’s actually incredibly simple. Fastai has a `ConvnetBuilder` which is what gets called when you say `ConvLearner.pretrained` and you specify:
+
+- `f`: the architecture (we are going to use ResNet50)
+- `c`: how many classes you want (in this case, it’s not really classes — it’s how many outputs you want which is the length of the fast text word vector i.e. 300).
+- `is_multi`: It is not a multi classification as it is not classification at all.
+- `is_reg`: Yes, it is a regression.
+- `xtra_fc` : What fully connected layers you want. We are just going to add one fully connected hidden layer of a length of 1024. Why 1024? The last layer of ResNet50 I think is 1024 long, the final output we need is 300 long. We obviously need our penultimate (second to the last) layer to be longer than 300. Otherwise it’s not enough information, so we just picked something a bit bigger. Maybe different numbers would be better but this worked for Jeremy.
+- `ps` : how much dropout you want. Jeremy found that the default dropout, he was consistently under fitting so he just decreased the dropout from 0.5 to 0.2.
+
+So this is now a convolutional neural network that does not have any softmax or anything like that because it’s regression it’s just a linear layer at the end and that’s our model [02:06:55]. We can create a `ConvLearner` from that model and give it an optimization function. So now all we need is a loss function.
+
+```python
+arch = resnet50
+
+models = ConvnetBuilder(arch, md.c, is_multi=False, is_reg=True, xtra_fc=[1024], ps=[0.2, 0.2])
+
+learn = ConvLearner(md, models, precompute=True)
+learn.opt_fn = partial(optim.Adam, betas=(0.9, 0.99))
+```
+
+**Loss Function** [02:07:38]: Default loss function for regression is L1 loss (the absolute differences) — that is not bad. But unfortunately in really high dimensional spaces (anybody who has studied a bit of machine learning probably knows this) everything is on the outside (in this case, it’s 300 dimensional). When everything is on the outside, distance is not meaningless but a little bit awkward. Things tend to be close together or far away, it doesn’t really mean much in these really high dimensional spaces where everything is on the edge. What does mean something, though, is that if one thing is on the edge over here, and one thing is on the edge over there, we can form an angle between those vectors and the angle is meaningful. That is why we use cosine similarity when we are looking for how close or far apart things are in high dimensional spaces. If you haven’t seen cosine similarity before, it is basically the same as Euclidean distance but it’s normalized to be a unit norm (i.e. divided by the length). So we don’t care about the length of the vector, we only care about its angle. There is a bunch of stuff that you could easily learn in a couple of hours but if you haven’t seen it before, it’s a bit mysterious. For now, just know that loss functions and high dimensional spaces where you are trying to find similarity, you care about angle and you don’t care about distance [02:09:13]. If you didn’t use the following custom loss function, it would still work but it’s a little bit less good. Now we have data, architecture, and loss function, therefore, we are done. We can go ahead and fit.
+
+```python
+def cos_loss(inp, targ):
+    return 1 - F.cosine_similarity(inp, targ).mean()
+
+learn.crit = cos_loss
+
+learn.lr_find(start_lr=1e-4, end_lr=1e15)
+learn.sched.plot()
+
+lr = 1e-2
+wd = 1e-7
+```
+
+We are training on all of ImageNet that is going to take a long time. So `precompute = True` is your friend. Remember `precompute = True`? That is the thing we’ve learnt ages ago that caches the output of the final convolutional layer and just trains the fully connected bit. Even with `precompute = True`, it takes about 3 minutes to train an epoch on all of ImageNet. So this is about an hour worth of training, but it’s pretty cool that with fastai, we can train a new custom head on all of ImageNet for 40 epochs in an hour or so.
+
+```python
+learn.precompute = True
+
+learn.fit(lr, 1, cycle_len=20, wds=wd, use_clr=(20, 10))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss
+    0      0.533586   0.470473
+    1      0.372923   0.486955
+    2      0.293371   0.49963
+    3      0.236202   0.505895
+    4      0.195004   0.510554
+    5      0.165844   0.516996
+    6      0.144815   0.530448
+    7      0.129941   0.523714
+    8      0.117989   0.525584
+    9      0.109467   0.523132
+    10     0.102434   0.526665
+    11     0.09594    0.528045
+    12     0.090793   0.525027
+    13     0.08635    0.530179
+    14     0.082674   0.52541
+    15     0.078416   0.524496
+    16     0.07525    0.529237
+    17     0.072656   0.527995
+    18     0.070164   0.527018
+    19     0.068064   0.528724
+
+[array([0.52872])]
+
+learn.bn_freeze(True)
+
+learn.fit(lr, 1, cycle_len=20, wds=wd, use_clr=(20, 10))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss
+    0      0.055475   0.533504
+    1      0.061694   0.543637
+    2      0.069302   0.537233
+    3      0.066792   0.538912
+    4      0.059769   0.534378
+    5      0.053277   0.531469
+    6      0.048054   0.533863
+    7      0.043353   0.534298
+    8      0.039795   0.538832
+    9      0.036677   0.538117
+    10     0.033617   0.546751
+    11     0.031627   0.539823
+    12     0.029719   0.530515
+    13     0.027769   0.547381
+    14     0.025036   0.548819
+    15     0.023828   0.538898
+    16     0.022615   0.535674
+    17     0.021772   0.535489
+    18     0.020845   0.544093
+    19     0.020268   0.545169
+
+[array([0.54517])]
+
+lrs = np.array([lr / 1000, lr / 100, lr])
+
+learn.precompute = False
+learn.freeze_to(1)
+
+learn.save('pre0')
+
+learn.load('pre0')
+```
+
+#### Image search
+
+##### Search imagenet classes
+
+At the end of all that, we can now say let’s grab the 1000 ImageNet classes, let’s predict on our whole validation set, and take a look at a few pictures [02:10:26].
+
+```python
+# syn_wv_1k is ImageNet 1000 classes (syn) mapped to fastText word vectors
+syns, wvs = list(zip(*syn_wv_1k)) # split tuple of syn_id and word vector into 2 list, syn_ids, word vectors
+wvs = np.array(wvs)
+
+%time pred_wv = learn.predict()
+
+start = 512
+
+denorm = md.val_ds.denorm
+
+def show_img(im, figsize=None, ax=None):
+    if not ax:
+        fig, ax = plt.subplots(figsize=figsize)
+    ax.imshow(im)
+    ax.axis('off')
+    return ax
+
+def show_imgs(ims, cols, figsize=None):
+    fig, axes = plt.subplots(len(ims) // cols, cols, figsize=figsize)
+    for i, ax in enumerate(axes.flat):
+        show_img(ims[i], ax=ax)
+    plt.tight_layout()
+```
+
+Because validation set is ordered, all the stuff of the same type are in the same place.
+
+```python
+show_imgs(denorm(md.val_ds[start:start + 25][0]), 5, (10, 10))
+```
+
+![](/images/devise_notebook_001.png)
+
+**Nearest neighbor search** [02:10:56]: What we can now do is we can now use nearest neighbors search. So nearest neighbors search means here is one 300 dimensional vector and here is a whole a lot of other 300 dimensional vectors, which things is it closest to? Normally that takes a very long time because you have to look through every 300 dimensional vector, calculate its distance, and find out how far away it is. But there is an amazing almost unknown library called **[NMSLib](https://github.com/nmslib/nmslib)** that does that incredibly fast. Some of you may have tried other nearest neighbor’s libraries, I guarantee this is faster than what you are using — I can tell you that because it’s been bench marked by people who do this stuff for a living. This is by far the fastest on every possible dimension. We want to create an index on angular distance, and we need to do it on all of our ImageNet word vectors. Adding a whole batch, create the index, and now we can query a bunch of vectors all at once, get the 10 nearest neighbors. The library uses multi-threading and is absolutely fantastic. You can install from pip (`pip install nmslib`) and it just works.
+
+```python
+# use NMSLib python binding
+import nmslib
+
+def create_index(a):
+    index = nmslib.init(space='angulardist')
+    index.addDataPointBatch(a)
+    index.createIndex()
+    return index
+
+def get_knns(index, vecs):
+    return zip(*index.knnQueryBatch(vecs, k=10, num_threads=4))
+
+def get_knn(index, vec):
+    return index.knnQuery(vec, k=10)
+
+nn_wvs = create_index(wvs)
+```
+
+It tells you how far away they are and their indexes [02:12:13].
+
+```python
+idxs, dists = get_knns(nn_wvs, pred_wv)
+```
+
+So now we can go through and print out the top 3 so it turns out that bird actually is a limpkin. Interestingly the fourth one does not say it’s a limpkin and Jeremy looked it up. He doesn’t know much about birds but everything else is brown with white spots, but the 4th one isn’t. So we don’t know if that is actually a limpkin or if it is mislabeled but sure as heck it doesn’t look like the other birds.
+
+```python
+[ [classids[syns[id]] for id in ids[:3]]
+                         for ids in idxs[start:start + 10] ]
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+[['mink', 'polecat', 'cougar'],
+ ['badger', 'polecat', 'otter'],
+ ['marmot', 'badger', 'polecat'],
+ ['marmot', 'badger', 'mink'],
+ ['polecat', 'badger', 'skunk'],
+ ['mink', 'polecat', 'beaver'],
+ ['polecat', 'cougar', 'badger'],
+ ['dingo', 'wombat', 'polecat'],
+ ['cockroach', 'bathtub', 'plunger'],
+ ['polecat', 'skunk', 'mink']]
+```
+
+This is not a particularly hard thing to do because there is only a thousand ImageNet classes and it is not doing anything new. But what if we now bring in the entirety of WordNet and we now say which of those 45 thousand things is it closest to?
+
+##### Search all WordMet noun classes
+
+```python
+all_syns, all_wvs = list(zip(*syn2wv.items()))
+all_wvs = np.array(all_wvs)
+
+nn_allwvs = create_index(all_wvs)
+
+idxs, dists = get_knns(nn_allwvs, pred_wv)
+
+[ [classids[all_syns[id]] for id in ids[:3]] for ids in idxs[start:start + 10] ]
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+[['mink', 'mink', 'mink'],
+ ['badger', 'polecat', 'raccoon'],
+ ['marmot', 'Marmota', 'badger'],
+ ['marmot', 'Marmota', 'badger'],
+ ['polecat', 'Mustela', 'stoat'],
+ ['mink', 'mink', 'mink'],
+ ['polecat', 'Mustela', 'cougar'],
+ ['dog', 'dog', 'alligator'],
+ ['nosepiece', 'sweatband', 'sweatband'],
+ ['polecat', 'Mustela', 'Melogale']]
+```
+
+Exactly the same result. It is now searching all of the WordNet.
+
+##### Text -> image search [[02:13:16](https://youtu.be/tY0n9OT5_nA?t=2h13m16s)]
+
+Now let’s do something a bit different — which is to take all of our predictions (`pred_wv`) so basically take our whole validation set of images and create a KNN index of the image representations because remember, it is predicting things that are meant to be word vectors. Now let’s grab the fastText vector for "boat" and boat is not an ImageNet concept — yet we can now find all of the images in our predicted word vectors (i.e. our validation set) that are closest to the word boat and it works even though it is not something that was ever trained on.
+
+```python
+def text2img(vec):
+    """
+    Pull images who's vector is close to our input vector (vec)
+    """
+    # get indices and distances
+    idxs, dists = get_knn(nn_predwv, vec)
+    im_res = [open_image(PATH / md.val_ds.fnames[i]) for i in idxs[:3]]
+    show_imgs(im_res, 3, figsize=(9, 3))
+
+nn_predwv = create_index(pred_wv)
+
+en_vecd = pickle.load(open(TRANS_PATH / 'wiki.en.pkl', 'rb'))
+
+# en_vecd is of type dict. i.e { 'sink': 300-dim word vector }
+vec = en_vecd['boat'] # get the vector for boat
+text2img(vec) # pull images who's vector is close to our 'boat' vector
+```
+
+![](/images/devise_notebook_002.png)
+
+What if we now take engine’s vector and boat’s vector and take their average and what if we now look in our nearest neighbors for that [02:14:04]?
+
+```python
+vec = (en_vecd['engine'] + en_vecd['boat']) / 2
+text2img(vec)
+```
+
+![](/images/devise_notebook_003.png)
+
+These are boats with engines. I mean, yes, the middle one is actually a boat with an engine — it just happens to have wings on as well. By the way, sail is not an ImageNet thing , neither is boat. Here is the average of two things that are not ImageNet things and yet with one exception, it’s found us two sailboats.
+
+```python
+vec = (en_vecd['sail'] + en_vecd['boat']) / 2
+text2img(vec)
+```
+
+![](/images/devise_notebook_004.png)
+
+##### Image->image [[02:14:35](https://youtu.be/tY0n9OT5_nA?t=2h14m35s)]
+
+Okay, let’s do something else crazy. Let’s open up an image in the validation set. Let’s call `predict_array` on that image to get its word vector like thing, and let’s do a nearest neighbor search on all the other images.
+
+```python
+fname = 'valid/n01440764/ILSVRC2012_val_00007197.JPEG'
+img = open_image(PATH/fname)
+show_img(img)
+```
+
+![](/images/devise_notebook_005.png)
+
+```python
+t_img = md.val_ds.transform(img)
+pred = learn.predict_array(t_img[None])
+idxs,dists = get_knn(nn_predwv, pred)
+show_imgs([open_image(PATH / md.val_ds.fnames[i]) for i in idxs[1:4]], 3, figsize=(9, 3))
+```
+
+![](/images/devise_notebook_006.png)
+
+And here are all the other images of whatever that is. So you can see, this is crazy — we’ve trained a thing on all of ImageNet in an hour, using a custom head that required basically like two lines of code, and these things run in 300 milliseconds to do these searches.
+
+Jeremy taught this basic idea last year as well, but it was in Keras, and it was pages and pages of code, and everything took a long time and complicated. And back then, Jeremy said he can’t begin to think all of the stuff you could do with this. He doesn’t think anybody has really thought deeply about this yet, but he thinks it’s fascinating. So go back and read the DeViSE paper because Andrea had a whole bunch of other thoughts and now that it is so easy to do, hopefully people will dig into this now. Jeremy thinks it’s crazy and amazing.
