@@ -30,6 +30,7 @@
       * [Lesson 9 - Multi-object Detection](courses/fast.ai/deep-learning-part-2/2018-edition/lesson-9-multi-object-detection.md)
       * [Lesson 10 - Transfer Learning for NLP and NLP Classification](courses/fast.ai/deep-learning-part-2/2018-edition/lesson-10-transfer-learning-nlp.md)
       * [Lesson 11 - Neural Translation and Multi-modal Learning](courses/fast.ai/deep-learning-part-2/2018-edition/lesson-11-neural-translation.md)
+      * [Lesson 12 - DarkNet and Generative Adversarial Networks \(GANs\)](courses/fast.ai/deep-learning-part-2/2018-edition/lesson-12-gan.md)
 
 ## Books
 
