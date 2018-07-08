@@ -1,4 +1,4 @@
-# Lesson 11 - Generative Adversarial Networks (GANs)
+# Lesson 12 - DarkNet; Generative Adversarial Networks (GANs)
 
 _These are my personal notes from fast.ai course and will continue to be updated and improved if I find anything useful and relevant while I continue to review the course to study much more in-depth. Thanks for reading and happy learning!_
 
@@ -85,6 +85,7 @@ from fastai.conv_learner import *
 
 PATH = Path('data/cifar10/')
 os.makedirs(PATH, exist_ok=True)
+torch.backends.cudnn.benchmark = True # cut down training duration from ~3 hr to ~1hr
 ```
 
 A really good exercise for anybody who is not 100% confident with their broadcasting and PyTorch basic skill is figure out how Jeremy came up with these stats numbers. These numbers are the averages and standard deviations for each channel in CIFAR10. Try and make sure you can recreate those numbers and see if you can do it with no more than a couple of lines of code (no loops!).
@@ -236,7 +237,7 @@ To define our `Darknet`, we are going to pass in something that looks like this 
 
 ```python
 m = Darknet([1, 2, 4, 6, 3], num_classes=10, nf=32)
-m = nn.DataParallel(m, [1, 2, 3])
+m = nn.DataParallel(m, [1, 2, 3]) # disabled this line if you have single GPU
 ```
 
 What this says is create five group layers: the first one will contain 1 extra ResLayer, the second will contain 2, then 4, 6, 3 and we want to start with 32 filters. The first one of ResLayers will contain 32 filters, and there’ll just be one extra ResLayer. The second one, it’s going to double the number of filters because that’s what we do each time we have a new group layer. So the second one will have 64, and then 128, 256, 512 and that’ll be it. Nearly all of the network is going to be those bunches of layers and remember, every one of those group layers also has one convolution at the start. So then all we have is before that all happens, we are going to have one convolutional layer at the very start, and at the very end we are going to do our standard adaptive average pooling, flatten, and a linear layer to create the number of classes out at the end. To summarize [00:34:44], one convolution at one end, adaptive pooling and one linear layer at the other end, and in the middle, these group layers each one consisting of a convolutional layer followed by `n` number of ResLayers.
@@ -251,3 +252,62 @@ This is a nice picture of how to make your architectures as simple as possible. 
 
 ![](/images/lesson_12_007.png)
 
+```python
+lr = 1.3
+
+learn = ConvLearner.from_model_data(m, data)
+learn.crit = nn.CrossEntropyLoss()
+learn.metrics = [accuracy]
+wd = 1e-4
+```
+
+Once we’ve got that, we can use `ConvLearner.from_model_data` to take our PyTorch module and a model data object, and turn them into a learner [00:37:08]. Give it a criterion, add a metrics if we like, and then we can fit and away we go.
+
+```python
+%time learn.fit(lr, 1, wds=wd, cycle_len=30, use_clr_beta=(20, 20, 0.95, 0.85))
+```
+
+![](/images/lesson_12_008.png)
+
+:memo: *On my server with a single Tesla K80, I am able to train to 91% accuracy in 52 minutes 38 seconds.*
+
+:question: Could you please explain adaptive average pooling? How does setting to `1` work [00:37:25]?
+
+Sure. Normally when we are doing average pooling, let’s say we have 4x4 and we did `avgpool((2, 2))` [00:40:35]. That creates 2x2 area (blue in the below) and takes the average of those four. If we pass in `stride=1`, the next one is 2x2 shown in green and take the average. So this is what a normal 2x2 average pooling would be. If we didn’t have any padding, that would spit out 3x3. If we wanted 4x4, we can add padding.
+
+![](/images/lesson_12_009.png)
+
+What if we wanted 1x1? Then we could say `avgpool((4,4), stride=1)` that would do 4x4 in yellow and average the whole lot which results in 1x1. But that’s just one way to do it. Rather than saying the size of the pooling filter, why don’t we instead say "I don’t care what the size of the input grid is. I always want one by one". That’s where you say `adap_avgpool(1)`. In this case, you don’t say what’s the size of the pooling filter, you instead say what the size of the output we want. We want something that’s one by one. If you put a single integer `n`, it assumes you mean `n` by `n`. In this case, adaptive average pooling 1 with a 4x4 grid coming in is the same as average pooling (4, 4). If it was 7x7 grid coming in, it would be the same as average pooling (7, 7). It is the same operation, it’s just expressing it in a way that regardless of the input, we want something of that sized output.
+
+#### [DAWNBench](https://dawn.cs.stanford.edu/benchmark/index.html) [[00:37:43](https://youtu.be/ondivPiwQho?t=37m43s)]
+
+Let’s see how we go with our simple network against these state-of-the-art results. Jeremy has the command ready to go. We’ve taken all that stuff and put it into a simple Python script, and he modified some of the parameters he mentioned to create something he called `wrn_22` network which doesn’t officially exist but it has a bunch of changes to the parameters we talked about based on Jeremy’s experiments. It has bunch of cool stuff like:
+
+- Leslie Smith’s one cycle
+- Half-precision floating-point implementation
+
+![](/images/lesson_12_010.png)
+
+This is going to run on AWS p3 which has 8 GPUs and Volta architecture GPUs which have special support for half-precision floating-point. Fastai is the first library to actually integrate the Volta optimized half-precision floating-point into the library, so you can just do `learn.half()` and get that support automatically. And it’s also the first to integrate one cycle.
+
+What this actually does is it’s using PyTorch’s multi-GPU support [00:39:35]. Since there are eight GPUs, it is actually going to fire off eight separate Python processes and each one is going to train on a little bit and then at the end it’s going to pass the gradient updates back to the master process that is going to integrate them all together. So you will see lots of progress bars pop up together.
+
+You can see it’s training three or four seconds when you do it this way. Where else, when Jeremy was training earlier, he was getting 30 seconds per epoch. So doing it this way, we can train things ~10 times faster which is pretty cool.
+
+**Checking on the status** [[00:43:19](https://youtu.be/ondivPiwQho?t=43m19s)]:
+
+![](/images/lesson_12_011.png)
+
+It’s done! We got to 94% and it took 3 minutes and 11 seconds. Previous state-of-the-art was 1 hour 7 minutes. Was it worth fiddling around with those parameters and learning a little bit about how these architectures actually work and not just using what came out of the box? Well, holy crap. We just used a publicly available instance (we used a spot instance so it costs us $8 per hour — for 3 minutes, 40 cents) to train this from scratch 20 times faster than anybody has ever done it before. So that is one of the craziest state-of-the-art result. We’ve seen many but this one just blew it out of the water. This is partly thanks to fiddling around with those parameters of the architecture, mainly frankly about using Leslie Smith’s one cycle. Reminder of what it is doing [00:44:35], for learning rate, it creates upward path that is equally long as the downward path so it’s true triangular cyclical learning rate (CLR). As per usual, you can pick the ratio of x and y (i.e. starting LR / peak LR).
+
+![](/images/lesson_12_012.png)
+
+In this case, we picked 50 for the ratio. So we started out with much smaller learning rate. Then it has this cool idea where you get to say what percentage of your epochs is spent going from the bottom of the triangle all the way down pretty much to zero — that is the second number. So 15% of the batches are spent going from the bottom of our triangle even further.
+
+![](/images/lesson_12_013.png)
+
+That is not the only thing one cycle does, we also have momentum. Momentum goes from .95 to .85. In other words, when learning rate is really low, we use a lot of momentum and when the learning rate is really high, we use very little momentum which makes a lot of sense but until Leslie Smith showed this in the paper, Jeremy has never seen anybody do it before. It’s a really cool trick. You can now use that by using `use-clr-beta` parameter in fastai ([forum post by Sylvain](http://forums.fast.ai/t/using-use-clr-beta-and-new-plotting-tools/14702)) and you should be able to replicate the state-of-the-art result. You can use it on your own computer or your Paperspace, the only thing you won’t get is the multi-GPU piece, but that makes it a bit easier to train anyway.
+
+:question: `make_group_layer` contains stride equals 2, so this means stride is one for layer one and two for everything else. What is the logic behind it?
+
+Usually the strides I have seen are odd [00:46:52]. Strides are either one or two. I think you are thinking of kernel sizes. So `stride=2` means that I jump two across which means that you halve your grid size. So I think you might have got confused between stride and kernel size there. If you have a stride of one, the grid size does not change. If you have a stride of two, then it does. In this case, because this is CIFAR10, 32 by 32 is small and we don’t get to halve the grid size very often because pretty quickly we are going to run out of cells. So that is why the first layer has a stride of one so we don’t decrease the grid size straight away. It is kind of a nice way of doing it because that’s why we have a low number at first `Darknet([1, 2, 4, 6, 3], …)` . We can start out with not too much computation on the big grid, and then we can gradually doing more and more computation as the grids get smaller and smaller because the smaller grid the computation will take less time.
