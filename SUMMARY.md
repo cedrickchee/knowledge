@@ -27,10 +27,10 @@
       * [Lesson 14 - Time Series & Segmentation](courses/fast.ai/deep-learning-part-2/2017-edition/lesson-14-time-series-and-segmentation.md)
     * [Deep Learning Part 2: 2018 Edition](courses/fast.ai/deep-learning-part-2/2018-edition/README.md)
       * [Lesson 8 - Object Detection](courses/fast.ai/deep-learning-part-2/2018-edition/lesson-8-object-detection.md)
-      * [Lesson 9 - Multi-object Detection](courses/fast.ai/deep-learning-part-2/2018-edition/lesson-9-multi-object-detection.md)
+      * [Lesson 9 - Single Shot Multibox Detector (SSD)](courses/fast.ai/deep-learning-part-2/2018-edition/lesson-9-multi-object-detection.md)
       * [Lesson 10 - Transfer Learning for NLP and NLP Classification](courses/fast.ai/deep-learning-part-2/2018-edition/lesson-10-transfer-learning-nlp.md)
-      * [Lesson 11 - Neural Translation and Multi-modal Learning](courses/fast.ai/deep-learning-part-2/2018-edition/lesson-11-neural-translation.md)
-      * [Lesson 12 - DarkNet and Generative Adversarial Networks \(GANs\)](courses/fast.ai/deep-learning-part-2/2018-edition/lesson-12-gan.md)
+      * [Lesson 11 - Neural Translation; Multi-modal Learning](courses/fast.ai/deep-learning-part-2/2018-edition/lesson-11-neural-translation.md)
+      * [Lesson 12 - DarkNet; Generative Adversarial Networks \(GANs\)](courses/fast.ai/deep-learning-part-2/2018-edition/lesson-12-gan.md)
 
 ## Books
 

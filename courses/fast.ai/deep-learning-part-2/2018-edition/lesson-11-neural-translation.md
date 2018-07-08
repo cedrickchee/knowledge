@@ -1,4 +1,4 @@
-# Lesson 11 - Neural Translation
+# Lesson 11 - Neural Translation; Multi-modal Learning
 
 _These are my personal notes from fast.ai course and will continue to be updated and improved if I find anything useful and relevant while I continue to review the course to study much more in-depth. Thanks for reading and happy learning!_
 
