@@ -311,3 +311,496 @@ That is not the only thing one cycle does, we also have momentum. Momentum goes 
 :question: `make_group_layer` contains stride equals 2, so this means stride is one for layer one and two for everything else. What is the logic behind it?
 
 Usually the strides I have seen are odd [00:46:52]. Strides are either one or two. I think you are thinking of kernel sizes. So `stride=2` means that I jump two across which means that you halve your grid size. So I think you might have got confused between stride and kernel size there. If you have a stride of one, the grid size does not change. If you have a stride of two, then it does. In this case, because this is CIFAR10, 32 by 32 is small and we don’t get to halve the grid size very often because pretty quickly we are going to run out of cells. So that is why the first layer has a stride of one so we don’t decrease the grid size straight away. It is kind of a nice way of doing it because that’s why we have a low number at first `Darknet([1, 2, 4, 6, 3], …)` . We can start out with not too much computation on the big grid, and then we can gradually doing more and more computation as the grids get smaller and smaller because the smaller grid the computation will take less time.
+
+### Generative Adversarial Networks (GAN) [[00:48:49](https://youtu.be/ondivPiwQho?t=48m49s)]
+
+- [Wasserstein GAN (WGAN)](https://arxiv.org/abs/1701.07875)
+- [Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks (DCGAN)](https://arxiv.org/abs/1511.06434)
+
+We are going to talk about generative adversarial networks also known as GANs and specifically we are going to focus on Wasserstein GAN paper which included Soumith Chintala who went on to create PyTorch. Wasserstein GAN (WGAN) was heavily influenced by the deep convolutional generative adversarial network paper which also Soumith was involved with. It is a really interesting paper to read. A lot of it looks like this:
+
+![](/images/lesson_12_014.png)
+
+The good news is you can skip those bits because there is also a bit that looks like this:
+
+![](/images/lesson_12_015.png)
+
+A lot of papers have a theoretical section which seems to be there entirely to get past the reviewer’s need for theory. That’s not true with WGAN paper. The theory bit is actually interesting — you don’t need to know it to use it, but if you want to learn about some cool ideas and see the thinking behind why this particular algorithm, it’s absolutely fascinating. Before this paper came out, Jeremy knew nobody who studied the math it’s based on, so everybody had to learn the math. The paper does a pretty good job of laying out all the pieces (you have to do a bunch of reading yourself). So if you are interested in digging into the deeper math behind some paper to see what it’s like to study it, I would pick this one because at the end of that theory section, you’ll come away saying "I can see now why they made this algorithm the way it is."
+
+The basic idea of GAN is it’s a generative model[00:51:23]. It is something that is going to create sentences, create images, or generate something. It is going to try and create thing which is very hard to tell the difference between generated stuff and real stuff. So generative model could be used to face-swap a video — a very controversial thing of deep fakes and fake pornography happening at the moment. It could be used to fake somebody’s voice. It could be used to fake the answer to a medical question — but in that case, it’s not really a fake, it could be a generative answer to a medical question that is actually a good answer so you are generating language. You could generate a caption to an image, for example. So generative models have lots of interesting applications. But generally speaking, they need to be good enough that for example if you are using it to automatically create a new scene for Carrie Fisher in the next Star Wars movie and she is not around to play that part anymore, you want to try and generate an image of her that looks the same then it has to fool the Star Wars audience into thinking "okay, that doesn’t look like some weird Carrie Fisher — that looks like the real Carrie Fisher. Or if you are trying to generate an answer to a medical question, you want to generate English that reads nicely and clearly, and sounds authoritative and meaningful. The idea of generative adversarial network is we are going to create not just a generative model to create the generated image, but a second model that’s going to try to pick which ones are real and which ones are generated (we will call them "fake"). So we have a generator that is going to create our fake content and a discriminator that’s going to try to get good at recognizing which ones are real and which ones are fake. So there are going to be two models and they are going to be adversarial, meaning the generator is going to try to keep getting better at fooling the discriminator into thinking that fake is real, and the discriminator is going to try to keep getting better at discriminating between the real and the fake. So they are going to go head to head. It is basically as easy as Jeremy just described [00:54:14]:
+
+- We are going to build two models in PyTorch
+- We are going to create a training loop that first of all says the loss function for the discriminator is "can you tell the difference between real and fake, then update the weights of that".
+- We are going to create a loss function for the generator which is "can you generate something which fools the discriminator and update the weights from that loss".
+- And we are going to loop through that a few times and see what happens.
+
+#### Looking at the code [[00:54:52](https://youtu.be/ondivPiwQho?t=54m52s)]
+
+[wgan.ipynb](https://nbviewer.jupyter.org/github/fastai/fastai/blob/master/courses/dl2/wgan.ipynb)
+
+There is a lot of different things you can do with GANS. We are going to do something that is kind of boring but easy to understand and it’s kind of cool that it’s even possible which is we are going to generate some pictures from nothing. We are just going to get it to draw some pictures. Specifically, we are going to get it to draw pictures of bedrooms. Hopefully you get a chance to play around with this during the week with your own datasets. If you pick a dataset that’s very varied like ImageNet and then get a GAN to try and create ImageNet pictures, it tends not to do so well because it’s not clear enough what you want a picture of. So it’s better to give it, for example, there is a dataset called [CelebA](http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html) which is pictures of celebrities’ faces that works great with GANs. You create really clear celebrity faces that don’t actually exist. The bedroom dataset is also a good one — pictures of the same kind of thing.
+
+There is something called LSUN scene classification dataset [00:55:55].
+
+```python
+from fastai.conv_learner import *
+from fastai.dataset import *
+import gzip
+```
+
+Download the LSUN scene classification dataset bedroom category, unzip it, and convert it to JPG files (the scripts folder is here in the `dl2` folder):
+
+```python
+%mkdir data/lsun
+%cd data/lsun
+
+!aria2c --file-allocation=none -c -x 5 -s 5 'http://lsun.cs.princeton.edu/htbin/download.cgi?tag=latest&category=bedroom&set=train'
+
+!unzip bedroom_train_lmdb.zip
+
+%cd ~/fastai/courses/dl2/
+
+!pip install lmdb
+
+!python lsun_scripts/lsun-data.py data/lsun/bedroom_train_lmdb --out_dir data/lsun/bedroom
+```
+
+This isn't tested on Windows - if it doesn't work, you could use a Linux box to convert the files, then copy them over. Alternatively, you can download [this 20% sample](https://www.kaggle.com/jhoward/lsun_bedroom) from Kaggle datasets.
+
+```python
+PATH = Path('data/lsun')
+IMG_PATH = PATH / 'bedroom'
+CSV_PATH = PATH / 'files.csv'
+TMP_PATH = PATH / 'tmp'
+TMP_PATH.mkdir(exist_ok=True)
+```
+
+In this case, it is much easier to go the CSV route when it comes to handling our data. So we generate a CSV with the list of files that we want, and a fake label "0" because we don’t really have labels for these at all. One CSV file contains everything in that bedroom dataset, and another one contains random 10%. It is nice to do that because then we can most of the time use the sample when we are experimenting because there is well over a million files even just reading in the list takes a while.
+
+```python
+files = PATH.glob('bedroom/**/*.jpg')
+
+with CSV_PATH.open('w') as fo:
+    for f in files:
+        fo.write(f'{f.relative_to(IMG_PATH)}, 0\n')
+
+# Optional - sampling a subset of files
+CSV_PATH = PATH/'files_sample.csv'
+
+files = PATH.glob('bedroom/**/*.jpg')
+
+with CSV_PATH.open('w') as fo:
+    for f in files:
+        if random.random() < 0.1:
+            fo.write(f'{f.relative_to(IMG_PATH)},0\n')
+```
+
+This will look pretty familiar [00:57:10]. This is before Jeremy realized that sequential models are much better. So if you compare this to the previous conv block with a sequential model, there is a lot more lines of code here — but it does the same thing of conv, ReLU, batch norm.
+
+```python
+class ConvBlock(nn.Module):
+    def __init__(self, ni, no, ks, stride, bn=True, pad=None):
+        super().__init__()
+        if pad is None:
+            pad = ks // 2 // stride
+        self.conv = nn.Conv2d(ni, no, ks, stride, padding=pad, bias=False)
+        self.bn = nn.BatchNorm2d(no) if bn else None
+        self.relu = nn.LeakyReLU(0.2, inplace=True)
+
+    def forward(self, x):
+        x = self.relu(self.conv(x))
+        return self.bn(x) if self.bn else x
+```
+
+#### Discriminator
+
+The first thing we are going to do is to build a discriminator [00:57:47]. A discriminator is going to receive an image as an input, and it’s going to spit out a number. The number is meant to be lower if it thinks this image is real. Of course "what does it do for a lower number" thing does not appear in the architecture, that will be in the loss function. So all we have to do is to create something that takes an image and spits out a number. [A lot of this code is borrowed from the original authors of this paper](https://github.com/martinarjovsky/WassersteinGAN/blob/master/models/dcgan.py), so some of the naming scheme is different to what we are used to. But it looks similar to what we had before. We start out with a convolution (conv, ReLU, batch norm). Then we have a bunch of extra conv layers — this is not going to use a residual so it looks very similar to before a bunch of extra layers but these are going to be conv layers rather than res layers. At the end, we need to append enough stride 2 conv layers that we decrease the grid size down to no bigger than 4x4. So it’s going to keep using stride 2, divide the size by 2, and repeat till our grid size is no bigger than 4. This is quite a nice way of creating as many layers as you need in a network to handle arbitrary sized images and turn them into a fixed known grid size.
+
+:question: Does GAN need a lot more data than say dogs vs. cats or NLP? Or is it comparable [00:59:48]?
+
+Honestly, I am kind of embarrassed to say I am not an expert practitioner in GANs. The stuff I teach in part one is things I am happy to say I know the best way to do these things and so I can show you state-of-the-art results like we just did with CIFAR10 with the help of some of the students. I am not there at all with GANs so I am not quite sure how much you need. In general, it seems it needs quite a lot but remember the only reason we didn’t need too much in dogs and cats is because we had a pre-trained model and could we leverage pre-trained GAN models and fine tune them? Probably. I don’t think anybody has done it as far as I know. That could be really interesting thing for people to think about and experiment with. Maybe people have done it and there is some literature there we haven’t come across. I’m somewhat familiar with the main pieces of literature in GANs but I don’t know all of it, so maybe I’ve missed something about transfer learning in GANs. But that would be the trick to not needing too much data.
+
+:question: So the huge speed-up a combination of one cycle learning rate and momentum annealing plus the eight GPU parallel training in the half precision? Is that only possible to do the half precision calculation with consumer GPU? Another question, why is the calculation 8 times faster from single to half precision, while from double the single is only 2 times faster [1:01:09]?
+
+Okay, so the CIFAR10 result, it’s not 8 times faster from single to half. It’s about 2 or 3 times as fast from single to half. NVIDIA claims about the flops performance of the tensor cores, academically correct, but in practice meaningless because it really depends on what calls you need for what piece — so about 2 or 3x improvement for half. So the half precision helps a bit, the extra GPUs helps a bit, the one cycle helps an enormous amount, then another key piece was the playing around with the parameters that I told you about. So reading the wide ResNet paper carefully, identifying the kinds of things that they found there, and then writing a version of the architecture you just saw that made it really easy for us to fiddle around with parameters, staying up all night trying every possible combination of different kernel sizes, numbers of kernels, number of layer groups, size of layer groups. And remember, we did a bottleneck but actually we intended to focus instead on widening so we increase the size and then decrease it because it takes better advantage of the GPU. So all those things combined together, I’d say the one cycle was perhaps the most critical but every one of those resulted in a big speed-up. That’s why we were able to get this 30x improvement over the state-of-the-art CIFAR10. We have some ideas for other things — after this DAWNBench finishes, maybe we’ll try and go even further to see if we can beat one minute one day. That’ll be fun.
+
+```python
+class DCGAN_D(nn.Module):
+    def __init__(self, isize, nc, ndf, n_extra_layers=0):
+        super().__init__()
+        assert isize % 16 == 0, "isize has to be a multiple of 16"
+
+        self.initial = ConvBlock(nc, ndf, 4, 2, bn=False)
+        csize, cndf = isize / 2, ndf
+        self.extra = nn.Sequential(*[ConvBlock(cndf, cndf, 3, 1)
+                                    for t in range(n_extra_layers)])
+
+        pyr_layers = [] # pyramid layers
+        while csize > 4:
+            pyr_layers.append(ConvBlock(cndf, cndf * 2, 4, 2))
+            cndf *= 2
+            csize /= 2
+        self.pyramid = nn.Sequential(*pyr_layers)
+
+        self.final = nn.Conv2d(cndf, 1, 4, padding=0, bias=False)
+
+    def forward(self, input):
+        x = self.initial(input)
+        x = self.extra(x)
+        x = self.pyramid(x)
+        return self.final(x).mean(0).view(1)
+```
+
+So here is our discriminator [1:03:37].The important thing to remember about an architecture is it doesn’t do anything rather than have some input tensor size and rank, and some output tensor size and rank. As you see the last conv has one channel. This is different from what we are used to because normally our last thing is a linear block. But our last layer here is a conv block. It only has one channel but it has a grid size of something around 4x4 (no more than 4x4). So we are going to spit out (let’s say it’s 4x4), 4 by 4 by 1 tensor. What we then do is we then take the mean of that. So it goes from 4x4x1 to a scalar. This is kind of like the ultimate adaptive average pooling because we have something with just one channel and we take the mean. So this is a bit different — normally we first do average pooling and then we put it through a fully connected layer to get our one thing out. But this is getting one channel out and then taking the mean of that. Jeremy suspects that it would work better if we did the normal way, but he hasn’t tried it yet and he doesn’t really have a good enough intuition to know whether he is missing something — but :bookmark: it will be an interesting experiment to try if somebody wants to stick an adaptive average pooling layer and a fully connected layer afterwards with a single output.
+
+So that’s a discriminator. Let’s assume we already have a generator — somebody says "okay, here is a generator which generates bedrooms. I want you to build a model that can figure out which ones are real and which ones aren’t". We are going to take the dataset and label bunch of images which are fake bedrooms from the generator, and a bunch of images of real bedrooms from LSUN dataset to stick a 1 or a 0 on each one. Then we’ll try to get the discriminator to tell the difference. So that is going to be simple enough. But we haven’t been given a generator. We need to build one. We haven’t talked about the loss function yet — we are going to assume that there’s some loss function that does this thing.
+
+#### Generator [[1:06:15](https://youtu.be/ondivPiwQho?t=1h6m15s)]
+
+A generator is also an architecture which doesn’t do anything by itself until we have a loss function and data. But what are the ranks and sizes of the tensors? **The input to the generator is going to be a vector of random numbers. In the paper, they call that the "prior."** How big? We don’t know. The idea is that a different bunch of random numbers will generate a different bedroom. So our generator has to take as input a vector, stick it through sequential models, and turn it into a rank 4 tensor (rank 3 without the batch dimension) — height by width by 3. So in the final step, `nc` (number of channel) is going to have to end up being 3 because it’s going to create a 3 channel image of some size.
+
+```python
+class DeconvBlock(nn.Module):
+    def __init__(self, ni, no, ks, stride, pad, bn=True):
+        super().__init__()
+        self.conv = nn.ConvTranspose2d(ni, no, ks, stride, padding=pad, bias=False)
+        self.bn = nn.BatchNorm2d(no)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x = self.relu(self.conv(x))
+        return self.bn(x) if self.bn else x
+
+class DCGAN_G(nn.Module):
+    def __init__(self, isize, nz, nc, ngf, n_extra_layers=0):
+        super().__init__()
+        assert isize % 16 == 0, "isize has to be a multiple of 16"
+
+        cngf, tisize = ngf // 2, 4
+        while tisize != isize:
+            cngf *= 2
+            tisize *= 2
+        layers = [DeconvBlock(nz, cngf, 4, 1, 0)]
+
+        csize, cndf = 4, cngf
+        while csize < isize // 2:
+            layers.append(DeconvBlock(cngf, cngf // 2, 4, 2, 1))
+            cngf //= 2
+            csize *= 2
+
+        layers += [DeconvBlock(cngf, cngf, 3, 1, 1) for t in range(n_extra_layers)]
+        layers.append(nn.ConvTranspose2d(cngf, nc, 4, 2, 1, bias=False))
+        self.features = nn.Sequential(*layers)
+
+    def forward(self, input):
+        return F.tanh(self.features(input))
+```
+
+:question: In ConvBlock, is there a reason why batch norm comes after ReLU (i.e. `self.bn(self.relu(…)))` [1:07:50]?
+
+I would normally expect to go ReLU then batch norm [1:08:23] that this is actually the order that makes sense to Jeremy. The order we had in the DarkNet was what they used in the DarkNet paper, so everybody seems to have a different order of these things. In fact, most people for CIFAR10 have a different order again which is batch norm → ReLU → conv which is a quirky way of thinking about it, but it turns out that often for residual blocks that works better. That is called a "**pre-activation ResNet**." There is a few blog posts out there where people have experimented with different order of those things and it seems to depend a lot on what specific dataset it is and what you are doing with — although the difference in performance is small enough that you won’t care unless it’s for a competition.
+
+#### Deconvolution [[1:09:36](https://youtu.be/ondivPiwQho?t=1h9m36s)]
+
+So the generator needs to start with a vector and end up with a rank 3 tensor. We don’t really know how to do that yet. We need to use something called a "deconvolution" and PyTorch calls it transposed convolution — same thing, different name. Deconvolution is something which rather than decreasing the grid size, it increases the grid size. As with all things, it’s easiest to see in an Excel spreadsheet.
+
+Here is a convolution. We start, let’s say, with a 4 by 4 grid cell with a single channel. Let’s put it through a 3 by 3 kernel with a single output filter. So we have a single channel in, a single filter kernel, so if we don’t add any padding, we are going to end up with 2 by 2. Remember, the convolution is just the sum of the product of the kernel and the appropriate grid cell [1:11:09]. So there is our standard 3 by 3 conv one channel one filter.
+
+![](/images/lesson_12_016.png)
+
+So the idea now is we want to go the opposite direction [1:11:25]. We want to start with our 2 by 2 and we want to create a 4 by 4. Specifically we want to create the same 4 by 4 that we started with. And we want to do that by using a convolution. How would we do that?
+
+If we have a 3 by 3 convolution, then if we want to create a 4 by 4 output, we are going to need to create this much padding:
+
+![](/images/lesson_12_017.png)
+
+Because with this much padding, we are going to end up with 4 by 4. So let’s say our convolutional filter was just a bunch of zeros then we can calculate our error for each cell just by taking this subtraction:
+
+![](/images/lesson_12_018.png)
+
+Then we can get the sum of absolute values (L1 loss) by summing up the absolute values of those errors:
+
+![](/images/lesson_12_019.png)
+
+So now we could use optimization, in Excel it’s called "solver" to do a gradient descent. So we will set the Total cell equal to minimum and we’ll try and reduce our loss by changing our filter. You can see it’s come up with a filter such that Result is almost like Data. It’s not perfect, and in general, you can’t assume that a deconvolution can exactly create the same exact thing you want because there is just not enough. Because there is 9 things in the filter and 16 things in the result. But it’s made a pretty good attempt. So this is what a deconvolution looks like — a stride 1, 3x3 deconvolution on a 2x2 grid cell input.
+
+![](/images/lesson_12_020.png)
+
+:question: How difficult is it to create a discriminator to identify fake news vs. real news [1:13:43]?
+
+You don’t need anything special — that’s just a classifier. So you would just use the NLP classifier from previous class and lesson 4. In that case, there is no generative piece, so you just need a dataset that says these are the things that we believe are fake news and these are the things we consider to be real news and it should actually work very well. To the best of our knowledge, if you try it you should get as good a result as anybody else has got — whether it’s good enough to be useful in practice, Jeremy doesn’t know. The best thing you could do at this stage would be to generate a kind of a triage that says these things look pretty sketchy based on how they are written and then some human could go in and fact check them. NLP classifier and RNN can’t fact-check things but it could recognize that these are written in that kind of highly popularized style which often fake news is written in so maybe these ones are worth paying attention to. That would probably be the best you could hope for without drawing on some kind of external data sources. But it’s important to remember the discriminator is basically just a classifier and you don’t need any special techniques beyond what we’ve already learned to do NLP classification.
+
+#### `ConvTranspose2d` [[1:16:00](https://youtu.be/ondivPiwQho?t=1h16m)]
+
+To do deconvolution in PyTorch, just say:
+
+`nn.ConvTranspose2d(ni, no, ks, stride, padding=pad, bias=False)`
+
+- `ni` : number of input channels
+- `no`: number of output channels
+- `ks`: kernel size
+
+The reason it’s called a ConvTranspose is because it turns out that this is the same as the calculation of the gradient of convolution. That’s why they call it that.
+
+#### Visualizing [[1:16:33](https://youtu.be/ondivPiwQho?t=1h16m33s)]
+
+![http://deeplearning.net/software/theano/tutorial/conv_arithmetic.html](/images/lesson_12_021.png)
+
+One on the left is what we just saw of doing a 2x2 deconvolution. If there is a stride 2, then you don’t just have padding around the outside, but you actually have to put padding in the middle as well. They are not actually quite implemented this way because this is slow to do. In practice, you’ll implement them in a different way but it all happens behind the scene, so you don’t have to worry about it. We’ve talked about this convolution arithmetic tutorial before and if you are still not comfortable with convolutions and in order to get comfortable with deconvolutions, this is a great site to go to. If you want to see the paper, it is [A guide to convolution arithmetic for deep learning](https://arxiv.org/abs/1603.07285).
+
+`DeconvBlock` looks identical to a `ConvBlock` except it has the word `Transpose` [1:17:49]. We just go conv → relu → batch norm as before, and it has input filters and output filters. The only difference is that stride 2 means that the grid size will double rather than half.
+
+![](/images/lesson_12_022.png)
+
+:question: Both `nn.ConvTranspose2d` and `nn.Upsample` seem to do the same thing, i.e. expand grid-size (height and width) from previous layer. Can we say `nn.ConvTranspose2d` is always better than `nn.Upsample`, since `nn.Upsample` is merely resize and fill unknowns by zero’s or interpolation [1:18:10]?
+
+No, you can’t. There is a fantastic interactive paper on distill.pub called [Deconvolution and Checkerboard Artifacts](https://distill.pub/2016/deconv-checkerboard/) which points out that what we are doing right now is extremely suboptimal but the good news is everybody else does it.
+
+![](/images/lesson_12_023.png)
+
+Have a look here, could you see these checkerboard artifacts? These are all from actual papers and basically they noticed every one of these papers with generative models have these checkerboard artifacts and what they realized is it’s because when you have a stride 2 convolution of size three kernel, they overlap. So some grid cells gets twice as much activation.
+
+![](/images/lesson_12_024.png)
+
+So even if you start with random weights, you end up with a checkerboard artifacts. So deeper you get, the worse it gets. Their advice is less direct than it ought to be, Jeremy found that for most generative models, upsampling is better. If you `nn.Upsample`, it’s basically doing the opposite of pooling — it says let’s replace this one grid cell with four (2x2). There is a number of ways to upsample — one is just to copy it all across to those four, and other is to use bilinear or bicubic interpolation. There are various techniques to try and create a smooth upsampled version and you can choose any of them in PyTorch. If you do a 2 x 2 upsample and then regular stride one 3 x 3 convolution, that is another way of doing the same kind of thing as a ConvTranspose — it’s doubling the grid size and doing some convolutional arithmetic on it. For generative models, it pretty much always works better. In that distil.pub publication, they indicate that maybe that’s a good approach but they don’t just come out and say just do this whereas Jeremy would just say just do this. Having said that, for GANS, he hasn’t had that much success with it yet and he thinks it probably requires some tweaking to get it to work, The issue is that in the early stages, it doesn’t create enough noise. He had a version where he tried to do it with an upsample and you could kind of see that the noise didn’t look very noisy. Next week when we look at style transfer and super-resolution, you will see `nn.Upsample` really comes into its own.
+
+The generator, we can now start with the vector [1:22:04]. We can decide and say okay let’s not think of it as a vector but actually it’s 1x1 grid cell, and then we can turn it into a 4x4 then 8x8 and so forth. That is why we have to make sure it’s a suitable multiple so that we can create something of the right size. As you can see, it’s doing the exact opposite as before. It’s making the cell size bigger and bigger by 2 at a time as long as it can until it gets to half the size that we want, and then finally we add `n` more on at the end with stride 1. Then we add one more ConvTranspose to finally get to the size that we wanted and we are done. Finally we put that through a `tanh` and that will force us to be in the zero to one range because of course we don’t want to spit out arbitrary size pixel values. So we have a generator architecture which spits out an image of some given size with the correct number of channels with values between zero and one.
+
+![](/images/lesson_12_025.png)
+
+At this point, we can now create our model data object [1:23:38]. These things take a while to train, so we made it 128 by 128 (just a convenient way to make it a little bit faster). So that is going to be the size of the input, but then we are going to use transformation to turn it into 64 by 64.
+
+There’s been more recent advances which have attempted to really increase this up to high resolution sizes but they still tend to require either a batch size of 1 or lots and lots of GPUs [1:24:05]. So we are trying to do things that we can do with a single consumer GPU. Here is an example of one of the 64 by 64 bedrooms.
+
+```python
+bs, sz, nz = 64, 64, 100
+
+tfms = tfms_from_stats(inception_stats, sz)
+md = ImageClassifierData.from_csv(PATH, 'bedroom', CSV_PATH, tfms=tfms, bs=128,
+                                  skip_header=False, continuous=True)
+
+md = md.resize(128)
+
+x, _ = next(iter(md.val_dl))
+plt.imshow(md.trn_ds.denorm(x)[0])
+```
+
+![](/images/lesson_12_026.png)
+
+#### Putting them all together [[1:24:30](https://youtu.be/ondivPiwQho?t=1h24m30s)]
+
+We are going to do pretty much everything manually so let’s go ahead and create our two models — our generator and discriminator and as you can see they are DCGAN, so in other words, they are the same modules that appeared in [this paper](https://arxiv.org/abs/1511.06434). It is well worth going back and looking at the DCGAN paper to see what these architectures are because it’s assumed that when you read the Wasserstein GAN paper that you already know that.
+
+```python
+netG = DCGAN_G(sz, nz, 3, 64, 1).cuda()
+netD = DCGAN_D(sz, 3, 64, 1).cuda()
+```
+
+:question: Shouldn’t we use a sigmoid if we want values between 0 and 1 [1:25:06]?
+
+As usual, our images have been normalized to have a range from -1 to 1, so their pixel values don’t go between 0 and 1 anymore. This is why we want values going from -1 to 1 otherwise we wouldn’t give a correct input for the discriminator (via [this post](http://forums.fast.ai/t/part-2-lesson-12-wiki/15023/140)).
+
+So we have a generator and a discriminator, and we need a function that returns a "prior" vector (i.e. a bunch of noise) [1:25:49]. We do that by creating a bunch of zeros. `nz` is the size of `z` —very often in our code, if you see a mysterious letter, it’s because that’s the letter they used in the paper. Here, z is the size of our noise vector. We then use normal distribution to generate random numbers between 0 and 1. And that needs to be a variable because it’s going to be participating in the gradient updates.
+
+```python
+def create_noise(b):
+    return V(torch.zeros(b, nz, 1, 1).normal_(0, 1))
+
+preds = netG(create_noise(4))
+pred_ims = md.trn_ds.denorm(preds)
+
+fig, axes = plt.subplots(2, 2, figsize=(6, 6))
+for i, ax in enumerate(axes.flat):
+    ax.imshow(pred_ims[i])
+```
+
+![](/images/lesson_12_027.png)
+
+So here is an example of creating some noise and resulting four different pieces of noise.
+
+```python
+def gallery(x, nc=3):
+    n, h, w, c = x.shape
+    nr = n // nc
+    assert n == nr * nc
+    return (x.reshape(nr, nc, h, w, c)
+               .swapaxes(1, 2)
+               .reshape(h * nr, w * nc, c))
+```
+
+We need an optimizer in order to update our gradients [1:26:41]. In the Wasserstein GAN paper, they told us to use RMSProp:
+
+![](/images/lesson_12_028.png)
+
+We can easily do that in PyTorch:
+
+```python
+optimizerD = optim.RMSprop(netD.parameters(), lr=1e-4)
+optimizerG = optim.RMSprop(netG.parameters(), lr=1e-4)
+```
+
+In the paper, they suggested a learning rate of 0.00005 (`5e-5`), we found `1e-4` seem to work, so we made it a little bit bigger.
+
+Now we need a training loop [1:27:14]:
+
+```python
+def train(niter, first=True):
+    gen_iterations = 0
+    for epoch in trange(niter):
+        netD.train()
+        netG.train()
+        data_iter = iter(md.trn_dl)
+        i, n = 0,len(md.trn_dl)
+        with tqdm(total=n) as pbar:
+            while i < n:
+                set_trainable(netD, True)
+                set_trainable(netG, False)
+                d_iters = 100 if (first and (gen_iterations < 25) or (gen_iterations % 500 == 0)) else 5
+                j = 0
+                while (j < d_iters) and (i < n):
+                    j += 1
+                    i += 1
+                    for p in netD.parameters():
+                        p.data.clamp_(-0.01, 0.01)
+                    real = V(next(data_iter)[0])
+                    real_loss = netD(real)
+                    fake = netG(create_noise(real.size(0)))
+                    fake_loss = netD(V(fake.data))
+                    netD.zero_grad()
+                    lossD = real_loss - fake_loss
+                    lossD.backward()
+                    optimizerD.step()
+                    pbar.update()
+
+                set_trainable(netD, False)
+                set_trainable(netG, True)
+                netG.zero_grad()
+                lossG = netD(netG(create_noise(bs))).mean(0).view(1)
+                lossG.backward()
+                optimizerG.step()
+                gen_iterations += 1
+
+        print(f'Loss_D {to_np(lossD)}; Loss_G {to_np(lossG)}; '
+              f'D_real {to_np(real_loss)}; Loss_D_fake {to_np(fake_loss)}')
+```
+
+A training loop will go through some number of epochs that we get to pick (so that’s going to be a parameter). Remember, when you do everything manually, you’ve got to remember all the manual steps to do:
+
+1. You have to set your modules into training mode when you are training them and into evaluation mode when you are evaluating because in training mode batch norm updates happen and dropout happens, in evaluation mode, those two things gets turned off.
+2. We are going to grab an iterator from our training data loader
+3. We are going to see how many steps we have to go through and then we will use `tqdm` to give us a progress bar, and we are going to go through that many steps.
+
+The first step of the algorithm in the paper is to update the discriminator (in the paper, they call discriminator a "critic" and `w` is the weights of the critic). So the first step is to train our critic a little bit, and then we are going to train our generator a little bit, and we will go back to the top of the loop. The inner for loop in the paper correspond to the second while loop in our code.
+
+What we are going to do now is we have a generator that is random at the moment [1:29:06]. So our generator will generate something that looks like the noise. First of all, we need to teach our discriminator to tell the difference between the noise and a bedroom — which shouldn’t be too hard you would hope. So we just do it in the usual way but there is a few little tweaks:
+
+1. We are going to grab a mini batch of real bedroom photos so we can just grab the next batch from our iterator, turn it into a variable.
+2. Then we are going to calculate the loss for that — so this is going to be how much the discriminator thinks this looks fake ("does the real one look fake?").
+3. Then we are going to create some fake images and to do that we will create some random noise, and we will stick it through our generator which at this stage is just a bunch of random weights. That will create a mini batch of fake images.
+4. Then we will put that through the same discriminator module as before to get the loss for that ("how fake does the fake one look?"). Remember, when you do everything manually, you have to zero the gradients (`netD.zero_grad()`) in your loop. If you have forgotten about that, go back to the part 1 lesson where we do everything from scratch.
+5. Finally, the total discriminator loss is equal to the real loss minus the fake loss.
+
+So you can see that here [1:30:58]:
+
+![](/images/lesson_12_029.png)
+
+They don’t talk about the loss, they actually just talk about one of the gradient updates.
+
+![](/images/lesson_12_030.png)
+
+In PyTorch, we don’t have to worry about getting the gradients, we can just specify the loss and call `loss.backward()` then discriminator’s `optimizer.step()` [1:34:27]. There is one key step which is that we have to keep all of our weights which are the parameters in PyTorch module in the small range of -0.01 and 0.01. Why? Because the mathematical assumptions that make this algorithm work only apply in a small ball. It is interesting to understand the math of why that is the case, but it’s very specific to this one paper and understanding it won’t help you understand any other paper, so only study it if you are interested. It is nicely explained and Jeremy thinks it’s fun but it won’t be information that you will reuse elsewhere unless you get super into GANs. He also mentioned that after the paper came out, an improved Wasserstein GAN came out that said there are better ways to ensure that your weight space is in this tight ball which was to penalize gradients that are too high, so nowadays there are slightly different ways to do this. But this line of code is the key contribution and it is what makes it Wasserstein GAN:
+
+```python
+for p in netD.parameters():
+    p.data.clamp_(-0.01, 0.01)
+```
+
+At the end of this, we have a discriminator that can recognize real bedrooms and our totally random crappy generated images [1:36:20]. Let’s now try and create some better images. So now set trainable discriminator to false, set trainable generator to true, zero out the gradients of the generator. Our loss again is `fw` (discriminator) of the generator applied to some more random noise. So it’s exactly the same as before where we did generator on the noise and then pass that to a discriminator, but this time, the thing that’s trainable is the generator, not the discriminator. In other words, in the pseudo code, the thing they update is Ɵ which is the generator’s parameters. So it takes noise, generate some images, try and figure out if they are fake or real, and use that to get gradients with respect to the generator, as opposed to earlier we got them with respect to the discriminator, and use that to update our weights with RMSProp with an alpha learning rate [1:38:21].
+
+You’ll see that it’s unfair that the discriminator is getting trained `ncritic` times (`d_iters` in above code) which they set to 5 for every time we train the generator once. And the paper talks a bit about this but the basic idea is there is no point making the generator better if the discriminator doesn’t know how to discriminate yet. So that’s why we have the second while loop. And here is that 5:
+
+```python
+d_iters = 100 if (first and (gen_iterations < 25) or (gen_iterations % 500 == 0)) else 5
+```
+
+Actually something which was added in the later paper or maybe supplementary material is the idea that from time to time and a bunch of times at the start, you should do more steps at the discriminator to make sure that the discriminator is capable.
+
+```python
+torch.backends.cudnn.benchmark = True
+```
+
+Let’s train that for one epoch:
+
+```python
+train(1, False)
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+100%|██████████| 1900/1900 [08:28<00:00,  1.75it/s]
+Loss_D [-0.78008]; Loss_G [-0.33545]; D_real [-0.16079]; Loss_D_fake [0.61929]
+100%|██████████| 1/1 [08:28<00:00, 508.58s/it]
+```
+
+Then let’s create some noise so we can generate some examples.
+
+```python
+fixed_noise = create_noise(bs)
+```
+
+But before that, reduce the learning rate by 10 and do one more pass:
+
+```python
+set_trainable(netD, True)
+set_trainable(netG, True)
+optimizerD = optim.RMSprop(netD.parameters(), lr=1e-5)
+optimizerG = optim.RMSprop(netG.parameters(), lr=1e-5)
+
+train(1, False)
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+100%|██████████| 1900/1900 [08:17<00:00,  4.01it/s]
+Loss_D [-1.42976]; Loss_G [0.70786]; D_real [-0.70362]; Loss_D_fake [0.72613]
+100%|██████████| 1/1 [08:17<00:00, 497.96s/it]
+```
+
+Then let’s use the noise to pass it to our generator, then put it through our denormalization to turn it back into something we can see, and then plot it:
+
+```python
+netD.eval()
+netG.eval()
+fake = netG(fixed_noise).data.cpu()
+faked = np.clip(md.trn_ds.denorm(fake), 0, 1)
+
+plt.figure(figsize=(9, 9))
+plt.imshow(gallery(faked, 8))
+```
+
+![](/images/lesson_12_031.png)
+
+*:memo: These are results of training using the sample data, a random 10% of our dataset. We will try experimenting using the full dataset.*
+
+And we have some bedrooms. These are not real bedrooms, and some of them don’t look particularly like bedrooms, but some of them look a lot like bedrooms, so that’s the idea. That’s GAN. The best way to think about GAN is it is like an underlying technology that you will probably never use like this, but you will use in lots of interesting ways. For example, we are going to use it to create a cycle GAN.
+
+:question: Is there any reason for using RMSProp specifically as the optimizer as opposed to Adam etc. [1:41:38]?
+
+I don’t remember it being explicitly discussed in the paper. I don’t know if it’s just experimental or the theoretical reason. Have a look in the paper and see what it says.
+
+[From the forum](http://forums.fast.ai/t/part-2-lesson-12-wiki/15023/211)
+
+> From experimenting I figured that Adam and WGANs not just work worse — it causes to completely fail to train meaningful generator.
+>
+> from WGAN paper:
+>
+> Finally, as a negative result, we report that WGAN training becomes unstable at times when one uses a momentum based optimizer such as Adam [8] (with β1>0) on the critic, or when one uses high learning rates. Since the loss for the critic is nonstationary, momentum based methods seemed to perform worse. We identified momentum as a potential cause because, as the loss blew up and samples got worse, the cosine between the Adam step and the gradient usually turned negative. The only places where this cosine was negative was in these situations of instability. We therefore switched to RMSProp [21] which is known to perform well even on very nonstationary problems.
+
+:question: Which could be a reasonable way of detecting overfitting while training? Or of evaluating the performance of one of these GAN models once we are done training? In other words, how does the notion of train/val/test sets translate to GANs [1:41:57]?
+
+That is an awesome question, and there’s a lot of people who make jokes about how GANs is the one field where you don’t need a test set and people take advantage of that by making stuff up and saying it looks great. There are some famous problems with GANs, one of them is called **Mode Collapse**. Mode collapse happens where you look at your bedrooms and it turns out that there’s only three kinds of bedrooms that every possible noise vector maps to. You look at your gallery and it turns out they are all just the same thing or just three different things. Mode collapse is easy to see if you collapse down to a small number of modes, like 3 or 4. But what if you have a mode collapse down to 10,000 modes? So there are only 10,000 possible bedrooms that all of your noise vectors collapse to. You wouldn’t be able to see in the gallery view we just saw because it’s unlikely you would have two identical bedrooms out of 10,000. Or what if every one of these bedrooms is basically a direct copy of one of the input — it basically memorized some input. Could that be happening? And the truth is, most papers don’t do a good job or sometimes any job of checking those things. So the question of how do we evaluate GANS and even the point of maybe we should actually evaluate GANs properly is something that is not widely enough understood even now. Some people are trying to really push. Ian Goodfellow was the first author on the most famous deep learning book and is the inventor of GANs and he’s been sending continuous stream of tweets reminding people about the importance of testing GANs properly. If you see a paper that claims exceptional GAN results, then this is definitely something to look at. Have they talked about mode collapse? Have they talked about memorization? And so forth.
+
+:question: Can GANs be used for data augmentation [1:45:33]?
+
+Yeah, absolutely you can use GAN for data augmentation. Should you? I don’t know. There are some papers that try to do semi-supervised learning with GANs. I haven’t found any that are particularly compelling showing state-of-the-art results on really interesting datasets that have been widely studied. I’m a little skeptical and the reason I’m a little skeptical is because in my experience, if you train a model with synthetic data, the neural net will become fantastically good at recognizing the specific problems of your synthetic data and that’ll end up what it’s learning from. There are lots of other ways of doing semi-supervised models which do work well. There are some places that can work. For example, you might remember Otavio Good created that fantastic visualization in part 1 of the zooming conv net where it showed letter going through MNIST, he, at least at that time, was the number one in autonomous remote control car competitions, and he trained his model using synthetically augmented data where he basically took real videos of a car driving around the circuit and added fake people and fake other cars. I think that worked well because A. he is kind of a genius and B. because I think he had a well defined little subset that he had to work in. But in general, it’s really really hard to use synthetic data. I’ve tried using synthetic data and models for decades now (obviously not GANs because they’re pretty new) but in general it’s very hard to do. Very interesting research question.
+
