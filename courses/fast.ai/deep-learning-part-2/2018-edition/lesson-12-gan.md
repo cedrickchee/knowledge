@@ -804,3 +804,34 @@ That is an awesome question, and there’s a lot of people who make jokes about 
 
 Yeah, absolutely you can use GAN for data augmentation. Should you? I don’t know. There are some papers that try to do semi-supervised learning with GANs. I haven’t found any that are particularly compelling showing state-of-the-art results on really interesting datasets that have been widely studied. I’m a little skeptical and the reason I’m a little skeptical is because in my experience, if you train a model with synthetic data, the neural net will become fantastically good at recognizing the specific problems of your synthetic data and that’ll end up what it’s learning from. There are lots of other ways of doing semi-supervised models which do work well. There are some places that can work. For example, you might remember Otavio Good created that fantastic visualization in part 1 of the zooming conv net where it showed letter going through MNIST, he, at least at that time, was the number one in autonomous remote control car competitions, and he trained his model using synthetically augmented data where he basically took real videos of a car driving around the circuit and added fake people and fake other cars. I think that worked well because A. he is kind of a genius and B. because I think he had a well defined little subset that he had to work in. But in general, it’s really really hard to use synthetic data. I’ve tried using synthetic data and models for decades now (obviously not GANs because they’re pretty new) but in general it’s very hard to do. Very interesting research question.
 
+### Cycle GAN [[1:41:08](https://youtu.be/ondivPiwQho?t=1h41m8s)]
+
+- [Paper](https://arxiv.org/abs/1703.10593)
+- [Notebook](https://nbviewer.jupyter.org/github/fastai/fastai/blob/master/courses/dl2/cyclegan.ipynb)
+
+We are going to use Cycle GAN to turn horses into zebras. You can also use it to turn Monet prints into photos or to turn photos of Yosemite in summer into winter.
+
+![](/images/lesson_12_032.gif)
+
+This is going to be really straight forward because it’s just a neural net [1:44:46]. All we are going to do is we are going to create an input containing lots of zebra photos and with each one we’ll pair it with an equivalent horse photo and we’ll just train a neural net that goes from one to the other. Or you could do the same thing for every Monet painting — create a dataset containing the photo of the place …oh wait, that’s not possible because the places that Monet painted aren’t there anymore and there aren’t exact zebra versions of horses …how the heck is this going to work? This seems to break everything we know about what neural nets can do and how they do them.
+
+So somehow these folks at Berkeley cerated a model that can turn a horse into a zebra despite not having any photos. Unless they went out there and painted horses and took before-and-after shots but I believe they didn’t [1:47:51]. So how the heck did they do this? It’s kind of genius.
+
+The person I know who is doing the most interesting practice of Cycle GAN right now is one of our students Helena Sarin [@glagolista](https://twitter.com/glagolista). She is the only artist I know of who is a Cycle GAN artist.
+
+![](/images/lesson_12_033.jpeg)
+
+![](/images/lesson_12_034.jpeg)
+
+![](/images/lesson_12_035.jpeg)
+
+![](/images/lesson_12_036.jpeg)
+
+Here are some more of her amazing works and I think it’s really interesting. I mentioned at the start of this class that GANs are in the category of stuff that is not there yet, but it’s nearly there. And in this case, there is at least one person in the world who is creating beautiful and extraordinary artworks using GANs (specifically Cycle GANs). At least a dozen people I know of who are just doing interesting creative work with neural nets more generally. And the field of creative AI is going to expand dramatically.
+
+![](/images/lesson_12_037.png)
+
+Here is the basic trick [1:50:11]. This is from the Cycle GAN paper. We are going to have two images (assuming we are doing this with images). The key thing is they are not paired images, so we don’t have a dataset of horses and the equivalent zebras. We have bunch of horses, and bunch of zebras. Grab one horse *X*, grab one zebra *Y*. We are going to train a generator (what they call here a "mapping function") that turns horse into zebra. We’ll call that mapping function *G* and we’ll create one mapping function (a.k.a. generator) that turns a zebra into a horse and we will call that *F*. We will create a discriminator just like we did before which is going to get as good as possible at recognizing real from fake horses so that will be *Dx*. Another discriminator which is going to be as good as possible at recognizing real from fake zebras, we will call that *Dy*. That is our starting point.
+
+The key thing to making this work [1:51:27]­—so we are generating a loss function here (*Dx* and *Dy*). We are going to create something called cycle-consistency loss which says after you turn your horse into a zebra with your generator, and check whether or not I can recognize that it’s a real. We turn our horse into a zebra and then going to try and turn that zebra back into the same horse that we started with. Then we are going to have another function that is going to check whether this horse which are generated knowing nothing about *x* — generated entirely from this zebra *Y* is similar to the original horse or not. So the idea would be if your generated zebra doesn’t look anything like your original horse, you’ve got no chance of turning it back into the original horse. So a loss which compares *x-hat* to *x* is going to be really bad unless you can go into *Y* and back out again and you’re probably going to be able to do that if you’re able to create a zebra that looks like the original horse so that you know what the original horse looked like. And vice versa — take your zebra, turn it into a fake horse, and check that you can recognize that and then try and turn it back into the original zebra and check that it looks like the original.
+
