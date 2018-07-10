@@ -312,6 +312,8 @@ That is not the only thing one cycle does, we also have momentum. Momentum goes 
 
 Usually the strides I have seen are odd [00:46:52]. Strides are either one or two. I think you are thinking of kernel sizes. So `stride=2` means that I jump two across which means that you halve your grid size. So I think you might have got confused between stride and kernel size there. If you have a stride of one, the grid size does not change. If you have a stride of two, then it does. In this case, because this is CIFAR10, 32 by 32 is small and we don’t get to halve the grid size very often because pretty quickly we are going to run out of cells. So that is why the first layer has a stride of one so we don’t decrease the grid size straight away. It is kind of a nice way of doing it because that’s why we have a low number at first `Darknet([1, 2, 4, 6, 3], …)` . We can start out with not too much computation on the big grid, and then we can gradually doing more and more computation as the grids get smaller and smaller because the smaller grid the computation will take less time.
 
+---
+
 ### Generative Adversarial Networks (GAN) [[00:48:49](https://youtu.be/ondivPiwQho?t=48m49s)]
 
 - [Wasserstein GAN (WGAN)](https://arxiv.org/abs/1701.07875)
@@ -776,11 +778,24 @@ faked = np.clip(md.trn_ds.denorm(fake), 0, 1)
 
 plt.figure(figsize=(9, 9))
 plt.imshow(gallery(faked, 8))
+
+# Save our work
+def save_state(net, fn):
+    torch.save(net.state_dict(), TMP_PATH / fn)
+
+save_state(netG, 'netG_full_data.h5') # save generator
+save_state(netD, 'netD_full_data.h5') # save discriminator
 ```
+
+Generated images of training using the full data:
+
+![](/images/lesson_12_038.png)
+
+Generated images of training using the sample data:
 
 ![](/images/lesson_12_031.png)
 
-*:memo: These are results of training using the sample data, a random 10% of our dataset. We will try experimenting using the full dataset.*
+These are results of training using the sample data, a random 10% of our dataset and full data. ~~We will try experimenting using the full dataset.~~
 
 And we have some bedrooms. These are not real bedrooms, and some of them don’t look particularly like bedrooms, but some of them look a lot like bedrooms, so that’s the idea. That’s GAN. The best way to think about GAN is it is like an underlying technology that you will probably never use like this, but you will use in lots of interesting ways. For example, we are going to use it to create a cycle GAN.
 
@@ -804,6 +819,10 @@ That is an awesome question, and there’s a lot of people who make jokes about 
 
 Yeah, absolutely you can use GAN for data augmentation. Should you? I don’t know. There are some papers that try to do semi-supervised learning with GANs. I haven’t found any that are particularly compelling showing state-of-the-art results on really interesting datasets that have been widely studied. I’m a little skeptical and the reason I’m a little skeptical is because in my experience, if you train a model with synthetic data, the neural net will become fantastically good at recognizing the specific problems of your synthetic data and that’ll end up what it’s learning from. There are lots of other ways of doing semi-supervised models which do work well. There are some places that can work. For example, you might remember Otavio Good created that fantastic visualization in part 1 of the zooming conv net where it showed letter going through MNIST, he, at least at that time, was the number one in autonomous remote control car competitions, and he trained his model using synthetically augmented data where he basically took real videos of a car driving around the circuit and added fake people and fake other cars. I think that worked well because A. he is kind of a genius and B. because I think he had a well defined little subset that he had to work in. But in general, it’s really really hard to use synthetic data. I’ve tried using synthetic data and models for decades now (obviously not GANs because they’re pretty new) but in general it’s very hard to do. Very interesting research question.
 
+:star: :star: *More Wasserstein GAN experiments from me in [my GitHub repo](https://github.com/cedrickchee/wasserstein-gan)* :star: :star:
+
+---
+
 ### Cycle GAN [[1:41:08](https://youtu.be/ondivPiwQho?t=1h41m8s)]
 
 - [Paper](https://arxiv.org/abs/1703.10593)
@@ -819,13 +838,10 @@ So somehow these folks at Berkeley cerated a model that can turn a horse into a 
 
 The person I know who is doing the most interesting practice of Cycle GAN right now is one of our students Helena Sarin [@glagolista](https://twitter.com/glagolista). She is the only artist I know of who is a Cycle GAN artist.
 
-![](/images/lesson_12_033.jpeg)
-
-![](/images/lesson_12_034.jpeg)
-
-![](/images/lesson_12_035.jpeg)
-
-![](/images/lesson_12_036.jpeg)
+|                                 |                                 |
+|:-------------------------------:|:-------------------------------:|
+|![](/images/lesson_12_033.jpeg)  | ![](/images/lesson_12_034.jpeg) |
+| ![](/images/lesson_12_035.jpeg) | ![](/images/lesson_12_036.jpeg) |
 
 Here are some more of her amazing works and I think it’s really interesting. I mentioned at the start of this class that GANs are in the category of stuff that is not there yet, but it’s nearly there. And in this case, there is at least one person in the world who is creating beautiful and extraordinary artworks using GANs (specifically Cycle GANs). At least a dozen people I know of who are just doing interesting creative work with neural nets more generally. And the field of creative AI is going to expand dramatically.
 
