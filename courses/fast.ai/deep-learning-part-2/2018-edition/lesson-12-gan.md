@@ -851,3 +851,510 @@ Here is the basic trick [1:50:11]. This is from the Cycle GAN paper. We are goin
 
 The key thing to making this work [1:51:27]­—so we are generating a loss function here (*Dx* and *Dy*). We are going to create something called cycle-consistency loss which says after you turn your horse into a zebra with your generator, and check whether or not I can recognize that it’s a real. We turn our horse into a zebra and then going to try and turn that zebra back into the same horse that we started with. Then we are going to have another function that is going to check whether this horse which are generated knowing nothing about *x* — generated entirely from this zebra *Y* is similar to the original horse or not. So the idea would be if your generated zebra doesn’t look anything like your original horse, you’ve got no chance of turning it back into the original horse. So a loss which compares *x-hat* to *x* is going to be really bad unless you can go into *Y* and back out again and you’re probably going to be able to do that if you’re able to create a zebra that looks like the original horse so that you know what the original horse looked like. And vice versa — take your zebra, turn it into a fake horse, and check that you can recognize that and then try and turn it back into the original zebra and check that it looks like the original.
 
+So notice *F* (zebra to horse) and *G* (horse to zebra) are doing two things [1:53:09]. They are both turning the original horse into the zebra, and then turning the zebra back into the original horse. So there are only two generators. There isn’t a separate generator for the reverse mapping. You have to use the same generator that was used for the original mapping. So this is the cycle-consistency loss. I think this is genius. The idea that this is a thing that could even be possible. Honestly when this came out, it just never occurred to me as a thing that I could even try and solve. It seems so obviously impossible and then the idea that you can solve it like this — I just think it’s so darn smart.
+
+It’s good to look at the equations in this paper because they are good examples — they are written pretty simply and it’s not like some of the Wasserstein GAN paper which is lots of theoretical proofs and whatever else [1:54:05]. In this case, they are just equations that lay out what’s going on. You really want to get to a point where you can read them and understand them.
+
+![](/images/lesson_12_039.png)
+
+So we’ve got a horse *X* and a zebra *Y* [1:54:34]. For some mapping function *G* which is our horse to zebra mapping function, then there is a GAN loss which is a bit we are already familiar with it says we have a horse, a zebra, a fake zebra recognizer, and a horse-zebra generator. The loss is what we saw before — it’s our ability to draw one zebra out of our zebras and recognize whether it is real or fake. Then take a horse and turn it into a zebra and recognize whether that’s real or fake. You then do one minus the other (in this case, they have a log in there but the log is not terribly important). So this is the thing we just saw. That is why we did Wasserstein GAN first. This is just a standard GAN loss in math form.
+
+:question: All of this sounds awfully like translating in one language to another then back to the original. Have GANs or any equivalent been tried in translation [1:55:54]?
+
+[Paper from the forum](http://forums.fast.ai/t/part-2-lesson-12-wiki/15023/90?u=cedric). Back up to what I do know — normally with translation you require this kind of paired input (i.e. parallel text — "this is the French translation of this English sentence"). There has been a couple of recent papers that show the ability to create good quality translation models without paired data.
+
+:bookmark: I haven’t implemented them and I don’t understand anything I haven’t implemented, but they may well be doing the same basic idea. We’ll look at it during the week and get back to you.
+
+#### Cycle-consistency loss [[1:57:14](https://youtu.be/ondivPiwQho?t=1h57m14s)]
+
+So we’ve got a GAN loss and the next piece is the cycle-consistency loss. So the basic idea here is that we start with our horse, use our zebra generator on that to create a zebra, use our horse generator on that to create a horse and compare that to the original horse. This double lines with the 1 is the L1 loss — sum of the absolute value of differences [1:57:35]. Where else if this was 2, it would be the L2 loss so the 2-norm which would be the sum of the squared differences.
+
+![](/images/lesson_12_040.png)
+
+We now know this squiggle idea which is from our horses grab a horse. This is what we mean by sample from a distribution. There’s all kinds of distributions but most commonly in these papers we’re using an empirical distribution, in other words we’ve got some rows of data, grab a row. So here, it is saying grab something from the data and we are going to call that thing *x*. To recapture:
+
+1. From our horse pictures, grab a horse
+2. Turn it into a zebra
+3. Turn it back into a horse
+4. Compare it to the original and sum of the absolute values
+5. Do it for zebra to horse as well
+6. And add the two together
+
+That is our cycle-consistency loss.
+
+#### Full objective [[1:58:54](https://youtu.be/ondivPiwQho?t=1h58m54s)]
+
+![](/images/lesson_12_041.png)
+
+Now we get our loss function and the whole loss function depends on:
+
+- our horse generator
+- a zebra generator
+- our horse recognizer
+- our zebra recognizer (a.k.a. discriminator)
+
+We are going to add up:
+
+- the GAN loss for recognizing horses
+- GAN loss for recognizing zebras
+- the cycle-consistency loss for our two generators
+
+We have a lambda here which hopefully we are kind of used to this idea now that is when you have two different kinds of loss, you chuck in a parameter there you can multiply them by so they are about the same scale [1:59:23]. We did a similar thing with our bounding box loss compared to our classifier loss when we did the localization.
+
+Then for this loss function, we are going to try to maximize the capability of the discriminators to discriminate, whilst minimizing that for the generators. So the generators and the discriminators are going to be facing off against each other. When you see this *min max* thing in papers, it basically means this idea that in your training loop, one thing is trying to make something better, the other is trying to make something worse, and there’re lots of ways to do it but most commonly, you’ll alternate between the two. You will often see this just referred to in math papers as min-max. So when you see min-max, you should immediately think adversarial training.
+
+#### Implementing Cycle GAN [[2:00:41](https://youtu.be/ondivPiwQho?t=2h41s)]
+
+Let’s look at the code. We are going to do something almost unheard of which is I started looking at somebody else’s code and I was not so disgusted that I threw the whole thing away and did it myself. I actually said I quite like this, I like it enough I’m going to show it to my students. [This](https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix) is where the code came from, and this is one of the people that created the original code for Cycle GANs and they created a PyTorch version. I had to clean it up a little bit but it’s actually pretty darn good. The cool thing about this is that you are now going to get to see almost all the bits of fast.ai or all the relevant bits of fast.ai written in a different way by somebody else. So you’re going to get to see how they do datasets, data loaders, models, training loops, and so forth.
+
+You’ll find there is a `cgan` directory [2:02:12] which is basically nearly the original with some cleanups which I hope to submit as a PR sometime. It was written in a way that unfortunately made it a bit over connected to how they were using it as a script, so I cleaned it up a little bit so I could use it as a module. But other than that, it’s pretty similar.
+
+```python
+from fastai.conv_learner import *
+from fastai.dataset import *
+from cgan.options.train_options import *
+```
+
+So `cgan` is their code copied from their GitHub repo with some minor changes. The way `cgan` mini library has been set up is that the configuration options, they are assuming, are being passed into like a script. So they have `TrainOptions().parse` method and I’m basically passing in an array of script options (where’s my data, how many threads, do I want to dropout, how many iterations, what am I going to call this model, which GPU do I want run it on). That gives us an `opt` object which you can see what it contains. You’ll see that it contains some things we didn’t mention that is because it has defaults for everything else that we didn’t mention.
+
+```python
+opt = TrainOptions().parse(['--dataroot', 'cgan/datasets/horse2zebra', '--nThreads', '8', '--no_dropout',
+                           '--niter', '100', '--niter_decay', '100', '--name', 'nodrop', '--gpu_ids', '0'])
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+------------ Options -------------
+: 0.5
+checkpoints_dir: ./checkpoints
+continue_train: False
+dataroot: cgan/datasets/horse2zebra
+dataset_mode: unaligned
+display_freq: 100
+display_id: 1
+display_port: 8097
+display_single_pane_ncols: 0
+display_winsize: 256
+epoch_count: 1
+fineSize: 256
+gpu_ids: [0]
+init_type: normal
+input_nc: 3
+isTrain: True
+lambda_A: 10.0
+lambda_B: 10.0
+lambda_identity: 0.5
+loadSize: 286
+lr: 0.0002
+lr_decay_iters: 50
+lr_policy: lambda
+max_dataset_size: inf
+model: cycle_gan
+nThreads: 8
+n_layers_D: 3
+name: nodrop
+ndf: 64
+ngf: 64
+niter: 100
+niter_decay: 100
+no_dropout: True
+no_flip: False
+no_html: False
+no_lsgan: False
+norm: instance
+output_nc: 3
+phase: train
+pool_size: 50
+print_freq: 100
+resize_or_crop: resize_and_crop
+save_epoch_freq: 5
+save_latest_freq: 5000
+serial_batches: False
+update_html_freq: 1000
+which_direction: AtoB
+which_epoch: latest
+which_model_netD: basic
+which_model_netG: resnet_9blocks
+-------------- End ----------------
+```
+
+**Download dataset**
+
+The original CycleGAN GitHub repo provides shell scripts to download the dataset:
+https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/master/datasets/download_cyclegan_dataset.sh
+
+You can download the 'horse2zebra' dataset file using this direct link if you prefer:
+https://people.eecs.berkeley.edu/~taesung_park/CycleGAN/datasets/horse2zebra.zip
+
+```python
+%cd cgan/
+
+!bash ./datasets/download_cyclegan_dataset.sh horse2zebra
+
+--2018-07-10 10:21:26--  https://people.eecs.berkeley.edu/~taesung_park/CycleGAN/datasets/horse2zebra.zip
+Resolving people.eecs.berkeley.edu (people.eecs.berkeley.edu)... 128.32.189.73
+Connecting to people.eecs.berkeley.edu (people.eecs.berkeley.edu)|128.32.189.73|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 116867962 (111M) [application/zip]
+Saving to: ‘./datasets/horse2zebra.zip’
+
+./datasets/horse2ze 100%[===================>] 111.45M  11.1MB/s    in 11s
+
+2018-07-10 10:21:38 (10.3 MB/s) - ‘./datasets/horse2zebra.zip’ saved [116867962/116867962]
+
+Archive:  ./datasets/horse2zebra.zip
+   creating: ./datasets/horse2zebra/trainA/
+  inflating: ./datasets/horse2zebra/trainA/n02381460_6223.jpg
+  inflating: ./datasets/horse2zebra/trainA/n02381460_1567.jpg
+  ... ... ... ... ... ...
+  ... ... ... ... ... ...
+  inflating: ./datasets/horse2zebra/testA/n02381460_7970.jpg
+
+%cd ..
+```
+
+**Data loader**
+
+So rather than using fast.ai stuff, we are going to largely use cgan stuff.
+
+```python
+from cgan.data.data_loader import CreateDataLoader
+from cgan.models.models import create_model
+```
+
+The first thing we are going to need is a data loader. So this is also a great opportunity for you again to practice your ability to navigate through code with your editor or IDE of choice. We are going to start with `CreateDataLoader`. You should be able to go find symbol or in vim tag to jump straight to `CreateDataLoader` and we can see that’s creating a `CustomDatasetDataLoader`. Then we can see `CustomDatasetDataLoader` is a `BaseDataLoader`. We can see that it’s going to use a standard PyTorch DataLoader, so that’s good. We know if you are going to use a standard PyTorch DataLoader, you have pass it a dataset, and we know that a dataset is something that contains a length and an indexer so presumably when we look at `CreateDataset` it’s going to do that.
+
+Here is `CreateDataset` and this library does more than just Cycle GAN — it handles both aligned and unaligned image pairs [2:04:46]. We know that our image pairs are unaligned so we are going to `UnalignedDataset`.
+
+![](/images/lesson_12_042.png)
+
+As expected, it has `__getitem__` and `__len__`. For length, *A* and *B* are our horses and zebras, we got two sets, so whichever one is longer is the length of the `DataLoader`. `__getitem__` is going to:
+
+- Randomly grab something from each of our two horses and zebras
+- Open them up with pillow (PIL)
+- Run them through some transformations
+- Then we could either be turning horses into zebras or zebras into horses, so there’s some direction
+- Return our horse, zebra, a path to the horse, and a path of zebra
+
+Hopefully you can kind of see that this is looking pretty similar to the kind of things fast.ai does. Fast.ai obviously does quite a lot more when it comes to transforms and performance, but remember, this is research code for this one thing and it’s pretty cool that they did all this work.
+
+![](/images/lesson_12_043.png)
+
+```python
+data_loader = CreateDataLoader(opt)
+dataset = data_loader.load_data()
+dataset_size = len(data_loader)
+dataset_size
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+CustomDatasetDataLoader
+dataset [UnalignedDataset] was created
+1334
+```
+
+We’ve got a data loader so we can go and load our data into it [2:06:17]. That will tell us how many mini-batches are in it (that’s the length of the data loader in PyTorch).
+
+Next step is to create a model. Same idea, we’ve got different kind of models and we’re going to be doing a Cycle GAN.
+
+![](/images/lesson_12_044.png)
+
+Here is our `CycleGANModel`. There is quite a lot of stuff in `CycleGANModel`, so let’s go through and find out what’s going to be used. At this stage, we’ve just called initializer so when we initialize it, it’s going to go through and define two generators which is not surprising a generator for our horses and a generator for zebras. There is some way for it to generate a pool of fake data and then we’re going to grab our GAN loss, and as we talked about our cycle-consistency loss is an L1 loss. They are going to use Adam, so obviously for Cycle GANS they found Adam works pretty well. Then we are going to have an optimizer for our horse discriminator, an optimizer for our zebra discriminator, and an optimizer for our generator. The optimizer for the generator is going to contain the parameters both for the horse generator and the zebra generator all in one place.
+
+![](/images/lesson_12_045.png)
+
+So the initializer is going to set up all of the different networks and loss functions we need and they are going to be stored inside this `model` [2:08:14].
+
+```python
+model = create_model(opt)
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+cycle_gan
+initialization method [normal]
+initialization method [normal]
+initialization method [normal]
+initialization method [normal]
+---------- Networks initialized -------------
+ResnetGenerator(
+  (model): Sequential(
+    (0): ReflectionPad2d((3, 3, 3, 3))
+    (1): Conv2d(3, 64, kernel_size=(7, 7), stride=(1, 1))
+    (2): InstanceNorm2d(64, eps=1e-05, momentum=0.1, affine=False)
+    (3): ReLU(inplace)
+    (4): Conv2d(64, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+    (5): InstanceNorm2d(128, eps=1e-05, momentum=0.1, affine=False)
+    (6): ReLU(inplace)
+    (7): Conv2d(128, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+    (8): InstanceNorm2d(256, eps=1e-05, momentum=0.1, affine=False)
+    (9): ReLU(inplace)
+    (10): ResnetBlock(
+      (conv_block): Sequential(
+        (0): ReflectionPad2d((1, 1, 1, 1))
+        (1): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1))
+        (2): InstanceNorm2d(256, eps=1e-05, momentum=0.1, affine=False)
+        (3): ReLU(inplace)
+        (4): ReflectionPad2d((1, 1, 1, 1))
+        (5): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1))
+        (6): InstanceNorm2d(256, eps=1e-05, momentum=0.1, affine=False)
+      )
+    )
+
+    ... ... ... trucated ... ... ...
+    ... ... ... trucated ... ... ...
+
+    (18): ResnetBlock(
+      (conv_block): Sequential(
+        (0): ReflectionPad2d((1, 1, 1, 1))
+        (1): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1))
+        (2): InstanceNorm2d(256, eps=1e-05, momentum=0.1, affine=False)
+        (3): ReLU(inplace)
+        (4): ReflectionPad2d((1, 1, 1, 1))
+        (5): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1))
+        (6): InstanceNorm2d(256, eps=1e-05, momentum=0.1, affine=False)
+      )
+    )
+    (19): ConvTranspose2d(256, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+    (20): InstanceNorm2d(128, eps=1e-05, momentum=0.1, affine=False)
+    (21): ReLU(inplace)
+    (22): ConvTranspose2d(128, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+    (23): InstanceNorm2d(64, eps=1e-05, momentum=0.1, affine=False)
+    (24): ReLU(inplace)
+    (25): ReflectionPad2d((3, 3, 3, 3))
+    (26): Conv2d(64, 3, kernel_size=(7, 7), stride=(1, 1))
+    (27): Tanh()
+  )
+)
+Total number of parameters: 11378179
+ResnetGenerator(
+  (model): Sequential(
+    (0): ReflectionPad2d((3, 3, 3, 3))
+    (1): Conv2d(3, 64, kernel_size=(7, 7), stride=(1, 1))
+    (2): InstanceNorm2d(64, eps=1e-05, momentum=0.1, affine=False)
+    (3): ReLU(inplace)
+    (4): Conv2d(64, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+    (5): InstanceNorm2d(128, eps=1e-05, momentum=0.1, affine=False)
+    (6): ReLU(inplace)
+    (7): Conv2d(128, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+    (8): InstanceNorm2d(256, eps=1e-05, momentum=0.1, affine=False)
+    (9): ReLU(inplace)
+    (10): ResnetBlock(
+      (conv_block): Sequential(
+        (0): ReflectionPad2d((1, 1, 1, 1))
+        (1): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1))
+        (2): InstanceNorm2d(256, eps=1e-05, momentum=0.1, affine=False)
+        (3): ReLU(inplace)
+        (4): ReflectionPad2d((1, 1, 1, 1))
+        (5): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1))
+        (6): InstanceNorm2d(256, eps=1e-05, momentum=0.1, affine=False)
+      )
+    )
+    (11): ResnetBlock(
+      (conv_block): Sequential(
+        (0): ReflectionPad2d((1, 1, 1, 1))
+        (1): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1))
+        (2): InstanceNorm2d(256, eps=1e-05, momentum=0.1, affine=False)
+        (3): ReLU(inplace)
+        (4): ReflectionPad2d((1, 1, 1, 1))
+        (5): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1))
+        (6): InstanceNorm2d(256, eps=1e-05, momentum=0.1, affine=False)
+      )
+    )
+
+    ... ... ... trucated ... ... ...
+    ... ... ... trucated ... ... ...
+
+    (18): ResnetBlock(
+      (conv_block): Sequential(
+        (0): ReflectionPad2d((1, 1, 1, 1))
+        (1): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1))
+        (2): InstanceNorm2d(256, eps=1e-05, momentum=0.1, affine=False)
+        (3): ReLU(inplace)
+        (4): ReflectionPad2d((1, 1, 1, 1))
+        (5): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1))
+        (6): InstanceNorm2d(256, eps=1e-05, momentum=0.1, affine=False)
+      )
+    )
+    (19): ConvTranspose2d(256, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+    (20): InstanceNorm2d(128, eps=1e-05, momentum=0.1, affine=False)
+    (21): ReLU(inplace)
+    (22): ConvTranspose2d(128, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+    (23): InstanceNorm2d(64, eps=1e-05, momentum=0.1, affine=False)
+    (24): ReLU(inplace)
+    (25): ReflectionPad2d((3, 3, 3, 3))
+    (26): Conv2d(64, 3, kernel_size=(7, 7), stride=(1, 1))
+    (27): Tanh()
+  )
+)
+Total number of parameters: 11378179
+NLayerDiscriminator(
+  (model): Sequential(
+    (0): Conv2d(3, 64, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (1): LeakyReLU(0.2, inplace)
+    (2): Conv2d(64, 128, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (3): InstanceNorm2d(128, eps=1e-05, momentum=0.1, affine=False)
+    (4): LeakyReLU(0.2, inplace)
+    (5): Conv2d(128, 256, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (6): InstanceNorm2d(256, eps=1e-05, momentum=0.1, affine=False)
+    (7): LeakyReLU(0.2, inplace)
+    (8): Conv2d(256, 512, kernel_size=(4, 4), stride=(1, 1), padding=(1, 1))
+    (9): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False)
+    (10): LeakyReLU(0.2, inplace)
+    (11): Conv2d(512, 1, kernel_size=(4, 4), stride=(1, 1), padding=(1, 1))
+  )
+)
+Total number of parameters: 2764737
+NLayerDiscriminator(
+  (model): Sequential(
+    (0): Conv2d(3, 64, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (1): LeakyReLU(0.2, inplace)
+    (2): Conv2d(64, 128, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (3): InstanceNorm2d(128, eps=1e-05, momentum=0.1, affine=False)
+    (4): LeakyReLU(0.2, inplace)
+    (5): Conv2d(128, 256, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (6): InstanceNorm2d(256, eps=1e-05, momentum=0.1, affine=False)
+    (7): LeakyReLU(0.2, inplace)
+    (8): Conv2d(256, 512, kernel_size=(4, 4), stride=(1, 1), padding=(1, 1))
+    (9): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False)
+    (10): LeakyReLU(0.2, inplace)
+    (11): Conv2d(512, 1, kernel_size=(4, 4), stride=(1, 1), padding=(1, 1))
+  )
+)
+Total number of parameters: 2764737
+-----------------------------------------------
+model [CycleGANModel] was created
+```
+
+It then prints out and shows us exactly the PyTorch model we have. It’s interesting to see that they are using ResNets and so you can see the ResNets look pretty familiar, so we have conv, batch norm, Relu. `InstanceNorm` is just the same as batch norm basically but it applies to one image at a time and the difference isn’t particularly important. And you can see they are doing reflection padding just like we are. You can kind of see when you try to build everything from scratch like this, it is a lot of work and you can forget the nice little things that fastai does automatically for you. You have to do all of them by hand and only you end up with a subset of them. So over time, hopefully soon, we’ll get all of this GAN stuff into fastai and it’ll be nice and easy.
+
+![](/images/lesson_12_046.png)
+
+We’ve got our model and remember the model contains the loss functions, generators, discriminators, all in one convenient place [2:09:32]. I’ve gone ahead and copied and pasted and slightly refactored the training loop from their code so that we can run it inside the notebook. So this one should look a lot familiar. A loop to go through each epoch and a loop to go through the data. Before we did this, we set up `dataset`. This is actually not a PyTorch dataset, I think this is what they used slightly confusingly to talk about their combined what we would call a model data object — all the data that they need. Loop through that with `tqdm` to get a progress bar, and so now we can go through and see what happens in the model.
+
+```python
+# note: Jeremy's refactor also removed all the visualizer codes
+
+def train(total_steps=0):
+    for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
+        epoch_start_time = time.time()
+        iter_data_time = time.time()
+        epoch_iter = 0
+
+        for i, data in tqdm(enumerate(dataset)):
+            iter_start_time = time.time()
+            if total_steps % opt.print_freq == 0: t_data = iter_start_time - iter_data_time
+            total_steps += opt.batchSize
+            epoch_iter += opt.batchSize
+            model.set_input(data)
+            model.optimize_parameters()
+
+            if total_steps % opt.display_freq == 0:
+                save_result = total_steps % opt.update_html_freq == 0
+
+            if total_steps % opt.print_freq == 0:
+                errors = model.get_current_errors()
+                t = (time.time() - iter_start_time) / opt.batchSize
+
+            if total_steps % opt.save_latest_freq == 0:
+                print('saving the latest model (epoch %d, total_steps %d)' % (epoch, total_steps))
+                model.save('latest')
+
+            iter_data_time = time.time()
+        if epoch % opt.save_epoch_freq == 0:
+            print('saving the model at the end of epoch %d, iters %d' % (epoch, total_steps))
+            model.save('latest')
+            model.save(epoch)
+
+        print('End of epoch %d / %d \t Time Taken: %d sec' %
+              (epoch, opt.niter + opt.niter_decay, time.time() - epoch_start_time))
+        model.update_learning_rate()
+
+%time train(0)
+```
+
+`set_input` [2:10:32]: It’s a different approach to what we do in fastai. This is kind of neat, it’s quite specific to Cycle GANs but basically internally inside this model is this idea that we are going to go into our data and grab the appropriate one. We are either going horse to zebra or zebra to horse, depending on which way we go, `A` is either horse or zebra, and vice versa. If necessary put it on the appropriate GPU, then grab the appropriate paths. So the model now has a mini-batch of horses and a mini-batch of zebras.
+
+![](/images/lesson_12_047.png)
+
+Now we optimize the parameters [2:11:19]. It’s kind of nice to see it like this. You can see each step. First of all, try to optimize the generators, then try to optimize the horse discriminators, then try to optimize the zebra discriminator. `zero_grad()` is a part of PyTorch, as well as `step()`. So the interesting bit is the actual thing that does the back propagation on the generator.
+
+![](/images/lesson_12_048.png)
+
+Here it is [2:12:04]. Let’s jump to the key pieces. There’s all the formula that we just saw in the paper. Let’s take a horse and generate a zebra. Let’s now use the discriminator to see if we can tell whether it’s fake or not (`pred_fake`). Then let’s pop that into our loss function which we set up earlier to get a GAN loss based on that prediction. Let’s do the same thing going the opposite direction using the opposite discriminator then put that through the loss function again. Then let’s do the cycle consistency loss. Again, we take our fake which we created and try and turn it back again into the original. Let’s use the cycle consistency loss function we created earlier to compare it to the real original. And here is that lambda — so there’s some weight that we used and that would set up, actually we just use the default that they suggested in their options. Then do the same for the opposite direction and then add them all together. We then do the backward step. That’s it.
+
+![](/images/lesson_12_049.png)
+
+![](/images/lesson_12_050.png)
+
+So we can do the same thing for the first discriminator [2:13:50]. Since basically all the work has been done now, there’s much less to do here. There that is. We won’t step all through it but it’s basically the same basic stuff that we’ve already seen.
+
+![](/images/lesson_12_051.png)
+
+So `optimize_parameters()` is calculating the losses and doing the optimizer step. From time to time, save and print out some results. Then from time to time, update the learning rate so they’ve got some learning rate annealing built in here as well. Kind of like fast.ai, they’ve got this idea of schedulers which you can then use to update your learning rates.
+
+![](/images/lesson_12_052.png)
+
+For those of you are interested in better understanding deep learning APIs, contributing more to fast.ai, or creating your own version of some of this stuff in some different back-end, it’s cool to look at a second API that covers some subset of some of the similar things to get a sense for how they are solving some of these problems and what the similarities/differences are.
+
+```python
+def show_img(im, ax=None, figsize=None):
+    if not ax: fig, ax = plt.subplots(figsize=figsize)
+    ax.imshow(im)
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
+    return ax
+```
+
+We train that for a little while and then we can just grab a few examples and here we have them [2:15:29]. Here are horses, zebras, and back again as horses.
+
+1. After train for 4 epochs:
+
+![](/images/lesson_12_053.png)
+
+![](/images/lesson_12_054.png)
+
+![](/images/lesson_12_055.png)
+
+![](/images/lesson_12_056.png)
+
+![](/images/lesson_12_057.png)
+
+![](/images/lesson_12_058.png)
+
+![](/images/lesson_12_059.png)
+
+![](/images/lesson_12_060.png)
+
+2. After train for 300 epochs + 100 epochs with learning rate annealing:
+
+![](/images/lesson_12_061.png)
+
+![](/images/lesson_12_062.png)
+
+![](/images/lesson_12_063.png)
+
+![](/images/lesson_12_064.png)
+
+![](/images/lesson_12_065.png)
+
+![](/images/lesson_12_066.png)
+
+![](/images/lesson_12_067.png)
+
+![](/images/lesson_12_068.png)
+
+![](/images/lesson_12_069.png)
+
+![](/images/lesson_12_070.png)
+
+It took Jeremy like 24 hours to train it even that far so it’s kind of slow [2:16:39]. I know Helena is constantly complaining on Twitter about how long these things take. I don’t know how she’s so productive with them.
+
+I will mention one more thing that just came out yesterday [2:16:54]:
+
+[Multimodal Unsupervised Image-to-Image Translation](https://arxiv.org/abs/1804.04732).
+
+There is now a multi-modal image to image translation of unpaired. So you can basically now create different cats for instance from this dog.
+
+This is basically not just creating one example of the output that you want, but creating multiple ones. This came out yesterday or the day before. I think it’s pretty amazing. So you can kind of see how this technology is developing and I think there’s so many opportunities to maybe do this with music, speech, writing, or to create kind of tools for artists.
