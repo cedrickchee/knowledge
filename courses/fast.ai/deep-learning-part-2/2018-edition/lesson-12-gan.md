@@ -1354,6 +1354,8 @@ We train that for a little while and then we can just grab a few examples and he
 
 It took Jeremy like 24 hours to train it even that far so it's kind of slow [2:16:39]. I know Helena is constantly complaining on Twitter about how long these things take. I don't know how she's so productive with them.
 
+:bookmark: *note-to-self: try [training on 8 GPUs](https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/issues/292) and with a bigger batch size.*
+
 I will mention one more thing that just came out yesterday [2:16:54]:
 
 [Multimodal Unsupervised Image-to-Image Translation](https://arxiv.org/abs/1804.04732).
