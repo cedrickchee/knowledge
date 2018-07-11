@@ -12,6 +12,9 @@ _These are my personal notes from fast.ai course and will continue to be updated
   * Generator and a discriminator that battle it out, and in the process combine to create a generative model that can create highly realistic outputs.
   * Wasserstein GAN variant.
     * Easier to train and more resilient to a range of hyperparameters.
+  * CycleGAN
+    * a breakthrough idea in GANs that allows us to generate images even where we don’t have direct (paired) training data.
+    * the basic idea is likely to be transferable to a wide range of very valuable applications.
 
 ## Lesson Resources
 
