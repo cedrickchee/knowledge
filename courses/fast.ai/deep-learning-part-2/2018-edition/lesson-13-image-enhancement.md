@@ -309,7 +309,7 @@ In ResNet, the stem is super simple. It's a 7x7 stride 2 conv followed by a stri
 
 ### Image enhancement paper - Progressive GANs
 
-So that was kind of my little bunch of random stuff section [00:29:51]. Moving a little bit closer to the actual main topic of this which is image enhancement. I'm going to talk about a new paper briefly because it really connects what I just discussed with what we are going to discuss next. It's a paper on progressive GANS which came from Nvidia: [Progressive Growing of GANS for Improved Quality, Stability, and Variation](http://research.nvidia.com/publication/2017-10_Progressive-Growing-of). Progressive GANS takes this idea of gradually increasing the image size. It's the only other direction I am aware of that people have actually gradually increase the image size. It surprises me because this paper is actually very popular, well known, and well liked and yet, people haven't taken the basic idea of gradually increasing the image size and use it anywhere else which shows you the general level of creativity you can expect to find in the deep learning research community, perhaps.
+So that was kind of my little bunch of random stuff section [00:29:51]. Moving a little bit closer to the actual main topic of this which is image enhancement. I'm going to talk about a new paper briefly because it really connects what I just discussed with what we are going to discuss next. It's a paper on progressive GANS which came from Nvidia: [Progressive Growing of GANs for Improved Quality, Stability, and Variation](http://research.nvidia.com/publication/2017-10_Progressive-Growing-of). Progressive GANS takes this idea of gradually increasing the image size. It's the only other direction I am aware of that people have actually gradually increase the image size. It surprises me because this paper is actually very popular, well known, and well liked and yet, people haven't taken the basic idea of gradually increasing the image size and use it anywhere else which shows you the general level of creativity you can expect to find in the deep learning research community, perhaps.
 
 #### Progressive GAN - increase image size
 
@@ -409,11 +409,666 @@ You can't avoid using patented stuff if you write code. I wouldn't be surprised 
 
 [Notebook](https://nbviewer.jupyter.org/github/fastai/fastai/blob/master/courses/dl2/style-transfer.ipynb)
 
+[![https://arxiv.org/abs/1508.06576](/images/lesson_13_031.png)](https://arxiv.org/abs/1508.06576 "A Neural Algorithm of Artistic Style")
 
+This is super fun — artistic style. We are going a bit retro here because this is actually the original artistic style paper and there's been a lot of updates to it and a lot of different approaches and I actually think in many ways the original is the best. We are going to look at some of the newer approaches as well, but I actually think the original is a terrific way to do it even with everything that's gone since. Let's jump to the code.
 
+```python
+%matplotlib inline
+%reload_ext autoreload
+%autoreload 2
 
+# import libraries
+from fastai.conv_learner import *
+from pathlib import Path
+from scipy import ndimage
 
+# torch.cuda.set_device(0)
+torch.backends.cudnn.benchmark = True
 
+# Setup directory and file paths
+PATH = Path('data/imagenet')
+PATH_TRN = PATH / 'train'
 
+# Initialize pre-trained VGG model
+m_vgg = to_gpu(vgg16(True)).eval()
+set_trainable(m_vgg, False)
+```
 
+The idea here is that we want to take a photo of a bird, and we want to create a painting that looks like Van Gogh painted the picture of the bird. Quite a bit of the stuff that I'm doing, by the way, uses an ImageNet. You don't have to download the whole of ImageNet for any of the things I'm doing. There is an ImageNet sample in files.fast.ai/data which has a couple of gig which should be plenty good enough for everything we are doing. If you want to get really great result, you can grab ImageNet. You can download it from [Kaggle](https://www.kaggle.com/c/imagenet-object-localization-challenge/data). The localization competition actually contains all of the classification data as well. If you've got room, it's good to have a copy of ImageNet because it comes in handy all the time.
 
+```python
+img_fn = PATH_TRN / 'n01558993' / 'n01558993_9684.JPEG'
+img = open_image(img_fn)
+plt.imshow(img)
+```
+
+So I just grabbed the bird out of my ImageNet folder and there is my bird:
+
+![](/images/lesson_13_032.png)
+
+```python
+sz = 288
+
+trn_tfms, val_tfms = tfms_from_model(vgg16, sz)
+img_tfm = val_tfms(img)
+img_tfm.shape
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+(3, 288, 288)
+
+opt_img = np.random.uniform(0, 1, size=img.shape).astype(np.float32)
+plt.imshow(opt_img)
+```
+
+What I'm going to do is I'm going to start with this picture:
+
+![](/images/lesson_13_033.png)
+
+And I'm going to try to make it more and more like a picture of the bird painted by Van Gogh. The way I do that is actually very simple. You're all familiar with it [1:03:44]. We will create a loss function which we will call *f*. The loss function is going to take as input a picture and spit out as output a value. The value will be lower if the image looks more like the bird photo painted by Van Gogh. Having written that loss function, we will then use the PyTorch gradient and optimizers. Gradient times the learning rate, and and we are not going to update any weights, we are going to update the pixels of the input image to make it a little bit more like a picture which would be a bird painted by Van Gogh. And we will stick it through the loss function again to get more gradients, and do it again and again. That's it. So it's identical to how we solve every problem. You know I'm a one-trick pony, right? This is my only trick. Create a loss function, use it to get some gradients, multiply it by learning rates to update something, always before, we've updated weights in a model but today, we are not going to do that. They're going to update the pixels in the input. But it's no different at all. We are just taking the gradient with respect to the input rather than respect to the weights. That's it. So we are nearly done.
+
+![](/images/lesson_13_034.png)
+
+Let's do a couple more things [1:05:49]. Let's mention here that there's going to be two more inputs to our loss function One is the picture of the bird. The second is an artwork by Van Gogh. By having those as inputs as well, that means we'll be able to rerun the function later to make it look like a bird painted by Monet or a jumbo jet painted by Van Gogh, etc. Those are going to be the three inputs. Initially, as we discussed, our input here is some random noise. We start with some random noise, use the loss function, get the gradients, make it a little bit more like a bird painted by Van Gogh, and so forth.
+
+So the only outstanding question which I guess we can talk about briefly is how we calculate how much our image looks like this bird painted by Van Gogh [1:07:09]. Let's split it into two parts:
+
+**Content Loss**: Returns a value that's lower if it looks more like the bird (not just any bird, the specific bird that we have coming in).
+
+**Style Loss**: Returns a lower number if the image is more like V.G.'s style.
+
+![](/images/lesson_13_035.png)
+
+There is one way to do the content loss which is very simple — we could look at the pixel of the output, compare them to the pixel of the bird, and do a mean squared error, and add them up. So if we did that, I ran this for a while. Eventually our image would turn into an image of the bird. You should try it. You should try this as an exercise. Try to use the optimizer in PyTorch to start with a random image and turn it into another image by using mean squared error pixel loss. Not terribly exciting but that would be step one.
+
+The problem is, even if we already had our style loss function working beautifully and then presumably, what we are going to do is we are going to add these two together, and then one of them, we'll multiply by some lambda to adjust how much style versus how much content. Assuming we had a style loss and we picked some sensible lambda, if we used pixel wise content loss then anything that makes it look more like Van Gogh and less like the exact photo, the exact background, the exact contrast, lighting, everything will increase the content loss — which is not what we want. We want it to look like the bird but not in the same way. It is still going to have the same two eyes in the same place and be the same kind of shape and so forth, but not the same representation. So what we are going to do is, this is going to shock you, we are going to use a neural network! :bookmark: We are going to use the VGG neural network because that's what I used last year and I didn't have time to see if other things worked so you can try that yourself during the week.
+
+The VGG network is something which takes in an input and sticks it through a number of layers, and I'm going to treat these as just the convolutional layers there's obviously ReLU there and if it's a VGG with batch norm, which most are today, then it's also got batch norm. There's some max pooling and so forth but that's fine. What we could do is, we could take one of these convolutional activations and then rather than comparing the pixels of this bird, we could instead compare the VGG layer 5 activations of this (bird painted by V.G.) to the VGG layer 5 activations of our original bird (or layer 6, or layer 7, etc). So why might that be more interesting? Well for one thing, it wouldn't be the same bird. It wouldn't be exactly the same because we are not checking the pixels. We are checking some later set of activations. So what are those later sets of activations contain? Assuming it's after some max pooling, they contain a smaller grid — so it's less specific about where things are. And rather than containing pixel color values, they are more like semantic things like is this kind of an eyeball, is this kind of furry, is this kind of bright, or is this kind of reflective, or laying flat, or whatever. So we would hope that there's some level of semantic features through those layers where if we get a picture that matches those activations, then any picture that matches those activations looks like the bird but it's not the same representation of the bird. So that's what we are going to do. That's what our content loss is going to be. People generally call this a **perceptual loss** because it's really important in deep learning that you always create a new name for every obvious thing you do. If you compare two activations together, you are doing a perceptual loss. That's it. Our content loss is going to be a perceptual loss. Then we will do the style loss later.
+
+Let's start by trying to create a bird that initially is random noise and we are going to use perceptual loss to create something that is bird-like but it's not the particular bird [1:13:13]. We are going to start with 288 by 288. Because we are going to do one bird, there is going to be no GPU memory problems. I was actually disappointed that I realized that I picked a rather small input image. It would be fun to try this with something much bigger to create a really grand scale piece. The other thing to remember is if you are productionizing this, you could do a whole batch at a time. People sometimes complain about this approach (Gatys is the lead author) the Gatys' style transfer approaches being slow, and I don't agree it's slow. It takes a few seconds and you can do a whole batch in a few seconds.
+
+![](/images/lesson_13_036.png)
+
+```python
+sz = 288
+```
+
+So we are going to stick it through some transforms for VGG16 model as per usual [1:14:12]. Remember, the transform class has dunder call method (`__call__`) so we can treat it as if it's a function. If you pass an image into that, then we get the transformed image. Try not to treat the fast.ai and PyTorch infrastructure as a black box because it's all designed to be really easy to use in a decoupled way. So this idea of that transforms are just "callables" (i.e. things that you can do with parentheses) comes from PyTorch and we totally plagiarized the idea. So with torch.vision or with fast.ai, your transforms are just callables. And the whole pipelines of transforms is just a callable.
+
+```python
+trn_tfms, val_tfms = tfms_from_model(vgg16, sz)
+img_tfm = val_tfms(img)
+img_tfm.shape
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+(3, 288, 288)
+```
+
+Now we have something of 3 by 288 by 288 because PyTorch likes the channel to be first [1:15:05]. As you can see, it's been turned into a square for us, it's been normalized to (0, 1), all that normal stuff.
+
+Now we are creating a random image.
+
+```python
+opt_img = np.random.uniform(0, 1, size=img.shape).astype(np.float32)
+plt.imshow(opt_img)
+```
+
+![](/images/lesson_13_037.png)
+
+Here is something I discovered. Trying to turn this into a picture of anything is actually really hard. I found it very difficult to actually get an optimizer to get reasonable gradients that went anywhere. And just as I thought I was going to run out of time for this class and really embarrass myself, I realized the key issue is that pictures don't look like this. They have more smoothness, so I turned this into the following by blurring it a little bit:
+
+```python
+opt_img = scipy.ndimage.filters.median_filter(opt_img, [8, 8, 1])
+plt.imshow(opt_img)
+```
+
+![](/images/lesson_13_038.png)
+
+I used a median filter — basically it is like a median pooling, effectively. As soon as I change it to this, it immediately started training really well. A number of little tweaks you have to do to get these things to work is kind of insane, but here is a little tweak.
+
+So we start with a random image which is at least somewhat smooth [1:16:21]. I found that my bird image had a mean of pixels that was about half of this, so I divided it by 2 just trying to make it a little bit easier for it to match (I don't know if it matters). Turn that into a variable because this image, remember, we are going to be modifying those pixels with an optimization algorithm, so anything that's involved in the loss function needs to be a variable. And specifically, it requires a gradient because we are actually updating the image.
+
+![](/images/lesson_13_039.png)
+
+```python
+opt_img = val_tfms(opt_img) / 2
+opt_img_v = V(opt_img[None], requires_grad=True)
+opt_img_v.shape
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+torch.Size([1, 3, 288, 288])
+```
+
+So we now have a mini batch of 1, 3 channels, 288 by 288 random noise.
+
+#### Using mid layer activations
+
+```python
+m_vgg = nn.Sequential(*children(m_vgg)[:37])
+```
+
+We are going to use, for no particular reason, the 37th layer of VGG. If you print out the VGG network (you can just type in `m_vgg` and prints it out), you'll see that this is mid to late stage layer. So we can just grab the first 37 layers and turn it into a sequential model. So now we have a subset of VGG that will spit out some mid layer activations, and that's what the model is going to be. So we can take our actual bird image and we want to create a mini batch of one. Remember, if you slice in NumPy with `None`, also known as `np.newaxis`, it introduces a new unit axis in that point. Here, I want to create an axis of size 1 to say this is a mini batch of size one. So slicing with `None` just like I did here (`opt_img_v = V(opt_img[None], requires_grad=True)`) to get one unit axis at the front. Then we turn that into a variable and this one doesn't need to be updated, so we use `VV` to say you don't need gradients for this guy. So that is going to give us our target activations.
+
+- We've taken our bird image
+- Turned it into a variable
+- Stuck it through our model to grab the 37th layer activations which is our target. We want our content loss to be this set of activations.
+- We are going to create an optimizer (we will go back to the details of this in a moment)
+- We are going to step a bunch of times
+- Zero the gradients
+- Call some loss function
+- Loss.backward()
+
+That's the high level version. I'm going to come back to the details in a moment, but the key thing is that the loss function we are passing in that randomly generated image — the variable of optimization image. So we pass that to our loss function and it's going to update this using the loss function, and the loss function is the mean squared error loss comparing our current optimization image passed through our VGG to get the intermediate activations and comparing it to our target activations. We run that bunch of times and we'll print it out. And we have our bird but not the representation of it.
+
+```python
+targ_t = m_vgg(VV(img_tfm[None]))
+targ_v = V(targ_t)
+targ_t.shape
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+torch.Size([1, 512, 18, 18])
+
+max_iter = 1000
+show_iter = 100
+optimizer = optim.LBFGS([opt_img_v], lr=0.5)
+```
+
+#### Broyden–Fletcher–Goldfarb–Shanno (BFGS) [[01:20:18](https://youtu.be/xXXiC4YRGrQ?t=1h20m18s)]
+
+A couple of new details here. One is a weird optimizer (`optim.LBFGS`). Anybody who's done certain parts of math and computer science courses comes into deep learning discovers we use all this stuff like Adam and the SGD and always assume that nobody in the field knows the first thing about computer science and immediately says "any of you guys tried using BFGS?" There's basically a long history of a totally different kind of algorithm for optimization that we don't use to train neural networks. And of course the answer is actually the people who have spent decades studying neural networks do know a thing or two about computer science and it turns out these techniques on the whole don't work very well. But it's actually going to work well for this, and it's a good opportunity to talk about an interesting algorithm for those of you that haven't studied this type of optimization algorithm at school. BFGS (initials of four different people) and the L stands for limited memory. It is an optimizer so as an optimizer, that means that there's some loss function and it's going to use some gradients (not all optimizers use gradients but all the ones we use do) to find a direction to go and try to make the loss function go lower and lower by adjusting some parameters. It's just an optimizer. But it's an interesting kind of optimizer because it does a bit more work than the ones we're used to on each step. Specifically, the way it works is it starts the same way that we are used to which is we just pick somewhere to get started and in this case, we've picked a random image as you saw. As per usual, we calculate the gradient. But we then don't just take a step but we actually do is as well as finding the gradient, we also try to find the second derivative. The second derivative says how fast does the gradient change.
+
+**Gradient**: how fast the function change
+
+**The second derivative**: how fast the gradient change
+
+In other words, how curvy is it? The basic idea is that if you know that it's not very curvy, then you can probably jump farther. But if it's very curvy then you probably don't want to jump as far. So in higher dimensions, the gradient is called the Jacobian and the second derivative is called the Hessian. You'll see those words all the time, but that's all they mean. Again, mathematicians have to invent your words for everything as well. They are just like deep learning researchers — maybe a bit more snooty. With BFGS, we are going to try and calculate the second derivative and then we are going to use that to figure out what direction to go and how far to go — so it's less of a wild jump into the unknown.
+
+Now the problem is that actually calculating the Hessian (the second derivative) is almost certainly not a good idea[1:24:15]. Because in each possible direction that you are going to head, for each direction that you're measuring the gradient in, you also have to calculate the Hessian in every direction. It gets ridiculously big. So rather than actually calculating it, we take a few steps and we basically look at how much the gradient is changing as we do each step, and we approximate the Hessian using that little function. Again, this seems like a really obvious thing to do but nobody thought of it until someone did surprisingly a long time later. Keeping track of every single step you take takes a lot of memory, so duh, don't keep track of every step you take — just keep the last ten or twenty.
+
+##### Limited memory optimizer
+
+And the second bit there, that's the L to the LBFGS. So a limited-memory BFGS means keep the last 10 or 20 gradients, use that to approximate the amount of curvature, and then use the curvature in gradient to estimate what direction to travel and how far. That's normally not a good idea in deep learning for a number of reasons. It's obviously more work to do than than Adam or SGD update, and it also uses more memory — memory is much more of a big issue when you've got a GPU to store it on and hundreds of millions of weights. But more importantly, the mini-batch is super bumpy so figuring out curvature to decide exactly how far to travel is kind of polishing turds as we say (yeah, Australian and English expression — you get the idea). Interestingly, actually using the second derivative information, it turns out, is like a magnet for saddle points. So there's some interesting theoretical results that basically say it actually sends you towards nasty flat areas of the function if you use second derivative information. So normally not a good idea.
+
+```python
+def actn_loss(x):
+    return F.mse_loss(m_vgg(x), targ_v) * 1000
+
+def step(loss_fn):
+    global n_iter
+    optimizer.zero_grad()
+    # passing in that randomly generated image — the variable of optimization image to the loss function
+    loss = loss_fn(opt_img_v)
+    loss.backward()
+    n_iter += 1
+    if n_iter % show_iter == 0:
+        print(f'Iteration: n_iter, loss: {loss.data[0]}')
+    return loss
+```
+
+But in this case [1:26:40], we are not optimizing weights, we are optimizing pixels so all the rules change and actually turns out BFGS does make sense. Because it does more work each time, it's a different kind of optimizer, the API is a little bit different in PyTorch. As you can see here, when you say `optimizer.step`, you actually pass in the loss function. So our loss function is to call `step` with a particular loss function which is our activation loss (`actn_loss`). And inside the loop, you don't say step, step, step. But rather it looks like this. So it's a little bit different and you're welcome to try and rewrite this to use SGD, it'll still work. It'll just take a bit longer — I haven't tried it with SGD yet and I'd be interested to know how much longer it takes.
+
+```python
+n_iter = 0
+while n_iter <= max_iter:
+    optimizer.step(partial(step, actn_loss))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+Iteration: n_iter, loss: 0.8200027942657471
+Iteration: n_iter, loss: 0.3576483130455017
+Iteration: n_iter, loss: 0.23157010972499847
+Iteration: n_iter, loss: 0.17518416047096252
+Iteration: n_iter, loss: 0.14312393963336945
+Iteration: n_iter, loss: 0.1230238527059555
+Iteration: n_iter, loss: 0.10892671346664429
+Iteration: n_iter, loss: 0.09870683401823044
+Iteration: n_iter, loss: 0.09066757559776306
+Iteration: n_iter, loss: 0.08464114367961884
+```
+
+So you can see the loss function going down [1:27:38]. The mean squared error between the activations at layer 37 of our VGG model for our optimized image vs. the target activations, remember the target activations were the VGG applied to our bird. Make sense?
+
+#### Content loss
+
+So we've now got a content loss. Now, one thing I'll say about this content loss is we don't know which layer is going to work the best. So it would be nice if we were able to experiment a little bit more. And the way it is here is annoying:
+
+![](/images/lesson_13_039_1.png)
+
+Maybe we even want to use multiple layers. So rather than lopping off all of the layers after the one we want, wouldn't it be nice if we could somehow grab the activations of a few layers as it calculates. Now, we already know one way to do that back when we did SSD, we actually wrote our own network which had a number of outputs. Remember? The different convolutional layers, we spat out a different `oconv` thing? But I don't really want to go and add that to the torch.vision ResNet model especially not if later on, I want to try torch.vision VGG model, and then I want to try NASNet-A model, I don't want to go into all of them and change their outputs. Beside which, I'd like to easily be able to turn certain activations on and off on demand. So we briefly touched before this idea that PyTorch has these fantastic things called **hooks**. You can have forward hooks that let you plug anything you like into the forward pass of a calculation or a backward hook that lets you plug anything you like into the backward pass. So we are going to create the world's simplest forward hook.
+
+```python
+x = val_tfms.denorm(np.rollaxis(to_np(opt_img_v.data), 1, 4))[0]
+plt.figure(figsize=(7, 7))
+plt.imshow(x)
+```
+
+![](/images/lesson_13_039.png)
+
+### PyTorch hooks - forward hook [[01:29:42](https://youtu.be/xXXiC4YRGrQ?t=1h29m42s)]
+
+This is one of these things that almost nobody knows about so almost any code you find on the internet that implements style transfer will have all kind of horrible hacks rather than using forward hooks. But forward hook is really easy.
+
+To create a forward hook, you just create a class. The class has to have something called `hook_fn`. And your hook function is going to receive the `module` that you've hooked, the input for the forward pass, and the output then you do whatever you'd like. So what I'm going to do is I'm just going to store the output of this module in some attribute. That's it. So `hook_fn` can actually be called anything you like, but "hook function" seems to be the standard because, as you can see, what happens in the constructor is I store inside some attribute the result of `m.register_forward_hook` (`m` is going to be the layer that I'm going to hook) and pass in the function that you want to be called when the module's forward method is called. When its forward method is called, it will call `self.hook_fn` which will store the output in an attribute called `features`.
+
+```python
+class SaveFeatures():
+    features = None
+    def __init__(self, m): self.hook = m.register_forward_hook(self.hook_fn)
+    def hook_fn(self, module, input, output): self.features = output
+    def close(self): self.hook.remove()
+```
+
+#### VGG activations
+
+So now what we can do is we can create a VGG as before. And let's set it to not trainable so we don't waste time and memory calculating gradients for it. And let's go through and find all the max pool layers. So let's go through all of the children of this module and if it's a max pool layer, let's spit out index minus 1 — so that's going to give me the layer before the max pool. In general, the layer before a max pool or stride 2 conv is a very layer. It's the most complete representation we have at that grid cell size because the very next layer is changing the grid. So that seems to me like a good place to grab the content loss from. The best most semantic, most interesting content we have at that grid size. So that's why I'm going to pick those indexes.
+
+```python
+m_vgg = to_gpu(vgg16(True)).eval()
+set_trainable(m_vgg, False)
+```
+
+These are the indexes of the last layer before each max pool in VGG [1:32:30].
+
+```python
+block_ends = [i - 1 for i, o in enumerate(children(m_vgg))
+              if isinstance(o, nn.MaxPool2d)]
+block_ends
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+[5, 12, 22, 32, 42]
+```
+
+I'm going to grab `32` — no particular reason, just try something else. So I'm going to say `block_ends[3]` (i.e. 32). `children(m_vgg)[block_ends[3]]` will give me the 32nd layer of VGG as a module.
+
+```python
+sf = SaveFeatures(children(m_vgg)[block_ends[3]])
+```
+
+Then if I call the SaveFeatures constructor, it's going to go:
+
+```python
+self.hook = {32nd layer of VGG}.register_forward_hook(self.hook_fn)
+```
+
+Now, every time I do a forward pass on this VGG model, it's going to store the 32nd layer's output inside `sf.features`.
+
+```python
+def get_opt():
+    opt_img = np.random.uniform(0, 1, size=img.shape).astype(np.float32)
+    opt_img = scipy.ndimage.filters.median_filter(opt_img, [8, 8, 1])
+    opt_img_v = V(val_tfms(opt_img / 2)[None], requires_grad=True)
+    return opt_img_v, optim.LBFGS([opt_img_v])
+```
+
+See here [1:33:33], I'm calling my VGG network, but I'm not storing it anywhere. I'm not saying `activations = m_vgg(VV(img_tfm[None]))`. I'm calling it, throwing away the answer, and then grabbing the features we stored in our `SaveFeatures` object.
+
+`m_vgg()` — this is how you do a forward path in PyTorch. You don't say `m_vgg.forward()`, you just use it as a callable. Using as a callable on an `nn.module` automatically calls `forward`. That's how PyTorch modules work.
+
+So we call it as a callable, that ends up calling our forward hook, that forward hook stores the activations in `sf.features`, and so now we have our target variable — just like before but in a much more flexible way.
+
+`get_opt` contains the same 4 lines of code we had earlier [1:34:34]. It is just giving me my random image to optimize and an optimizer to optimize that image.
+
+```python
+m_vgg(VV(img_tfm[None]))
+targ_v = V(sf.features.clone())
+targ_v.shape
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+torch.Size([1, 512, 36, 36])
+
+def actn_loss2(x):
+    m_vgg(x)
+    out = V(sf.features)
+    return F.mse_loss(out, targ_v) * 1000
+```
+
+Now I can go ahead and do exactly the same thing. But now I'm going to use a different loss function `actn_loss2` (activation loss #2) which doesn't say `out = m_vgg`, again, it calls `m_vgg` to do a forward pass, throws away the results, and and grabs `sf.features`. So that's now my 32nd layer activations which I can then do my MSE loss on. You might have noticed, the last loss function and this one are both multiplied by a thousand. Why are they multiplied by a thousand? This was like all the things that were trying to get this lesson to not work correctly. I didn't used to have a thousand and it wasn't training. Lunch time today, nothing was working. After days of trying to get this thing to work, and finally just randomly noticed "gosh, the loss functions — the numbers are really low (like 10E-7)" and I thought what if they weren't so low. So I multiplied them by a thousand and it started working.
+
+#### Single precision floating point, half precision
+
+So why did it not work? Because we are doing single precision floating point, and single precision floating point isn't that precise. Particularly once you're getting gradients that are kind of small and then you are multiplying by the learning rate that can be small, and you end up with a small number. If it's so small, they could get rounded to zero and that's what was happening and my model wasn't ready. I'm sure there are better ways than multiplying by a thousand, but whatever. It works fine. It doesn't matter what you multiply a loss function by because all you care about is its direction and the relative size. Interestingly, this is something similar we do for when we were training ImageNet. We were using half precision floating point because Volta tensor cores require that. And it's actually a standard practice if you want to get the half precision floating to train, you actually have to multiply the loss function by a scaling factor. We were using 1024 or 512. I think fast.ai is now the first library that has all of the tricks necessary to train in half precision floating point built-in, so if you are lucky enough to have a Volta or you can pay for a AWS P3, if you've got a learner object, you can just say `learn.half`, it'll now just magically train correctly half precision floating point. It's built into the model data object as well, and it's all automatic. Pretty sure no other library does that.
+
+```python
+n_iter = 0
+while n_iter <= max_iter:
+    optimizer.step(partial(step, actn_loss2))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+Iteration: n_iter, loss: 0.2201523780822754
+Iteration: n_iter, loss: 0.09734754264354706
+Iteration: n_iter, loss: 0.06434715539216995
+Iteration: n_iter, loss: 0.04877760633826256
+Iteration: n_iter, loss: 0.03993375599384308
+Iteration: n_iter, loss: 0.03418143838644028
+Iteration: n_iter, loss: 0.030093519017100334
+Iteration: n_iter, loss: 0.026956692337989807
+Iteration: n_iter, loss: 0.024544663727283478
+Iteration: n_iter, loss: 0.022647056728601456
+```
+
+This is just doing the same thing on a slightly earlier layer [1:37:35]. And the bird looks more bird-like. Hopefully that makes sense to you that earlier layers are getting closer to the pixels. There are more grid cells, each cell is smaller, smaller receptive field, less complex semantic features. So the earlier we get, the more it's going to look like a bird.
+
+```python
+x = val_tfms.denorm(np.rollaxis(to_np(opt_img_v.data),1,4))[0]
+plt.figure(figsize=(7,7))
+plt.imshow(x);
+```
+
+![](/images/lesson_13_040.png)
+
+```python
+sf.close()
+```
+
+#### Pictures from paper
+
+In fact, the paper has a nice picture of that showing various different layers and zooming into this house [1:38:17]. They are trying to make this house look like The Starry Night picture. And you can see that later on, it's pretty messy, and earlier on, it looks like the house. So this is just doing what we just did. One of the things I've noticed in our study group is anytime I say to somebody to answer a question, anytime I say read the paper there is a thing in the paper that tells you the answer to that question, there's always this shocked look "read the paper? me?" but seriously the papers have done these experiments and drawn the pictures. There's all this stuff in the papers. It doesn't mean you have to read every part of the paper. But at least look at the pictures. So check out Gatys' paper, it's got nice pictures. So they've done the experiment for us but looks like they didn't go as deep — they just got some earlier ones.
+
+![](/images/lesson_13_041.png)
+
+#### Style match [[01:39:29](https://youtu.be/xXXiC4YRGrQ?t=1h39m29s)]
+
+The next thing we need to do is to **create style loss**. We've already got the loss which is how much like the bird is it. Now we need how like this painting style is it. And we are going to do nearly the same thing. We are going to **grab the activations of some layer**. Now the problem is, the activations of some layer, let's say it was a 5x5 layer (of course there are no 5x5 layers, it's 224x224, but we'll pretend). So here're some activations and we could get these activations both per the image we are optimizing and for our Van Gogh painting. Let's look at our Van Gogh painting. There it is — The Starry Night.
+
+```python
+style_fn = PATH / 'style' / 'starry_night.jpg'
+
+style_img = open_image(style_fn)
+style_img.shape, img.shape
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+((1198, 1513, 3), (291, 483, 3))
+
+plt.imshow(style_img)
+```
+
+#### Look at painting from Wikipedia
+
+![](/images/lesson_13_043.png)
+
+I downloaded this from Wikipedia and I was wondering what is taking so long to load [1:40:39] — turns out, the Wikipedia version I downloaded was 30,000 by 30,000 pixels. It's pretty cool that they've got this serious gallery quality archive stuff there. I didn't know it existed. Don't try to run a neural net on that. Totally killed my Jupyter notebook.
+
+So we can do that for our Van Gogh image and we can do that for our optimized image. Then we can compare the two and we would end up creating an image that has content like the painting but it's not the painting — that's not what we want. We want something with the same style but it's not the painting and doesn't have the content. So we want to throw away all of the spatial information. We are not trying to create something that has a moon here, stars here, and a church here. We don't want any of that. So how do we throw away all the special information?
+
+![](/images/lesson_13_044.png)
+
+In this case, there are 19 faces on this — 19 slices. So let's grab this top slice that's going to be a 5x5 matrix. Now, let's flatten it and we've got a 25 long vector. In one stroke, we've thrown away the bulk of the spacial information by flattening it. Now let's grab a second slice (i.e. another channel) and do the same thing. So we have channel 1 flattened and channel 2 flattened, and they both have 25 elements.
+
+#### Dot product of channels - intuition
+
+Now, let's take the dot product which we can do with `@` in NumPy (Note: [here is Jeremy's answer to my dot product vs. matrix multiplication question](http://forums.fast.ai/t/part-2-lesson-13-wiki/15297/140?u=hiromi)). So the dot product is going to give us one number. What's that number? What is it telling us? Assuming the activations are somewhere around the middle layer of the VGG network, we might expect some of these activations to be how textured is the brush stroke, and some of them to be like how bright is this area, and some of them to be like is this part of a house or a part of a circular thing, or other parts to be, how dark is this part of the painting. So a dot product is basically a correlation. If this element and and this element are both highly positive or both highly negative, it gives us a big result. Where else, if they are the opposite, it gives a small results. If they are both close to zero, it gives no result. So **basically a dot product is a measure of how similar these two things are**. So if the activations of channel 1 and channel 2 are similar, then it basically says — Let's give an example [1:44:28]. Let's say the first one was how textured are the brushstrokes (C1) and that one there says how diagonally oriented are the brush strokes (C2).
+
+![](/images/lesson_13_045.png)
+
+If C1 and C2 are both high for a cell (1, 1) at the same time, and same is true for a cell (4, 2), then it's saying grid cells that would have texture tend to also have diagonal. So dot product would be high when grid cells that have texture also have diagonal, and when they don't, they don't (have high dot product). So that's `C1 @ C2`. Where else, `C1 @ C1` is the 2-norm effectively (i.e. the sum of the squares of C1). This is basically saying how many grid cells in the textured channel is active and how active it is. So in other words, `C1 @ C1` tells us how much textured painting is going on. And `C2 @ C2` tells us how much diagonal paint stroke is going on. Maybe C3 is "is it bright colors?" so `C3 @ C3` would be how often do we have bright colored cells.
+
+### Gram matrix
+
+So what we could do then is we could create a 19 by 19 matrix containing every dot product [1:47:17]. And like we discussed, mathematicians have to give everything a name, so this particular matrix where you flatten something out and then do all the dot product is called Gram matrix.
+
+![](/images/lesson_13_046.png)
+
+I'll tell you a secret [1:48:29]. Most deep learning practitioners either don't know or don't remember all these things like what is a Gram matrix if they ever did study at university. They probably forgot it because they had a big night afterwards. And the way it works in practice is you realize "oh, I could create a kind of non-spacial representation of how the channels correlate with each other" and then when I write up the paper, I have to go and ask around and say "does this thing have a name?" and somebody will be like "isn't that the Gram matrix?" and you go and look it up and it is. So don't think you have to go study all of math first. Use your intuition and common sense and then you worry about what the math is called later, normally. Sometimes it works the other way, not with me because I can't do math.
+
+So this is called the Gram matrix [1:49:22]. And of course, if you are a real mathematician, it's very important that you say this as if you always knew it was a Gram matrix and you kind of just go oh yes, we just calculate the Gram matrix. So the Gram matrix then is this kind of map — the diagonal is perhaps the most interesting. The diagonal is which channels are the most active and then the off diagonal is which channels tend to appear together. And overall, if two pictures have the same style, then we are expecting that some layer of activations, they will have similar Gram matrices. Because if we found the level of activations that capture a lot of stuff about like paint strokes and colors, then the diagonal alone (in Gram matrices) might even be enough. That's another interesting homework assignment, if somebody wants to take it, is try doing Gatys' style transfer not using the Gram matrix but just using the diagonal of the Gram matrix. That would be like a single line of code to change. But I haven't seen it tried and I don't know if it would work at all, but it might work fine.
+
+"Okay, yes Christine, you've tried it" [1:50:51]. "I have tried that and it works most of the time except when you have funny pictures where you need two styles to appear in the same spot. So it seems like grass in one half and a crowd in one half, and you need the two styles." (Christine). Cool, you're still gonna do your homework, but Christine says she'll do it for you. :smile:
+
+```python
+def scale_match(src, targ):
+    h, w, _ = src.shape
+    sh, sw, _ = targ.shape
+    rat = max(h / sh, w / sw)
+    print(rat)
+    res = cv2.resize(targ, (int(sw * rat), int(sh * rat)))
+    return res[:h, :w]
+
+style = scale_match(img, style_img)
+
+plt.imshow(style)
+style.shape, img.shape
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+((291, 483, 3), (291, 483, 3))
+```
+
+![](/images/lesson_13_047.png)
+
+So here is our painting [1:51:22]. I've tried to resize the painting so it's the same size as my bird picture. So that's all this is just doing. It doesn't matter too much which bit I use as long as it's got lots of the nice style in it.
+
+I grab my optimizer and my random image just like before:
+
+```python
+opt_img_v, optimizer = get_opt()
+```
+
+#### Save features for all blocks
+
+And this time, I call `SaveFeatures` for all of my `block_ends` and that's going to give me an array of `SaveFeatures` objects — one for each module that appears the layer before the max pool. Because this time, I want to play around with different activation layer styles, or more specifically I want to let you play around with it. So now I've got a whole array of them.
+
+```python
+sfs = [SaveFeatures(children(m_vgg)[idx]) for idx in block_ends]
+```
+
+`style_img` is my Van Gogh painting. So I take my `style_img`, put it through my transformations to create my transform style image (`style_tfm`).
+
+```python
+style_tfm = val_tfms(style_img)
+```
+
+Turn that into a variable, put it through the forward pass of my VGG module, and now I can go through all of my `SaveFeatures` objects and grab each set of features. Notice I call `clone` because later on, if I call my VGG object again, it's going to replace those contents. I haven't quite thought about whether this is necessary. If you take it away and it's not, that's fine. But I was just being careful. So here is now an array of the activations at every `block_end` layer. And here, you can see all of those shapes:
+
+```python
+m_vgg(VV(style_tfm[None]))
+targ_styles = [V(o.features.clone()) for o in sfs]
+[o.shape for o in targ_styles]
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+[torch.Size([1, 64, 288, 288]),
+ torch.Size([1, 128, 144, 144]),
+ torch.Size([1, 256, 72, 72]),
+ torch.Size([1, 512, 36, 36]),
+ torch.Size([1, 512, 18, 18])]
+```
+
+And you can see, being able to whip up a list comprehension really quickly, it's really important in your Jupyter fiddling around [1:53:30]. Because you really want to be able to immediately see here's my channel (64, 128, 256, …), and grid size halving as we would expect (288, 144, 72…) because all of these appear just before a max pool.
+
+So to do a Gram MSE loss, it's going to be the MSE loss on the Gram matrix of the input vs. the gram matrix of the target. And the Gram matrix is just the matrix multiply of `x` with `x` transpose (`x.t()`) where x is simply equal to my input where I've flattened the batch and channel axes all down together. I've only got one image, so you can ignore the batch part — it's basically channel. Then everything else (`-1`), which in this case is the height and width, is the other dimension because there's now going to be channel by height and width, and then as we discussed we can them just do the matrix multiply of that by its transpose. And just to normalize it, we'll divide that by the number of elements (`b*c*h*w`) — it would actually be more elegant if I had said `input.numel` (number of elements) that would be the same thing. Again, this gave me tiny numbers so I multiply it by a big number to make it something more sensible. So that's basically my loss.
+
+```python
+def gram(input):
+    b, c, h, w = input.size()
+    x = input.view(b * c, -1)
+    return torch.mm(x, x.t()) / input.numel() * 1e6
+
+def gram_mse_loss(input, target): return F.mse_loss(gram(input), gram(target))
+```
+
+So now my style loss is to take my image to optimize, throw it through VGG forward pass, grab an array of the features in all of the `SaveFeatures` objects, and then call my Gram MSE loss on every one of those layers [1:55:13]. And that's going to give me an array and then I just add them up. Now you could add them up with different weightings, you could add up subsets, or whatever. In this case, I'm just grabbing all of them.
+
+```python
+def style_loss(x):
+    m_vgg(opt_img_v)
+    outs = [V(o.features) for o in sfs]
+    losses = [gram_mse_loss(o, s) for o, s in zip(outs, targ_styles)]
+    return sum(losses)
+```
+
+Pass that into my optimizer as before:
+
+```python
+n_iter = 0
+while n_iter <= max_iter:
+    optimizer.step(partial(step, style_loss))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+Iteration: n_iter, loss: 488.1943664550781
+Iteration: n_iter, loss: 160.02984619140625
+Iteration: n_iter, loss: 85.17698669433594
+Iteration: n_iter, loss: 51.89944076538086
+Iteration: n_iter, loss: 34.03820037841797
+Iteration: n_iter, loss: 23.21661949157715
+Iteration: n_iter, loss: 16.497699737548828
+Iteration: n_iter, loss: 12.354783058166504
+Iteration: n_iter, loss: 9.861383438110352
+Iteration: n_iter, loss: 8.337841987609863
+```
+
+And here we have a random image in the style of Van Gogh which I think is kind of cool.
+
+```python
+x = val_tfms.denorm(np.rollaxis(to_np(opt_img_v.data), 1, 4))[0]
+plt.figure(figsize=(7, 7))
+plt.imshow(x)
+```
+
+![](/images/lesson_13_048.png)
+
+Again Gatys has done it for us. Here is different layers of random image in the style of Van Gogh. So the first one, as you can see, the activations are simple geometric things — not very interesting at all. The later layers are much more interesting. So we kind of have a suspicion that we probably want to use later layers largely for our style loss if we wanted to look good.
+
+![](/images/lesson_13_042.png)
+
+![](/images/lesson_13_049.png)
+
+I added this `SaveFeatures.close` [1:56:35] which just calls `self.hook.remove()`. Remember, I stored the hook as `self.hook` so `hook.remove()` gets rid of it. It's a good idea to get rid of it because otherwise you can potentially just keep using memory. So at the end, I just go through each of my `SaveFeatures` object and close it:
+
+```python
+for sf in sfs:
+    sf.close()
+```
+
+#### Style transfer [[01:57:08](https://youtu.be/xXXiC4YRGrQ?t=1h57m8s)]
+
+Style transfer is adding content loss and style loss together with some weight. So there is no much to show.
+
+Grab my optimizer, grab my image:
+
+```python
+opt_img_v, optimizer = get_opt()
+```
+
+And my combined loss is the MSE loss at one particular layer, my style loss at all of my layers, sum up the style losses, add them to the content loss, the content loss I'm scaling. Actually the style loss, I scaled already by 1E6. So they are both scaled exactly the same. Add them together. Again, you could trying weighting the different style losses or you could maybe remove some of them, so this is the simplest possible version.
+
+```python
+def comb_loss(x):
+    m_vgg(opt_img_v)
+    outs = [V(o.features) for o in sfs]
+    # gram matrix loss
+    losses = [gram_mse_loss(o, s) for o, s in zip(outs, targ_styles)]
+    # content loss
+    cnt_loss = F.mse_loss(outs[3], targ_vs[3]) * 1e6
+    # style loss
+    style_loss = sum(losses)
+    return cnt_loss + style_loss
+```
+
+Train that:
+
+```python
+n_iter = 0
+while n_iter <= max_iter:
+    optimizer.step(partial(step, comb_loss))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+Iteration: n_iter, loss: 1683.57763671875
+Iteration: n_iter, loss: 1178.25
+Iteration: n_iter, loss: 999.766357421875
+Iteration: n_iter, loss: 893.4268798828125
+Iteration: n_iter, loss: 827.3020629882812
+Iteration: n_iter, loss: 782.7379150390625
+Iteration: n_iter, loss: 750.3278198242188
+Iteration: n_iter, loss: 727.0342407226562
+Iteration: n_iter, loss: 708.3321533203125
+Iteration: n_iter, loss: 693.3798828125
+
+x = val_tfms.denorm(np.rollaxis(to_np(opt_img_v.data), 1, 4))[0]
+plt.figure(figsize=(9, 9))
+plt.imshow(x, interpolation='lanczos')
+plt.axis('off')
+```
+
+![](/images/lesson_13_050.png)
+
+```python
+for sf in sfs:
+    sf.close()
+```
+
+And holy crap, it actually looks good. So I think that's pretty awesome. The main take away here is if you want to solve something with a neural network, all you've got to do is set up a loss function and then optimize something. And the loss function is something which a lower number is something that you're happier with. Because then when you optimize it, it's going to make that number as low as you can, and it'll do what you wanted it to do. So here, Gatys came up with the loss function that does a good job of being a smaller number when it looks like the thing we want it to look like, and it looks like the style of the thing we want to be in the style of. That's all we had to do.
+
+What it actually comes to it [1:59:10], apart from implementing Gram MSE loss which was like 6 lines of code if that, that's our loss function:
+
+![](/images/lesson_13_051.png)
+
+Pass it to our optimizer, and wait about 5 seconds, and we are done. And remember, we could do a batch of these at a time, so we could wait 5 seconds and 64 of these will be done. So I think that's really interesting and since this paper came out, it has really inspired a lot of interesting work. To me though, most of the interesting work hasn't happened yet because to me, the interesting work is the work where you combine human creativity with these kinds of tools. I haven't seen much in the way of tools that you can download or use where the artist is in control and can kind of do things interactively. It's interesting talking to the guys at [Google Magenta](https://magenta.tensorflow.org/) project which is their creative AI project, all of the stuff they are doing with music is specifically about this. It's building tools that musicians can use to perform in real time. And you'll see much more of that on the music space thanks to Magenta. If you go to their website, there's all kinds of things where you can press the buttons to actually change the drum beats, melodies, keys, etc. You can definitely see Adobe or NVidia is starting to release little prototypes and starting to do this but this kind of creative AI explosion hasn't happened yet. I think we have pretty much all the technology we need but no one's put it together into a thing and said "look at the thing I built and look at the stuff that people built with my thing." So that's just a huge area of opportunity.
+
+#### Deep painterly harmonization - putting Captain America's shield
+
+So the paper that I mentioned at the start of class in passing [2:01:16] — the one where we can add Captain America's shield to arbitrary paintings basically used this technique. The trick was though some minor tweaks to make the pasted Captain America shield blend in nicely. :bookmark: But that paper is only a couple of days old, so that would be a really interesting project to try because you can use all this code. It really does leverage this approach. Then you could start by making the content image be like the painting with the shield and then the style image could be the painting without the shield. That would be a good start, and then you could see what specific problems they try to solve in this paper to make it better. But you could have a start on it right now.
+
+#### Probabilistic programming
+
+:question: Two questions — earlier there were a number of people that expressed interest in your thoughts on Pyro and probabilistic programming [2:02:34].
+
+So TensorFlow has now got this TensorFlow probability or something. There's a bunch of probabilistic programming framework out there. I think they are intriguing, but as yet unproven in the sense that I haven't seen anything done with any probabilistic programming system which hasn't been done better without them. The basic premise is that it allows you to create more of a model of how you think the world works and then plug in the parameters. So back when I used to work in management consulting 20 years ago, we used to do a lot of stuff where we would use a spreadsheet and then we would have these Monte Carlo simulation plugins — there was one called At Risk(?) and one called Crystal Ball. I don't know if they still exist decades later. Basically they would let you change a spreadsheet cell to say this is not a specific value but it actually represents a distribution of values with this mean and the standard deviation or it's got this distribution, and then you would hit a button and the spreadsheet would recalculate a thousand times pulling random numbers from these distributions and show you the distribution of your outcome that might be profit or market share or whatever. We used them all the time back then. Apparently feel that a spreadsheet is a more obvious place to do that kind of work because you can see it all much more naturally, but I don't know. We'll see. At this stage, I hope it turns out to be useful because I find it very appealing and it appeals to as I say the kind of work I used to do a lot of. There's actually whole practices around this stuff they used to call system dynamics which really was built on top of this kind of stuff, but it's not quite gone anywhere.
+
+#### Pre-training for generic style transfer
+
+:question: Then there was a question about pre-training for generic style transfer [2:04:57].
+
+I don't think you can pre-train for a generic style, but you can pre-train for a generic photo for a particular style which is where we are going to get to. Although, it may end up being a homework. I haven't decided yet. But I'm going to do all the pieces.
+
+:question: Please ask him to talk about multi-GPU [2:05:31].
+
+Oh yeah, Jeremy haven't. Jeremy had a slide about that. We're about to hit it.
+
+Before we do, just another interesting picture from the Gatys' paper. They've got a few more just didn't fit in my slide but different convolutional layers for the style. Different style to content ratios, and here's the different images. Obviously this isn't Van Gogh any more, this is a different combination. So you can see, if you just do all style, you don't see any image. If you do lots of content, but you use low enough convolutional layer, it looks okay but the back ground is kind of dumb. So you kind of want somewhere in the middle. So you can play around with it and experiment, but also use the paper to help guide you.
+
+![](/images/lesson_13_052.png)
+
+#### The Math [[02:06:33](https://youtu.be/xXXiC4YRGrQ?t=2h6m33s)]
+
+Actually, I think I might work on the math now and we'll talk about multi GPU and super resolution next week because this is from the paper and one of the things I really do want you to do after we talk about a paper is to read the paper and then ask questions on the forum anything that's not clear. But there's a key part of this paper which I wanted to talk about and discuss how to interpret it. So the paper says, we're going to be given an input image *x* and this little thing means normally it means it's a vector, Rachel, but this one is a matrix. I guess it could mean either. I don't know. Normally small letter bold means vector or a small letter with an arrow on top means vector. And normally big letter means matrix or small letter with two arrows on top means matrix. In this case, our image is a matrix. We are going to basically treat it as a vector, so maybe we're just getting ahead of ourselves.
+
+![](/images/lesson_13_053.png)
+
+So we've got an input image *x* and it can be encoded in a particular layer of the CNN by the filter responses (i.e. activations). Filter responses are activations. Hopefully, that's something you all understand. That's basically what a CNN does is it produces layers of activations. A layer has a bunch of filters which produce a number of channels. This here says that layer number L has capital N*l* filters. Again, this capital does not mean matrix. So I don't know, math notation is so inconsistent. So capital N*l* distinct filters at layer L which means it has also that many feature maps. So make sure you can see this letter Nl is the same as this letter. So you've got to be very careful to read the letters and recognize it's like snap, that's the same letter as that. So obviously, Nl filters create create Nl feature maps or channels, each one of size M*l* (okay, I can see this is where the unrolling is happening). So this is like M[*l*] in numpy notation. It's the *l*th layer. So M for the *l*th layer. The size is height times width — so we flattened it out. So the responses in a layer l can be stored in a matrix F (and now the l goes at the top for some reason). So this is not f^*l*, it's just another indexing. We are just moving it around for fun. This thing here where we say it's an element of R — this is a special R meaning the real numbers N times M (this is saying that the dimensions of this is N by M). So this is really important, you don't move on. It's just like with PyTorch, making sure that you understand the rank and size of your dimensions first, same with math. These are the bits where you stop and think why is it N by M? N is a number of filters, M is height by width. So do you remember that thing when we did `.view(b * c, -1)`? Here that is. So try to map the code to the math. So F is `x`:
+
+![](/images/lesson_13_054.png)
+
+If I was nicer to you, I would have used the same letters as the paper. But I was too busy getting this darn thing working to do that carefully. So you can go back and rename it as capital F.
+
+So this is why we moved the L to the top is because we're now going to have some more indexing. Where else in NumPy or PyTorch, we index things by square brackets and then lots of things with commas between. The approach in math is to surround your letter by little letters all around it — just throw them up there everywhere. So here, F*l* is the *l*th layer of F and then *ij* is the activation of the *i*th filter at position *j* of layer *l*. So position *j* is up to size M which is up to size height by width. This is the kind of thing that would be easy to get confused. Often you'd see an *ij* and assume that's indexing into a position of an image like height by width, but it's totally not, is it? It's indexing into channel by flattened image. It even tells you — it's the *i*th filter/channel in the *j*th position in the flattened out image in layer *l*. So you're not gonna be able to get any further in the paper unless you understand what F is. That's why these are the bits where you stop and make sure you're comfortable.
+
+So now, the content loss, I'm not going to spend much time on but basically we are going to just check out the values of the activations vs. the predictions squared [2:12:03]. So there's our content loss. The style loss will be much the same thing, but using the Gram matrix G:
+
+![](/images/lesson_13_055.png)
+
+I really wanted to show you this one. I think it's super. Sometimes I really like things you can do in math notation, and they're things that you can also generally do in J and APL which is this kind of this implicit loop going on here. What this is saying is there's a whole bunch of values of *i* and a whole bunch of values of *j*, and I'm going to define G for all of them. And there's whole bunch of values of *l* as well, and I'm going to define G for all of those as well. So for all of my G at every *l* of every *i* at every *j*, it's going to be equal to something. And you can see that something has an *i* and a *j* and a *l*, matching G, and it also has a *k* and that's part of the sum. So what's going on here? Well, it's saying that my Gram matrix in layer *l* for the *i*th position in one axis and the *j*th position in another axis is equal to my F matrix (so my flattened out matrix) for the *i*th channel in that layer vs. the *j*th channel in the same layer, then I'm going to sum over. We are going to take the *k*th position and multiply them together and then add them all up. So that's exactly what we just did before when we calculated our Gram matrix. So this, there's a lot going on because of some, to me, very neat notation — which is there are three implicit loops all going on at the same time, plus one explicit loop in the sum, then they all work together to create this Gram matrix for every layer. So let's go back and see if you can match this. All that's happening all at once which is pretty great.
+
+That's it. So next lesson, we're going to be looking at a very similar approach, basically doing style transfer all over again but in a way where we actually going to train a neural network to do it for us rather than having to do the optimization. We'll also see that you can do the same thing to do super resolution. And we are also going to go back and revisit some of the SSD stuff as well as doing some segmentation. So if you've forgotten SSD, might be worth doing a little bit of revision this week. Alright, thanks everybody. See you in the next lesson.
