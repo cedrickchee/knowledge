@@ -1828,7 +1828,7 @@ So now we can go through and print out the top 3 so it turns out that bird actua
 
 This is not a particularly hard thing to do because there is only a thousand ImageNet classes and it is not doing anything new. But what if we now bring in the entirety of WordNet and we now say which of those 45 thousand things is it closest to?
 
-##### Search all WordMet noun classes
+##### Search all WordNet noun classes
 
 ```python
 all_syns, all_wvs = list(zip(*syn2wv.items()))
