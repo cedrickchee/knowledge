@@ -669,7 +669,7 @@ class SaveFeatures():
 
 #### VGG activations
 
-So now what we can do is we can create a VGG as before. And let's set it to not trainable so we don't waste time and memory calculating gradients for it. And let's go through and find all the max pool layers. So let's go through all of the children of this module and if it's a max pool layer, let's spit out index minus 1 — so that's going to give me the layer before the max pool. In general, the layer before a max pool or stride 2 conv is a very layer. It's the most complete representation we have at that grid cell size because the very next layer is changing the grid. So that seems to me like a good place to grab the content loss from. The best most semantic, most interesting content we have at that grid size. So that's why I'm going to pick those indexes.
+So now what we can do is we can create a VGG as before. And let's set it to not trainable so we don't waste time and memory calculating gradients for it. And let's go through and find all the max pool layers. So let's go through all of the children of this module and if it's a max pool layer, let's spit out index minus 1 — so that's going to give me the layer before the max pool. In general, the layer before a max pool or stride 2 conv is a very interesting layer. It's the most complete representation we have at that grid cell size because the very next layer is changing the grid. So that seems to me like a good place to grab the content loss from. The best most semantic, most interesting content we have at that grid size. So that's why I'm going to pick those indexes.
 
 ```python
 m_vgg = to_gpu(vgg16(True)).eval()
