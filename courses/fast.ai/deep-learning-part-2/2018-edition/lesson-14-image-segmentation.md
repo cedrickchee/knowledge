@@ -2278,3 +2278,589 @@ show_img(y[0])
 ```
 
 ![](/images/lesson_14_068.png)
+
+### U-net (ish) [[01:48:16](https://youtu.be/nG3tT31nPmQ?t=1h48m16s)]
+
+So let's try U-Net. I'm calling it U-net(ish) because as per usual I'm creating my own somewhat hacky version — trying to keep things as similar to what you're used to as possible and doing things that I think makes sense. So there should be plenty of opportunity for you to at least make this more authentically U-net by looking at the exact grid sizes and see how here (the top left convs) the size is going down a little bit. So they are obviously not adding any padding and then there are some cropping going on — there's a few differences. But one of the things is because I want to take advantage of transfer learning — that means I can't quite use U-Net.
+
+So here is another big opportunity is what if you create the U-Net down path and then add a classifier on the end and then train that on ImageNet. You've now got an ImageNet trained classifier which is specifically designed to be a good backbone for U-Net. Then you should be able to now come back and get pretty closed to winning this old competition (it's actually not that old — it's fairly recent competition). Because that pre-trained network didn't exist before. But if you think about what YOLO v3 did, it's basically that. They created a DarkNet, they pre-trained it on ImageNet, and then they used it as the basis for their bounding boxes. So again, this idea of pre-training things which are designed not just for classification but designed for other things — it's just something that nobody has done yet. But as we've shown, you can train ImageNet for $25 in three hours now. And if people in the community are interested in doing this, hopefully I'll have credits I can help you with as well so if you do, the work to get it set up and give me a script, I can probably run it for you. For now though, we don't have that yet. So we are going to use ResNet.
+
+```python
+class SaveFeatures():
+    features=None
+    def __init__(self, m):
+        self.hook = m.register_forward_hook(self.hook_fn)
+    def hook_fn(self, module, input, output): self.features = output
+    def remove(self): self.hook.remove()
+```
+
+So we are basically going to start with `get_base` [1:50:37]. Base is our base network and that was defined back up in the first section.
+
+![](/images/lesson_14_069.png)
+
+So `get_base` is going to be something that calls whatever f is and `f` is `resnet34`. So we are going to grab our ResNet34 and cut_model is the first thing that our convnet builder does. It basically removes everything from the adaptive pooling onwards, so that gives us back the backbone of ResNet34. So `get_base` is going to give us back the ResNet34 backbone.
+
+```python
+class UnetBlock(nn.Module):
+    def __init__(self, up_in, x_in, n_out):
+        super().__init__()
+        up_out = x_out = n_out//2
+        self.x_conv  = nn.Conv2d(x_in,  x_out,  1)
+        self.tr_conv = nn.ConvTranspose2d(up_in, up_out, 2,
+                                          stride=2)
+        self.bn = nn.BatchNorm2d(n_out)
+
+    def forward(self, up_p, x_p):
+        up_p = self.tr_conv(up_p)
+        x_p = self.x_conv(x_p)
+        cat_p = torch.cat([up_p,x_p], dim=1)
+        return self.bn(F.relu(cat_p))
+
+class Unet34(nn.Module):
+    def __init__(self, rn):
+        super().__init__()
+        self.rn = rn
+        self.sfs = [SaveFeatures(rn[i]) for i in [2,4,5,6]]
+        self.up1 = UnetBlock(512,256,256)
+        self.up2 = UnetBlock(256,128,256)
+        self.up3 = UnetBlock(256,64,256)
+        self.up4 = UnetBlock(256,64,256)
+        self.up5 = nn.ConvTranspose2d(256, 1, 2, stride=2)
+
+    def forward(self,x):
+        x = F.relu(self.rn(x))
+        x = self.up1(x, self.sfs[3].features)
+        x = self.up2(x, self.sfs[2].features)
+        x = self.up3(x, self.sfs[1].features)
+        x = self.up4(x, self.sfs[0].features)
+        x = self.up5(x)
+        return x[:,0]
+
+    def close(self):
+        for sf in self.sfs: sf.remove()
+
+class UnetModel():
+    def __init__(self,model,name='unet'):
+        self.model,self.name = model,name
+
+    def get_layer_groups(self, precompute):
+        lgs = list(split_by_idxs(children(self.model.rn), [lr_cut]))
+        return lgs + [children(self.model)[1:]]
+```
+
+Then we are going to take that ResNet34 backbone and turn it into a, I call it a, Unet34 [1:51:17]. So what that's going to do is it's going to save that ResNet that we passed in and then we are going to use a forward hook just like before to save the results at the 2nd, 4th, 5th, and 6th blocks which as before is the layers before each stride 2 convolution. Then we are going to create a bunch of these things we are calling `UnetBlock`. We need to tell `UnetBlock` how many things are coming from the previous layer we are upsampling, how many are coming across, and then how many do we want to come out. The amount coming across is entirely defined by whatever the base network was — whatever the downward path was, we need that many layers. So this is a little bit awkward. Actually one of our master's students here, Kerem, has actually created something called DynamicUnet that you'll find in [fastai.model.DynamicUnet](https://github.com/fastai/fastai/blob/d3ef60a96cddf5b503361ed4c95d68dda4a873fc/fastai/models/unet.py#L53) and it actually calculates this all for you and automatically creates the whole Unet from your base model. It's got some minor quirks still that I want to fix. By the time the video is out, it'll definitely be working and I will at least have a notebook showing how to use it and possibly an additional video. But for now you'll just have to go through and do it yourself. You can easily see it just by, once you've got a ResNet, you can just type in its name and it'll print out the layers. And you can see how many many activations there are in each block. Or you can have it printed out for you for each block automatically. Anyway, I just did this manually.
+
+![](/images/lesson_14_070.png)
+
+So the `UnetBlock` works like this [1:53:29]:
+
+- `up_in` : This many are coming up from the previous layer
+- `x_in` : This many are coming across (hence `x`) from the downward path
+- `n_out` : The amount we want coming out
+
+Now what I do is, I then say, okay we're going to create a certain amount of convolutions from the upward path and a certain amount from the cross path, and so I'm going to be concatenating them together so let's divide the number we want out by 2. And so we are going to have our cross convolution take our cross path and create number out divided by 2 (`n_out//2`). And then the upward path is going to be a `ConvTranspose2d` because we want to increase/upsample. Again here, we've got the number out divided by 2 (`up_out`), then at the end, I just concatenate those together.
+
+So I've got an upward sample, I've got a cross convolution, I can concatenate the two together. That's all a `UnetBlock` is. So that's actually a pretty easy module to create.
+
+![](/images/lesson_14_071.png)
+
+Then in my forward path, I need to pass to the forward of the `UnetBlock` the upward path and the cross path [1:54:40]. The upward path is just whatever I am up to so far. But then the cross path is whatever the activations are that I stored on the way down. So as I come up, it's the last set of saved features that I need first. And as I gradually keep going up farther and farther, eventually it's the first set of features.
+
+There are some more tricks we can do to make this a little bit better, but this is a good stuff. So the simple upsampling approach looked horrible and had a dice of .968. A Unet with everything else identical except we've now got these `UnetBlock`s has a dice of …
+
+```python
+m_base = get_base()
+m = to_gpu(Unet34(m_base))
+models = UnetModel(m)
+
+learn = ConvLearner(md, models)
+learn.opt_fn=optim.Adam
+learn.crit=nn.BCEWithLogitsLoss()
+learn.metrics=[accuracy_thresh(0.5),dice]
+
+learn.summary()
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+OrderedDict([('Conv2d-1',
+              OrderedDict([('input_shape', [-1, 3, 128, 128]),
+                           ('output_shape', [-1, 64, 64, 64]),
+                           ('trainable', False),
+                           ('nb_params', 9408)])),
+             ('BatchNorm2d-2',
+              OrderedDict([('input_shape', [-1, 64, 64, 64]),
+                           ('output_shape', [-1, 64, 64, 64]),
+                           ('trainable', False),
+                           ('nb_params', 128)])),
+             ('ReLU-3',
+              OrderedDict([('input_shape', [-1, 64, 64, 64]),
+                           ('output_shape', [-1, 64, 64, 64]),
+                           ('nb_params', 0)])),
+             ('MaxPool2d-4',
+              OrderedDict([('input_shape', [-1, 64, 64, 64]),
+                           ('output_shape', [-1, 64, 32, 32]),
+                           ('nb_params', 0)])),
+             ('Conv2d-5',
+              OrderedDict([('input_shape', [-1, 64, 32, 32]),
+                           ('output_shape', [-1, 64, 32, 32]),
+                           ('trainable', False),
+                           ('nb_params', 36864)])),
+             ('BatchNorm2d-6',
+              OrderedDict([('input_shape', [-1, 64, 32, 32]),
+                           ('output_shape', [-1, 64, 32, 32]),
+                           ('trainable', False),
+                           ('nb_params', 128)])),
+             ('ReLU-7',
+              OrderedDict([('input_shape', [-1, 64, 32, 32]),
+                           ('output_shape', [-1, 64, 32, 32]),
+                           ('nb_params', 0)])),
+             ('Conv2d-8',
+              OrderedDict([('input_shape', [-1, 64, 32, 32]),
+                           ('output_shape', [-1, 64, 32, 32]),
+                           ('trainable', False),
+                           ('nb_params', 36864)])),
+             ('BatchNorm2d-9',
+              OrderedDict([('input_shape', [-1, 64, 32, 32]),
+                           ('output_shape', [-1, 64, 32, 32]),
+                           ('trainable', False),
+                           ('nb_params', 128)])),
+             ('ReLU-10',
+              OrderedDict([('input_shape', [-1, 64, 32, 32]),
+                           ('output_shape', [-1, 64, 32, 32]),
+                           ('nb_params', 0)])),
+             ('BasicBlock-11',
+              OrderedDict([('input_shape', [-1, 64, 32, 32]),
+                           ('output_shape', [-1, 64, 32, 32]),
+                           ('nb_params', 0)])),
+             ('Conv2d-12',
+              OrderedDict([('input_shape', [-1, 64, 32, 32]),
+                           ('output_shape', [-1, 64, 32, 32]),
+                           ('trainable', False),
+                           ('nb_params', 36864)])),
+             ('BatchNorm2d-13',
+              OrderedDict([('input_shape', [-1, 64, 32, 32]),
+                           ('output_shape', [-1, 64, 32, 32]),
+                           ('trainable', False),
+                           ('nb_params', 128)])),
+             ('ReLU-14',
+              OrderedDict([('input_shape', [-1, 64, 32, 32]),
+                           ('output_shape', [-1, 64, 32, 32]),
+                           ('nb_params', 0)])),
+             ('Conv2d-15',
+              OrderedDict([('input_shape', [-1, 64, 32, 32]),
+                           ('output_shape', [-1, 64, 32, 32]),
+                           ('trainable', False),
+                           ('nb_params', 36864)])),
+             ('BatchNorm2d-16',
+              OrderedDict([('input_shape', [-1, 64, 32, 32]),
+                           ('output_shape', [-1, 64, 32, 32]),
+                           ('trainable', False),
+                           ('nb_params', 128)])),
+             ('ReLU-17',
+              OrderedDict([('input_shape', [-1, 64, 32, 32]),
+                           ('output_shape', [-1, 64, 32, 32]),
+                           ('nb_params', 0)])),
+
+             ... ... ... truncated ... ... ...
+             ... ... ... truncated ... ... ...
+
+             ('ReLU-121',
+              OrderedDict([('input_shape', [-1, 512, 4, 4]),
+                           ('output_shape', [-1, 512, 4, 4]),
+                           ('nb_params', 0)])),
+             ('BasicBlock-122',
+              OrderedDict([('input_shape', [-1, 512, 4, 4]),
+                           ('output_shape', [-1, 512, 4, 4]),
+                           ('nb_params', 0)])),
+             ('ConvTranspose2d-123',
+              OrderedDict([('input_shape', [-1, 512, 4, 4]),
+                           ('output_shape', [-1, 128, 8, 8]),
+                           ('trainable', True),
+                           ('nb_params', 262272)])),
+             ('Conv2d-124',
+              OrderedDict([('input_shape', [-1, 256, 8, 8]),
+                           ('output_shape', [-1, 128, 8, 8]),
+                           ('trainable', True),
+                           ('nb_params', 32896)])),
+             ('BatchNorm2d-125',
+              OrderedDict([('input_shape', [-1, 256, 8, 8]),
+                           ('output_shape', [-1, 256, 8, 8]),
+                           ('trainable', True),
+                           ('nb_params', 512)])),
+             ('UnetBlock-126',
+              OrderedDict([('input_shape', [-1, 512, 4, 4]),
+                           ('output_shape', [-1, 256, 8, 8]),
+                           ('nb_params', 0)])),
+             ('ConvTranspose2d-127',
+              OrderedDict([('input_shape', [-1, 256, 8, 8]),
+                           ('output_shape', [-1, 128, 16, 16]),
+                           ('trainable', True),
+                           ('nb_params', 131200)])),
+             ('Conv2d-128',
+              OrderedDict([('input_shape', [-1, 128, 16, 16]),
+                           ('output_shape', [-1, 128, 16, 16]),
+                           ('trainable', True),
+                           ('nb_params', 16512)])),
+             ('BatchNorm2d-129',
+              OrderedDict([('input_shape', [-1, 256, 16, 16]),
+                           ('output_shape', [-1, 256, 16, 16]),
+                           ('trainable', True),
+                           ('nb_params', 512)])),
+
+             ... ... ... truncated ... ... ...
+             ... ... ... truncated ... ... ...
+
+             ('UnetBlock-134',
+              OrderedDict([('input_shape', [-1, 256, 16, 16]),
+                           ('output_shape', [-1, 256, 32, 32]),
+                           ('nb_params', 0)])),
+             ('ConvTranspose2d-135',
+              OrderedDict([('input_shape', [-1, 256, 32, 32]),
+                           ('output_shape', [-1, 128, 64, 64]),
+                           ('trainable', True),
+                           ('nb_params', 131200)])),
+             ('Conv2d-136',
+              OrderedDict([('input_shape', [-1, 64, 64, 64]),
+                           ('output_shape', [-1, 128, 64, 64]),
+                           ('trainable', True),
+                           ('nb_params', 8320)])),
+             ('BatchNorm2d-137',
+              OrderedDict([('input_shape', [-1, 256, 64, 64]),
+                           ('output_shape', [-1, 256, 64, 64]),
+                           ('trainable', True),
+                           ('nb_params', 512)])),
+             ('UnetBlock-138',
+              OrderedDict([('input_shape', [-1, 256, 32, 32]),
+                           ('output_shape', [-1, 256, 64, 64]),
+                           ('nb_params', 0)])),
+             ('ConvTranspose2d-139',
+              OrderedDict([('input_shape', [-1, 256, 64, 64]),
+                           ('output_shape', [-1, 1, 128, 128]),
+                           ('trainable', True),
+                           ('nb_params', 1025)]))])
+
+[o.features.size() for o in m.sfs]
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+[torch.Size([3, 64, 64, 64]),
+ torch.Size([3, 64, 32, 32]),
+ torch.Size([3, 128, 16, 16]),
+ torch.Size([3, 256, 8, 8])]
+
+learn.freeze_to(1)
+
+learn.lr_find()
+learn.sched.plot()
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+ 0%|                                                                                           | 0/64 [00:00<?, ?it/s]
+92%|█████████████████████████████████████████████████████████████████▍     | 59/64 [00:22<00:01,  2.68it/s, loss=2.45]
+```
+
+![](/images/lesson_14_072.png)
+
+```python
+lr=4e-2
+wd=1e-7
+
+lrs = np.array([lr/100,lr/10,lr])
+
+learn.fit(lr,1,wds=wd,cycle_len=8,use_clr=(5,8))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss   <lambda>   dice
+    0      0.12936    0.03934    0.988571   0.971385
+    1      0.098401   0.039252   0.990438   0.974921
+    2      0.087789   0.02539    0.990961   0.978927
+    3      0.082625   0.027984   0.988483   0.975948
+    4      0.079509   0.025003   0.99171    0.981221
+    5      0.076984   0.022514   0.992462   0.981881
+    6      0.076822   0.023203   0.992484   0.982321
+    7      0.075488   0.021956   0.992327   0.982704
+[0.021955982234979434, 0.9923273126284281, 0.9827044502137199]
+
+learn.save('128urn-tmp')
+
+learn.load('128urn-tmp')
+
+learn.unfreeze()
+learn.bn_freeze(True)
+
+learn.fit(lrs/4, 1, wds=wd, cycle_len=20,use_clr=(20,10))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+0%|          | 0/64 [00:00<?, ?it/s]
+epoch      trn_loss   val_loss   <lambda>   dice
+    0      0.073786   0.023418   0.99297    0.98283
+    1      0.073561   0.020853   0.992142   0.982725
+    2      0.075227   0.023357   0.991076   0.980879
+    3      0.074245   0.02352    0.993108   0.983659
+    4      0.073434   0.021508   0.993024   0.983609
+    5      0.073092   0.020956   0.993188   0.983333
+    6      0.073617   0.019666   0.993035   0.984102
+    7      0.072786   0.019844   0.993196   0.98435
+    8      0.072256   0.018479   0.993282   0.984277
+    9      0.072052   0.019479   0.993164   0.984147
+    10     0.071361   0.019402   0.993344   0.984541
+    11     0.070969   0.018904   0.993139   0.984499
+    12     0.071588   0.018027   0.9935     0.984543
+    13     0.070709   0.018345   0.993491   0.98489
+    14     0.072238   0.019096   0.993594   0.984825
+    15     0.071407   0.018967   0.993446   0.984919
+    16     0.071047   0.01966    0.993366   0.984952
+    17     0.072024   0.018133   0.993505   0.98497
+    18     0.071517   0.018464   0.993602   0.985192
+    19     0.070109   0.018337   0.993614   0.9852
+[0.018336569653853538, 0.9936137114252362, 0.9852004420189631]
+```
+
+.985! That's like we halved the error with everything else exactly the same [1:55:42]. And more the point, you can look at it.
+
+```python
+learn.save('128urn-0')
+
+learn.load('128urn-0')
+
+x,y = next(iter(md.val_dl))
+py = to_np(learn.model(V(x)))
+```
+
+This is actually looking somewhat car-like compared to our non-Unet equivalent which is just a blob. Because trying to do this through down and up paths — it's just asking too much. Where else, when we actually provide the downward path pixels at every point, it can actually start to create something car-ish.
+
+```python
+show_img(py[0]>0)
+```
+
+![](/images/lesson_14_073.png)
+
+```python
+show_img(y[0])
+```
+
+![](/images/lesson_14_074.png)
+
+At the end of that, we'll do `m.close` to remove those `sfs.features` taking up GPU memory.
+
+```python
+m.close()
+```
+
+#### 512x512 [[01:56:26](https://youtu.be/nG3tT31nPmQ?t=1h56m26s)]
+
+Go to a smaller batch size, higher size.
+
+```python
+sz=512
+bs=16
+
+tfms = tfms_from_model(resnet34, sz, crop_type=CropType.NO,
+                       tfm_y=TfmType.CLASS, aug_tfms=aug_tfms)
+datasets = ImageData.get_ds(MatchedFilesDataset, (trn_x,trn_y),
+                            (val_x,val_y), tfms, path=PATH)
+md = ImageData(PATH, datasets, bs, num_workers=4, classes=None)
+
+denorm = md.trn_ds.denorm
+
+m_base = get_base()
+m = to_gpu(Unet34(m_base))
+models = UnetModel(m)
+
+learn = ConvLearner(md, models)
+learn.opt_fn=optim.Adam
+learn.crit=nn.BCEWithLogitsLoss()
+learn.metrics=[accuracy_thresh(0.5),dice]
+
+learn.freeze_to(1)
+
+learn.load('128urn-0')
+
+learn.fit(lr,1,wds=wd, cycle_len=5,use_clr=(5,5))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss   <lambda>   dice
+    0      0.071421   0.02362    0.996459   0.991772
+    1      0.070373   0.014013   0.996558   0.992602
+    2      0.067895   0.011482   0.996705   0.992883
+    3      0.070653   0.014256   0.996695   0.992771
+    4      0.068621   0.013195   0.996993   0.993359
+[0.013194938530288046, 0.996993034604996, 0.993358936574724]
+```
+
+You can see the dice coefficients really going up [1:56:30]. So notice above, I'm loading in the 128x128 version of the network. We are doing this progressive resizing trick again, so that gets us .993.
+
+```python
+learn.save('512urn-tmp')
+
+learn.unfreeze()
+learn.bn_freeze(True)
+
+learn.load('512urn-tmp')
+
+learn.fit(lrs/4,1,wds=wd, cycle_len=8,use_clr=(20,8))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss   <lambda>   dice
+    0      0.06605    0.013602   0.997      0.993014
+    1      0.066885   0.011252   0.997248   0.993563
+    2      0.065796   0.009802   0.997223   0.993817
+    3      0.065089   0.009668   0.997296   0.993744
+    4      0.064552   0.011683   0.997269   0.993835
+    5      0.065089   0.010553   0.997415   0.993827
+    6      0.064303   0.009472   0.997431   0.994046
+    7      0.062506   0.009623   0.997441   0.994118
+[0.009623114736602894, 0.9974409020136273, 0.9941179137381296]
+```
+
+Then unfreeze to get to .994.
+
+```python
+learn.save('512urn')
+
+learn.load('512urn')
+
+x,y = next(iter(md.val_dl))
+py = to_np(learn.model(V(x)))
+```
+
+And you can see, it's now looking pretty good.
+
+```python
+show_img(py[0]>0)
+```
+
+![](/images/lesson_14_075.png)
+
+```python
+show_img(y[0])
+```
+
+![](/images/lesson_14_076.png)
+
+```python
+.close()
+```
+
+#### 1024x1024 [[01:56:53](https://youtu.be/nG3tT31nPmQ?t=1h56m53s)]
+
+Go down to a batch size of 4, size of 1024.
+
+```python
+sz=1024
+bs=4
+
+tfms = tfms_from_model(resnet34, sz, crop_type=CropType.NO,
+                         tfm_y=TfmType.CLASS)
+datasets = ImageData.get_ds(MatchedFilesDataset, (trn_x,trn_y),
+                            (val_x,val_y), tfms, path=PATH)
+md = ImageData(PATH, datasets, bs, num_workers=16, classes=None)
+
+denorm = md.trn_ds.denorm
+
+m_base = get_base()
+m = to_gpu(Unet34(m_base))
+models = UnetModel(m)
+
+learn = ConvLearner(md, models)
+learn.opt_fn=optim.Adam
+learn.crit=nn.BCEWithLogitsLoss()
+learn.metrics=[accuracy_thresh(0.5),dice]
+```
+
+Load in what we just saved with the 512.
+
+```python
+learn.load('512urn')
+
+learn.freeze_to(1)
+
+learn.fit(lr,1, wds=wd, cycle_len=2,use_clr=(5,4))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss   <lambda>   dice
+    0      0.007656   0.008155   0.997247   0.99353
+    1      0.004706   0.00509    0.998039   0.995437
+[0.005090427414942828, 0.9980387706605215, 0.995437301104031]
+```
+
+That gets us to .995.
+
+```python
+learn.save('1024urn-tmp')
+
+learn.load('1024urn-tmp')
+
+learn.unfreeze()
+learn.bn_freeze(True)
+
+lrs = np.array([lr/200,lr/30,lr])
+
+learn.fit(lrs/10,1, wds=wd,cycle_len=4,use_clr=(20,8))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss   <lambda>   dice
+    0      0.005688   0.006135   0.997616   0.994616
+    1      0.004412   0.005223   0.997983   0.995349
+    2      0.004186   0.004975   0.99806    0.99554
+    3      0.004016   0.004899   0.99812    0.995627
+[0.004898778487196458, 0.9981196409180051, 0.9956271404784823]
+
+learn.fit(lrs/10,1, wds=wd,cycle_len=4,use_clr=(20,8))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss   <lambda>   dice
+    0      0.004169   0.004962   0.998049   0.995517
+    1      0.004022   0.004595   0.99823    0.995818
+    2      0.003772   0.004497   0.998215   0.995916
+    3      0.003618   0.004435   0.998291   0.995991
+[0.004434524739663753, 0.9982911745707194, 0.9959913929776539]
+```
+
+Unfreeze takes us to… we'll call that .996.
+
+```python
+learn.sched.plot_loss()
+```
+
+![](/images/lesson_14_077.png)
+
+```python
+learn.save('1024urn')
+
+learn.load('1024urn')
+
+x,y = next(iter(md.val_dl))
+py = to_np(learn.model(V(x)))
+```
+
+As you can see, that actually looks good [1:57:17]. In accuracy terms, 99.82%. You can see this is looking like something you could just about use to cut out. I think, at this point, there's a couple of minor tweaks we can do to get up to .997 but really the key thing then, I think, is just maybe to do a few bit of smoothing maybe or a little bit of post-processing. You can go and have a look at the Carvana winners' blogs and see some of these tricks, but as I say, the difference between where we are at .996 and what the winners got of .997, it's not heaps. So really that just the Unet on its own pretty much solves that problem.
+
+```python
+show_img(py[0]>0)
+```
+
+![](/images/lesson_14_078.png)
+
+```python
+show_img(y[0])
+```
+
+![](/images/lesson_14_079.png)
