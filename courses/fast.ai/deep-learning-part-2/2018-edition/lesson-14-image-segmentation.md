@@ -2045,3 +2045,236 @@ show_img(y[0])
 ![](/images/lesson_14_083.png)
 
 Now if we look at the masks, they are actually looking not bad. That's looking pretty good. So can we do better? And the answer is yes, we can.
+
+### U-Net [[01:43:45](https://youtu.be/nG3tT31nPmQ?t=1h43m45s)]
+
+- [Notebook](https://nbviewer.jupyter.org/github/fastai/fastai/blob/master/courses/dl2/carvana-unet.ipynb)
+- [Paper](https://arxiv.org/abs/1505.04597)
+
+U-Net network is quite magnificent. With that previous approach, our pre-trained ImageNet network was being squished down all the way down to 7x7 and then expand it out all the way back up to 224x224 (1024 gets squished down to quite a bit bigger than 7x7). And then expanded out again all this way which means it has to somehow store all the information about the much bigger version in the small version. And actually most of the information about the bigger version was really in the original picture anyway. So it doesn't seem like a great approach — this squishing and un-squishing.
+
+![](/images/lesson_14_064.png)
+
+So the U-Net idea comes from this fantastic paper where it was literally invented in this very domain-specific area of biomedical image segmentation. But in fact, basically every Kaggle winner in anything even vaguely related to segmentation has end up using U-Net. It's one of these things that everybody in Kaggle knows it is the best practice, but in more of academic circles, this has been around for a couple of years at least, a lot of people still don't realize this is by far the best approach.
+
+![](/images/lesson_14_065.png)
+
+Here is the basic idea [1:45:10]. On the left is the downward path where we start at 572x572 in this case then halve the grid size 4 times, then on the right is the upward path where we double the grid size 4 times. But the thing that we also do is, at every point where we halve the grid size, we actually copy those activations over to the upward path and concatenate them together.
+
+You can see on the bottom right, these red arrows are max pooling operation, these green arrows are upward sampling, and then these gray arrows are copying. So we copy and concat. In other words, the input image after a couple of convs is copied over to the output, concatenated together, and so now we get to use all of the informations gone through all of the informations gone through all the down and all the up, plus also a slightly modified version of the input pixels. And slightly modified version of one thing down from the input pixels because they came up through here. So we have all of the richness of going all the way down and up, but also a slightly less coarse version and a slightly less coarse version and then the really simple version, and they can all be combined together. So that's U-Net. It's such a cool idea.
+
+Here we are in the `carvana-unet` notebook. All this is the same code as before.
+
+```python
+%matplotlib inline
+%reload_ext autoreload
+%autoreload 2
+
+from fastai.conv_learner import *
+from fastai.dataset import *
+from fastai.models.resnet import vgg_resnet50
+
+import json
+torch.backends.cudnn.benchmark=True
+```
+
+#### Data
+
+```python
+PATH = Path('data/carvana')
+MASKS_FN = 'train_masks.csv'
+META_FN = 'metadata.csv'
+masks_csv = pd.read_csv(PATH/MASKS_FN)
+meta_csv = pd.read_csv(PATH/META_FN)
+
+def show_img(im, figsize=None, ax=None, alpha=None):
+    if not ax: fig,ax = plt.subplots(figsize=figsize)
+    ax.imshow(im, alpha=alpha)
+    ax.set_axis_off()
+    return ax
+
+TRAIN_DN = 'train-128'
+MASKS_DN = 'train_masks-128'
+sz = 128
+bs = 64
+nw = 16
+
+TRAIN_DN = 'train'
+MASKS_DN = 'train_masks_png'
+sz = 128
+bs = 64
+nw = 16
+
+class MatchedFilesDataset(FilesDataset):
+    def __init__(self, fnames, y, transform, path):
+        self.y=y
+        assert(len(fnames)==len(y))
+        super().__init__(fnames, transform, path)
+    def get_y(self, i):
+        return open_image(os.path.join(self.path, self.y[i]))
+    def get_c(self): return 0
+
+x_names = np.array([Path(TRAIN_DN)/o for o in masks_csv['img']])
+y_names = np.array([Path(MASKS_DN)/f'{o[:-4]}_mask.png'
+                        for o in masks_csv['img']])
+
+val_idxs = list(range(1008))
+((val_x,trn_x),(val_y,trn_y)) = split_by_idx(val_idxs, x_names,
+                                             y_names)
+
+aug_tfms = [RandomRotate(4, tfm_y=TfmType.CLASS),
+            RandomFlip(tfm_y=TfmType.CLASS),
+            RandomLighting(0.05, 0.05, tfm_y=TfmType.CLASS)]
+
+tfms = tfms_from_model(resnet34, sz, crop_type=CropType.NO,
+                        tfm_y=TfmType.CLASS, aug_tfms=aug_tfms)
+datasets = ImageData.get_ds(MatchedFilesDataset, (trn_x,trn_y),
+                             (val_x,val_y), tfms, path=PATH)
+md = ImageData(PATH, datasets, bs, num_workers=16, classes=None)
+denorm = md.trn_ds.denorm
+
+x,y = next(iter(md.trn_dl))
+
+x.shape,y.shape
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+(torch.Size([64, 3, 128, 128]), torch.Size([64, 128, 128]))
+```
+
+#### Simple upsample
+
+And at the start, I've got a simple upsample version just to show you again the non U-net version. This time, I'm going to add in something called the dice metric. Dice is very similar, as you see, to Jaccard or I over U. It's just a minor difference. It's basically intersection over union with a minor tweak. The reason we are going to use dice is that's the metric that Kaggle competition used and it's a little bit harder to get a high dice score than a high accuracy because it's really looking at what the overlap of the correct pixels are with your pixels. But it's pretty similar.
+
+So in the Kaggle competition, people that were doing okay were getting about 99.6 dice and the winners were about 99.7 dice.
+
+```python
+f = resnet34
+cut,lr_cut = model_meta[f]
+
+def get_base():
+    layers = cut_model(f(True), cut)
+    return nn.Sequential(*layers)
+
+def dice(pred, targs):
+    pred = (pred>0).float()
+    return 2. * (pred*targs).sum() / (pred+targs).sum()
+```
+
+Here is our standard upsample.
+
+```python
+class StdUpsample(nn.Module):
+    def __init__(self, nin, nout):
+        super().__init__()
+        self.conv = nn.ConvTranspose2d(nin, nout, 2, stride=2)
+        self.bn = nn.BatchNorm2d(nout)
+
+    def forward(self, x): return self.bn(F.relu(self.conv(x)))
+```
+
+This all as before.
+
+```python
+class Upsample34(nn.Module):
+    def __init__(self, rn):
+        super().__init__()
+        self.rn = rn
+        self.features = nn.Sequential(
+            rn, nn.ReLU(),
+            StdUpsample(512,256),
+            StdUpsample(256,256),
+            StdUpsample(256,256),
+            StdUpsample(256,256),
+            nn.ConvTranspose2d(256, 1, 2, stride=2))
+
+    def forward(self,x): return self.features(x)[:,0]
+
+class UpsampleModel():
+    def __init__(self,model,name='upsample'):
+        self.model,self.name = model,name
+
+    def get_layer_groups(self, precompute):
+        lgs = list(split_by_idxs(children(self.model.rn), [lr_cut]))
+        return lgs + [children(self.model.features)[1:]]
+
+m_base = get_base()
+
+m = to_gpu(Upsample34(m_base))
+models = UpsampleModel(m)
+
+learn = ConvLearner(md, models)
+learn.opt_fn=optim.Adam
+learn.crit=nn.BCEWithLogitsLoss()
+learn.metrics=[accuracy_thresh(0.5),dice]
+
+learn.freeze_to(1)
+
+learn.lr_find()
+learn.sched.plot()
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+86%|█████████████████████████████████████████████████████████████          | 55/64 [00:22<00:03,  2.46it/s, loss=3.21]
+```
+
+![](/images/lesson_14_066.png)
+
+```python
+lr=4e-2
+wd=1e-7
+lrs = np.array([lr/100,lr/10,lr])/2
+
+learn.fit(lr,1, wds=wd, cycle_len=4,use_clr=(20,8))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+0%|          | 0/64 [00:00<?, ?it/s]
+epoch      trn_loss   val_loss   <lambda>   dice
+    0      0.216882   0.133512   0.938017   0.855221
+    1      0.169544   0.115158   0.946518   0.878381
+    2      0.153114   0.099104   0.957748   0.903353
+    3      0.144105   0.093337   0.964404   0.915084
+[0.09333742126112893, 0.9644036065964472, 0.9150839788573129]
+
+learn.save('tmp')
+
+learn.load('tmp')
+
+learn.unfreeze()
+learn.bn_freeze(True)
+
+learn.fit(lrs,1,cycle_len=4,use_clr=(20,8))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+epoch      trn_loss   val_loss   <lambda>   dice
+    0      0.174897   0.061603   0.976321   0.94382
+    1      0.122911   0.053625   0.982206   0.957624
+    2      0.106837   0.046653   0.985577   0.965792
+    3      0.099075   0.042291   0.986519   0.968925
+[0.042291240323157536, 0.986519161670927, 0.9689251193924556]
+```
+
+Now we can check our dice metric [1:48:00]. So you can see on dice metric, we are getting around 96.8 at 128x128. So that's not great.
+
+```python
+learn.save('128')
+
+x,y = next(iter(md.val_dl))
+py = to_np(learn.model(V(x)))
+
+show_img(py[0]>0);
+```
+
+![](/images/lesson_14_067.png)
+
+```python
+show_img(y[0])
+```
+
+![](/images/lesson_14_068.png)
