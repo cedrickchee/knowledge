@@ -37,6 +37,8 @@ _These are my personal notes from fast.ai course and will continue to be updated
   * [Real-Time Single Image and Video Super-Resolution Using an Efficient Sub-Pixel Convolutional Neural Network](https://arxiv.org/abs/1609.05158) by Wenzhe Shi, et al.
   * [Checkerboard artifact free sub-pixel convolution: A note on sub-pixel convolution, resize convolution and convolution resize](https://arxiv.org/abs/1707.02937) by Andrew Aitken, et al.
   * [U-Net: Convolutional Networks for Biomedical Image Segmentation](https://arxiv.org/abs/1505.04597) by Olaf Ronneberger, et al.
+* Additional papers \(optional\)
+  * [Feature Pyramid Networks for Object Detection](https://arxiv.org/abs/1612.03144) by Tsung-Yi Lin, Piotr Dollar, Ross Girshick, Kaiming He, et al.
 
 ## My Notes
 
@@ -142,7 +144,7 @@ Then we don't do an adaptive average pooling layer. After a few of these, we end
 
 My view is that the approach that is used in every modern network which is here we do an adaptive average pooling (in Keras it's known as a global average pooling, in fast.ai, we do an AdaptiveConcatPool) which spits it straight down to a 512 long activation [00:11:06]. I think that's throwing away too much geometry. :bookmark: So to me, probably the correct answer is somewhere in between and will involve some kind of factored convolution or some kind tensor decomposition which maybe some of us can think about in the coming months. So for now, anyway, we've gone from one extreme which is the adaptive average pooling to the other extreme which is this huge flattened fully connected layer.
 
-#### Creat something that's good at a lots of things
+#### Create something that's good at a lots of things
 
 A couple of things which are interesting about VGG that make it still useful today [00:11:59]. The first one is that there's more interesting layers going on here with most modern networks including the ResNet family, the very first layer generally is a 7x7 conv with stride 2 or something similar. Which means we throw away half the grid size straight away and so there is little opportunity to use the fine detail because we never do any computation with it. So that's a bit of a problem for things like segmentation or super resolution models because the fine details matters. We actually want to restore it. Then the second problem is that the adaptive pooling layer entirely throws away the geometry in the last few sections which means that the rest of the model doesn't really have as much interesting kind of learning that geometry as it otherwise might. Therefore for things which are dependent on position, any kind of localization based approach to anything that requires generative model is going to be less effective. So one of the things I'm hoping you are hearing as I describe this is that probably none of the existing architectures are actually ideal. We can invent a new one. Actually, I just tried inventing a new one over the week which was to take the VGG head and attach it to a ResNet backbone. Interestingly, I found I actually got a slightly better classifier than a normal ResNet but it also was something with a little bit more useful information in it. It took 5 or 10% longer to train but nothing worth worrying about. Maybe we could, in ResNet, replace this (7x7 conv stride 2) as we've talked about briefly before. This very early convolution with something more like an Inception stem which has a bit more computation. I think there's definitely room for some nice little tweaks to these architectures so that we can build some models which are maybe more versatile. At the moment, people tend to build architectures that just do one thing. They don't really think what am I throwing away in terms of opportunity because that's how publishing works. You published "I've got state of the art of this one thing rather than you have created something that's good at a lots of things.
 
@@ -2061,7 +2063,7 @@ So the U-Net idea comes from this fantastic paper where it was literally invente
 
 Here is the basic idea [1:45:10]. On the left is the downward path where we start at 572x572 in this case then halve the grid size 4 times, then on the right is the upward path where we double the grid size 4 times. But the thing that we also do is, at every point where we halve the grid size, we actually copy those activations over to the upward path and concatenate them together.
 
-You can see on the bottom right, these red arrows are max pooling operation, these green arrows are upward sampling, and then these gray arrows are copying. So we copy and concat. In other words, the input image after a couple of convs is copied over to the output, concatenated together, and so now we get to use all of the informations gone through all of the informations gone through all the down and all the up, plus also a slightly modified version of the input pixels. And slightly modified version of one thing down from the input pixels because they came up through here. So we have all of the richness of going all the way down and up, but also a slightly less coarse version and a slightly less coarse version and then the really simple version, and they can all be combined together. So that's U-Net. It's such a cool idea.
+You can see on the bottom right, these red arrows are max pooling operation, these green arrows are upward sampling, and then these gray arrows are copying. So we copy and concat. In other words, the input image after a couple of convs is copied over to the output, concatenated together, and so now we get to use all of the informations gone through all the down and all the up, plus also a slightly modified version of the input pixels. And slightly modified version of one thing down from the input pixels because they came up through here. So we have all of the richness of going all the way down and up, but also a slightly less coarse version and a slightly less coarse version and then the really simple version, and they can all be combined together. So that's U-Net. It's such a cool idea.
 
 Here we are in the `carvana-unet` notebook. All this is the same code as before.
 
@@ -2075,7 +2077,7 @@ from fastai.dataset import *
 from fastai.models.resnet import vgg_resnet50
 
 import json
-torch.backends.cudnn.benchmark=True
+torch.backends.cudnn.benchmark = True
 ```
 
 #### Data
@@ -2084,11 +2086,11 @@ torch.backends.cudnn.benchmark=True
 PATH = Path('data/carvana')
 MASKS_FN = 'train_masks.csv'
 META_FN = 'metadata.csv'
-masks_csv = pd.read_csv(PATH/MASKS_FN)
-meta_csv = pd.read_csv(PATH/META_FN)
+masks_csv = pd.read_csv(PATH / MASKS_FN)
+meta_csv = pd.read_csv(PATH / META_FN)
 
 def show_img(im, figsize=None, ax=None, alpha=None):
-    if not ax: fig,ax = plt.subplots(figsize=figsize)
+    if not ax: fig, ax = plt.subplots(figsize=figsize)
     ax.imshow(im, alpha=alpha)
     ax.set_axis_off()
     return ax
@@ -2107,35 +2109,32 @@ nw = 16
 
 class MatchedFilesDataset(FilesDataset):
     def __init__(self, fnames, y, transform, path):
-        self.y=y
-        assert(len(fnames)==len(y))
+        self.y = y
+        assert(len(fnames) == len(y))
         super().__init__(fnames, transform, path)
-    def get_y(self, i):
-        return open_image(os.path.join(self.path, self.y[i]))
+
+    def get_y(self, i): return open_image(os.path.join(self.path, self.y[i]))
+
     def get_c(self): return 0
 
-x_names = np.array([Path(TRAIN_DN)/o for o in masks_csv['img']])
-y_names = np.array([Path(MASKS_DN)/f'{o[:-4]}_mask.png'
-                        for o in masks_csv['img']])
+x_names = np.array([Path(TRAIN_DN) / o for o in masks_csv['img']])
+y_names = np.array([Path(MASKS_DN) / f'{o[:-4]}_mask.png' for o in masks_csv['img']])
 
 val_idxs = list(range(1008))
-((val_x,trn_x),(val_y,trn_y)) = split_by_idx(val_idxs, x_names,
-                                             y_names)
+((val_x, trn_x), (val_y, trn_y)) = split_by_idx(val_idxs, x_names, y_names)
 
 aug_tfms = [RandomRotate(4, tfm_y=TfmType.CLASS),
             RandomFlip(tfm_y=TfmType.CLASS),
             RandomLighting(0.05, 0.05, tfm_y=TfmType.CLASS)]
 
-tfms = tfms_from_model(resnet34, sz, crop_type=CropType.NO,
-                        tfm_y=TfmType.CLASS, aug_tfms=aug_tfms)
-datasets = ImageData.get_ds(MatchedFilesDataset, (trn_x,trn_y),
-                             (val_x,val_y), tfms, path=PATH)
+tfms = tfms_from_model(resnet34, sz, crop_type=CropType.NO, tfm_y=TfmType.CLASS, aug_tfms=aug_tfms)
+datasets = ImageData.get_ds(MatchedFilesDataset, (trn_x, trn_y), (val_x, val_y), tfms, path=PATH)
 md = ImageData(PATH, datasets, bs, num_workers=16, classes=None)
 denorm = md.trn_ds.denorm
 
-x,y = next(iter(md.trn_dl))
+x, y = next(iter(md.trn_dl))
 
-x.shape,y.shape
+x.shape, y.shape
 
 # -----------------------------------------------------------------------------
 # Output
@@ -2151,15 +2150,15 @@ So in the Kaggle competition, people that were doing okay were getting about 99.
 
 ```python
 f = resnet34
-cut,lr_cut = model_meta[f]
+cut, lr_cut = model_meta[f]
 
 def get_base():
     layers = cut_model(f(True), cut)
     return nn.Sequential(*layers)
 
 def dice(pred, targs):
-    pred = (pred>0).float()
-    return 2. * (pred*targs).sum() / (pred+targs).sum()
+    pred = (pred > 0).float()
+    return 2. * (pred * targs).sum() / (pred + targs).sum()
 ```
 
 Here is our standard upsample.
@@ -2180,20 +2179,20 @@ This all as before.
 class Upsample34(nn.Module):
     def __init__(self, rn):
         super().__init__()
-        self.rn = rn
+        self.rn = rn # resnet
         self.features = nn.Sequential(
             rn, nn.ReLU(),
-            StdUpsample(512,256),
-            StdUpsample(256,256),
-            StdUpsample(256,256),
-            StdUpsample(256,256),
+            StdUpsample(512, 256),
+            StdUpsample(256, 256),
+            StdUpsample(256, 256),
+            StdUpsample(256, 256),
             nn.ConvTranspose2d(256, 1, 2, stride=2))
 
-    def forward(self,x): return self.features(x)[:,0]
+    def forward(self, x): return self.features(x)[:, 0]
 
 class UpsampleModel():
-    def __init__(self,model,name='upsample'):
-        self.model,self.name = model,name
+    def __init__(self, model, name='upsample'):
+        self.model, self.name = model, name
 
     def get_layer_groups(self, precompute):
         lgs = list(split_by_idxs(children(self.model.rn), [lr_cut]))
@@ -2205,9 +2204,9 @@ m = to_gpu(Upsample34(m_base))
 models = UpsampleModel(m)
 
 learn = ConvLearner(md, models)
-learn.opt_fn=optim.Adam
-learn.crit=nn.BCEWithLogitsLoss()
-learn.metrics=[accuracy_thresh(0.5),dice]
+learn.opt_fn = optim.Adam
+learn.crit = nn.BCEWithLogitsLoss()
+learn.metrics = [accuracy_thresh(0.5), dice]
 
 learn.freeze_to(1)
 
@@ -2217,28 +2216,31 @@ learn.sched.plot()
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
-86%|█████████████████████████████████████████████████████████████          | 55/64 [00:22<00:03,  2.46it/s, loss=3.21]
+84%|████████▍ | 54/64 [00:19<00:03,  2.70it/s, loss=2.81]
 ```
 
 ![](/images/lesson_14_066.png)
 
 ```python
-lr=4e-2
-wd=1e-7
-lrs = np.array([lr/100,lr/10,lr])/2
+lr = 4e-2
+wd = 1e-7
+lrs = np.array([lr / 100, lr / 10, lr]) / 2
 
-learn.fit(lr,1, wds=wd, cycle_len=4,use_clr=(20,8))
+%time learn.fit(lr, 1, wds=wd, cycle_len=4, use_clr=(20, 8))
 
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
-0%|          | 0/64 [00:00<?, ?it/s]
+Epoch 100% 4/4 [01:38<00:00, 24.63s/it]
+
 epoch      trn_loss   val_loss   <lambda>   dice
-    0      0.216882   0.133512   0.938017   0.855221
-    1      0.169544   0.115158   0.946518   0.878381
-    2      0.153114   0.099104   0.957748   0.903353
-    3      0.144105   0.093337   0.964404   0.915084
-[0.09333742126112893, 0.9644036065964472, 0.9150839788573129]
+    0      0.115094   0.052829   0.977156   0.946632
+    1      0.060572   0.041022   0.981844   0.958449
+    2      0.041211   0.037313   0.981443   0.960839
+    3      0.033257   0.029371   0.986961   0.971081
+[array([0.02937]), 0.9869610014415923, 0.9710806340169884]
+CPU times: user 2min 1s, sys: 21.1 s, total: 2min 23s
+Wall time: 1min 38s
 
 learn.save('tmp')
 
@@ -2247,7 +2249,7 @@ learn.load('tmp')
 learn.unfreeze()
 learn.bn_freeze(True)
 
-learn.fit(lrs,1,cycle_len=4,use_clr=(20,8))
+learn.fit(lrs, 1, cycle_len=4, use_clr=(20, 8))
 
 # -----------------------------------------------------------------------------
 # Output
@@ -2265,10 +2267,10 @@ Now we can check our dice metric [1:48:00]. So you can see on dice metric, we ar
 ```python
 learn.save('128')
 
-x,y = next(iter(md.val_dl))
+x, y = next(iter(md.val_dl))
 py = to_np(learn.model(V(x)))
 
-show_img(py[0]>0);
+show_img(py[0] > 0)
 ```
 
 ![](/images/lesson_14_067.png)
@@ -2283,14 +2285,18 @@ show_img(y[0])
 
 So let's try U-Net. I'm calling it U-net(ish) because as per usual I'm creating my own somewhat hacky version — trying to keep things as similar to what you're used to as possible and doing things that I think makes sense. So there should be plenty of opportunity for you to at least make this more authentically U-net by looking at the exact grid sizes and see how here (the top left convs) the size is going down a little bit. So they are obviously not adding any padding and then there are some cropping going on — there's a few differences. But one of the things is because I want to take advantage of transfer learning — that means I can't quite use U-Net.
 
-So here is another big opportunity is what if you create the U-Net down path and then add a classifier on the end and then train that on ImageNet. You've now got an ImageNet trained classifier which is specifically designed to be a good backbone for U-Net. Then you should be able to now come back and get pretty closed to winning this old competition (it's actually not that old — it's fairly recent competition). Because that pre-trained network didn't exist before. But if you think about what YOLO v3 did, it's basically that. They created a DarkNet, they pre-trained it on ImageNet, and then they used it as the basis for their bounding boxes. So again, this idea of pre-training things which are designed not just for classification but designed for other things — it's just something that nobody has done yet. But as we've shown, you can train ImageNet for $25 in three hours now. And if people in the community are interested in doing this, hopefully I'll have credits I can help you with as well so if you do, the work to get it set up and give me a script, I can probably run it for you. For now though, we don't have that yet. So we are going to use ResNet.
+#### Pre-trained U-Net on ImageNet
+
+:bookmark: So here is another big opportunity is what if you create the U-Net down path and then add a classifier on the end and then train that on ImageNet. You've now got an ImageNet trained classifier which is specifically designed to be a good backbone for U-Net. Then you should be able to now come back and get pretty closed to winning this old competition (it's actually not that old — it's fairly recent competition). Because that pre-trained network didn't exist before. But if you think about what YOLO v3 did, it's basically that. They created a DarkNet, they pre-trained it on ImageNet, and then they used it as the basis for their bounding boxes. So again, this idea of pre-training things which are designed not just for classification but designed for other things — it's just something that nobody has done yet. But as we've shown, you can train ImageNet for $25 in three hours now. And if people in the community are interested in doing this, hopefully I'll have credits I can help you with as well so if you do, the work to get it set up and give me a script, I can probably run it for you. For now though, we don't have that yet. So we are going to use ResNet.
 
 ```python
 class SaveFeatures():
-    features=None
-    def __init__(self, m):
-        self.hook = m.register_forward_hook(self.hook_fn)
+    features = None
+
+    def __init__(self, m): self.hook = m.register_forward_hook(self.hook_fn)
+
     def hook_fn(self, module, input, output): self.features = output
+
     def remove(self): self.hook.remove()
 ```
 
@@ -2298,57 +2304,57 @@ So we are basically going to start with `get_base` [1:50:37]. Base is our base n
 
 ![](/images/lesson_14_069.png)
 
-So `get_base` is going to be something that calls whatever f is and `f` is `resnet34`. So we are going to grab our ResNet34 and cut_model is the first thing that our convnet builder does. It basically removes everything from the adaptive pooling onwards, so that gives us back the backbone of ResNet34. So `get_base` is going to give us back the ResNet34 backbone.
+So `get_base` is going to be something that calls whatever f is and `f` is `resnet34`. So we are going to grab our ResNet34 and `cut_model` is the first thing that our convnet builder does. It basically removes everything from the adaptive pooling onwards, so that gives us back the backbone of ResNet34. So `get_base` is going to give us back the ResNet34 backbone.
 
 ```python
 class UnetBlock(nn.Module):
     def __init__(self, up_in, x_in, n_out):
         super().__init__()
-        up_out = x_out = n_out//2
-        self.x_conv  = nn.Conv2d(x_in,  x_out,  1)
-        self.tr_conv = nn.ConvTranspose2d(up_in, up_out, 2,
-                                          stride=2)
+        up_out = x_out = n_out // 2
+        self.x_conv = nn.Conv2d(x_in, x_out, 1)
+        self.tr_conv = nn.ConvTranspose2d(up_in, up_out, 2, stride=2)
         self.bn = nn.BatchNorm2d(n_out)
 
     def forward(self, up_p, x_p):
-        up_p = self.tr_conv(up_p)
-        x_p = self.x_conv(x_p)
-        cat_p = torch.cat([up_p,x_p], dim=1)
+        up_p = self.tr_conv(up_p) # up path
+        x_p = self.x_conv(x_p) # cross path
+        cat_p = torch.cat([up_p, x_p], dim=1) # dim 1 means concat from means left to right
         return self.bn(F.relu(cat_p))
 
 class Unet34(nn.Module):
     def __init__(self, rn):
         super().__init__()
-        self.rn = rn
-        self.sfs = [SaveFeatures(rn[i]) for i in [2,4,5,6]]
-        self.up1 = UnetBlock(512,256,256)
-        self.up2 = UnetBlock(256,128,256)
-        self.up3 = UnetBlock(256,64,256)
-        self.up4 = UnetBlock(256,64,256)
+        self.rn = rn # the passed in encoder, example ResNet34
+        self.sfs = [SaveFeatures(rn[i]) for i in [2, 4, 5, 6]]
+        # calculating connections and channels suck!
+        self.up1 = UnetBlock(512, 256, 256)
+        self.up2 = UnetBlock(256, 128, 256)
+        self.up3 = UnetBlock(256, 64, 256)
+        self.up4 = UnetBlock(256, 64, 256)
         self.up5 = nn.ConvTranspose2d(256, 1, 2, stride=2)
 
-    def forward(self,x):
+    def forward(self, x):
         x = F.relu(self.rn(x))
         x = self.up1(x, self.sfs[3].features)
         x = self.up2(x, self.sfs[2].features)
         x = self.up3(x, self.sfs[1].features)
         x = self.up4(x, self.sfs[0].features)
         x = self.up5(x)
-        return x[:,0]
+        return x[:, 0]
 
     def close(self):
         for sf in self.sfs: sf.remove()
 
 class UnetModel():
-    def __init__(self,model,name='unet'):
-        self.model,self.name = model,name
+    def __init__(self, model, name='unet'):
+        self.model, self.name = model, name
 
     def get_layer_groups(self, precompute):
-        lgs = list(split_by_idxs(children(self.model.rn), [lr_cut]))
+        lgs = list(split_by_idxs(children(self.model.rn), [lr_cut])) # type of lr_cut is int. val is 6
         return lgs + [children(self.model)[1:]]
 ```
 
-Then we are going to take that ResNet34 backbone and turn it into a, I call it a, Unet34 [1:51:17]. So what that's going to do is it's going to save that ResNet that we passed in and then we are going to use a forward hook just like before to save the results at the 2nd, 4th, 5th, and 6th blocks which as before is the layers before each stride 2 convolution. Then we are going to create a bunch of these things we are calling `UnetBlock`. We need to tell `UnetBlock` how many things are coming from the previous layer we are upsampling, how many are coming across, and then how many do we want to come out. The amount coming across is entirely defined by whatever the base network was — whatever the downward path was, we need that many layers. So this is a little bit awkward. Actually one of our master's students here, Kerem, has actually created something called DynamicUnet that you'll find in [fastai.model.DynamicUnet](https://github.com/fastai/fastai/blob/d3ef60a96cddf5b503361ed4c95d68dda4a873fc/fastai/models/unet.py#L53) and it actually calculates this all for you and automatically creates the whole Unet from your base model. It's got some minor quirks still that I want to fix. By the time the video is out, it'll definitely be working and I will at least have a notebook showing how to use it and possibly an additional video. But for now you'll just have to go through and do it yourself. You can easily see it just by, once you've got a ResNet, you can just type in its name and it'll print out the layers. And you can see how many many activations there are in each block. Or you can have it printed out for you for each block automatically. Anyway, I just did this manually.
+Then we are going to take that ResNet34 backbone and turn it into a, I call it a, Unet34 [1:51:17]. So what that's going to do is it's going to save that ResNet that we passed in and then we are going to use a forward hook just like before to save the results at the 2nd, 4th, 5th, and 6th blocks which as before is the layers before each stride 2 convolution. Then we are going to create a bunch of these things we are calling `UnetBlock`. We need to tell `UnetBlock` how many things are coming from the previous layer we are upsampling, how many are coming across, and then how many do we want to come out. The amount coming across is entirely defined by whatever the base network was — whatever the downward path was, we need that many layers. So this is a little bit awkward. Actually one of our master's students here, Kerem, has actually created something called DynamicUnet that you'll find in [fastai.model.DynamicUnet](https://github.com/fastai/fastai/blob/d3ef60a96cddf5b503361ed4c95d68dda4a873fc/fastai/models/unet.py#L53) and it actually calculates this all for you and automatically creates the whole U-Net from your base model. It's got some minor quirks still that I want to fix. By the time the video is out, it'll definitely be working and I will at least have a notebook showing how to use it and possibly an additional video. But for now you'll just have to go through and do it yourself. You can easily see it just by, once you've got a ResNet, you can just type in its name and it'll print out the layers. And you can see how many many activations there are in each block. Or you can have it printed out for you for each block automatically. Anyway, I just did this manually.
 
 ![](/images/lesson_14_070.png)
 
@@ -2366,17 +2372,15 @@ So I've got an upward sample, I've got a cross convolution, I can concatenate th
 
 Then in my forward path, I need to pass to the forward of the `UnetBlock` the upward path and the cross path [1:54:40]. The upward path is just whatever I am up to so far. But then the cross path is whatever the activations are that I stored on the way down. So as I come up, it's the last set of saved features that I need first. And as I gradually keep going up farther and farther, eventually it's the first set of features.
 
-There are some more tricks we can do to make this a little bit better, but this is a good stuff. So the simple upsampling approach looked horrible and had a dice of .968. A Unet with everything else identical except we've now got these `UnetBlock`s has a dice of …
-
 ```python
 m_base = get_base()
 m = to_gpu(Unet34(m_base))
 models = UnetModel(m)
 
 learn = ConvLearner(md, models)
-learn.opt_fn=optim.Adam
+learn.opt_fn = optim.Adam
 learn.crit=nn.BCEWithLogitsLoss()
-learn.metrics=[accuracy_thresh(0.5),dice]
+learn.metrics=[accuracy_thresh(0.5), dice]
 
 learn.summary()
 
@@ -2558,33 +2562,36 @@ learn.sched.plot()
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
- 0%|                                                                                           | 0/64 [00:00<?, ?it/s]
-92%|█████████████████████████████████████████████████████████████████▍     | 59/64 [00:22<00:01,  2.68it/s, loss=2.45]
+89%|████████▉ | 57/64 [00:20<00:02,  2.80it/s, loss=1.57]
 ```
 
 ![](/images/lesson_14_072.png)
 
 ```python
-lr=4e-2
-wd=1e-7
+lr = 4e-2
+wd = 1e-7
 
-lrs = np.array([lr/100,lr/10,lr])
+lrs = np.array([lr / 100, lr / 10, lr])
 
-learn.fit(lr,1,wds=wd,cycle_len=8,use_clr=(5,8))
+%time learn.fit(lr, 1, wds=wd, cycle_len=8, use_clr=(5, 8))
 
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
-epoch      trn_loss   val_loss   <lambda>   dice
-    0      0.12936    0.03934    0.988571   0.971385
-    1      0.098401   0.039252   0.990438   0.974921
-    2      0.087789   0.02539    0.990961   0.978927
-    3      0.082625   0.027984   0.988483   0.975948
-    4      0.079509   0.025003   0.99171    0.981221
-    5      0.076984   0.022514   0.992462   0.981881
-    6      0.076822   0.023203   0.992484   0.982321
-    7      0.075488   0.021956   0.992327   0.982704
-[0.021955982234979434, 0.9923273126284281, 0.9827044502137199]
+Epoch 100% 8/8 [03:20<00:00, 25.08s/it]
+
+epoch      trn_loss   val_loss   mask_acc   dice
+    0      0.066708   0.030094   0.986666   0.970317
+    1      0.03581    0.0268     0.987201   0.973306
+    2      0.026499   0.022651   0.991143   0.978611
+    3      0.022736   0.024409   0.98834    0.975742
+    4      0.02067    0.019966   0.991698   0.98108
+    5      0.019395   0.019475   0.991706   0.98148
+    6      0.018421   0.01992    0.990994   0.980779
+    7      0.017531   0.018478   0.992754   0.982734
+[array([0.01848]), 0.9927536495148189, 0.982733676754673]
+CPU times: user 4min 2s, sys: 40.2 s, total: 4min 42s
+Wall time: 3min 21s
 
 learn.save('128urn-tmp')
 
@@ -2593,51 +2600,53 @@ learn.load('128urn-tmp')
 learn.unfreeze()
 learn.bn_freeze(True)
 
-learn.fit(lrs/4, 1, wds=wd, cycle_len=20,use_clr=(20,10))
+%time learn.fit(lrs / 4, 1, wds=wd, cycle_len=20, use_clr=(20, 10))
 
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
-0%|          | 0/64 [00:00<?, ?it/s]
+Epoch 100% 20/20 [10:16<00:00, 30.81s/it]
 epoch      trn_loss   val_loss   <lambda>   dice
-    0      0.073786   0.023418   0.99297    0.98283
-    1      0.073561   0.020853   0.992142   0.982725
-    2      0.075227   0.023357   0.991076   0.980879
-    3      0.074245   0.02352    0.993108   0.983659
-    4      0.073434   0.021508   0.993024   0.983609
-    5      0.073092   0.020956   0.993188   0.983333
-    6      0.073617   0.019666   0.993035   0.984102
-    7      0.072786   0.019844   0.993196   0.98435
-    8      0.072256   0.018479   0.993282   0.984277
-    9      0.072052   0.019479   0.993164   0.984147
-    10     0.071361   0.019402   0.993344   0.984541
-    11     0.070969   0.018904   0.993139   0.984499
-    12     0.071588   0.018027   0.9935     0.984543
-    13     0.070709   0.018345   0.993491   0.98489
-    14     0.072238   0.019096   0.993594   0.984825
-    15     0.071407   0.018967   0.993446   0.984919
-    16     0.071047   0.01966    0.993366   0.984952
-    17     0.072024   0.018133   0.993505   0.98497
-    18     0.071517   0.018464   0.993602   0.985192
-    19     0.070109   0.018337   0.993614   0.9852
-[0.018336569653853538, 0.9936137114252362, 0.9852004420189631]
+    0      0.016101   0.017776   0.992521   0.983324
+    1      0.015925   0.018096   0.992984   0.983291
+    2      0.018197   0.047329   0.987563   0.967537
+    3      0.017198   0.017029   0.993005   0.984194
+    4      0.015525   0.016861   0.993109   0.984405
+    5      0.014776   0.016335   0.993529   0.984962
+    6      0.014414   0.016253   0.993712   0.985091
+    7      0.014118   0.016177   0.993633   0.98518
+    8      0.013989   0.01612    0.993777   0.985277
+    9      0.013846   0.016417   0.993895   0.985105
+    10     0.01364    0.015978   0.993756   0.985407
+    11     0.013568   0.015831   0.993784   0.985544
+    12     0.013413   0.015774   0.993833   0.985651
+    13     0.013295   0.015836   0.993919   0.985671
+    14     0.013165   0.015741   0.99394    0.985754
+    15     0.013016   0.015676   0.993802   0.985788
+    16     0.012929   0.015596   0.993944   0.985933
+    17     0.012834   0.015576   0.994039   0.985992
+    18     0.012723   0.015523   0.993915   0.985972
+    19     0.012671   0.015434   0.993951   0.986058
+[array([0.01543]), 0.9939509204455784, 0.9860580409134332]
+CPU times: user 11min 58s, sys: 1min 43s, total: 13min 41s
+Wall time: 10min 17s
 ```
 
-.985! That's like we halved the error with everything else exactly the same [1:55:42]. And more the point, you can look at it.
+There are some more tricks we can do to make this a little bit better, but this is a good stuff. So the simple upsampling approach looked horrible and had a dice of .968. A U-Net with everything else identical except we've now got these `UnetBlock`s has a dice of .985! That's like we halved the error with everything else exactly the same [1:55:42]. And more the point, you can look at it.
 
 ```python
 learn.save('128urn-0')
 
 learn.load('128urn-0')
 
-x,y = next(iter(md.val_dl))
+x, y = next(iter(md.val_dl))
 py = to_np(learn.model(V(x)))
 ```
 
-This is actually looking somewhat car-like compared to our non-Unet equivalent which is just a blob. Because trying to do this through down and up paths — it's just asking too much. Where else, when we actually provide the downward path pixels at every point, it can actually start to create something car-ish.
+This is actually looking somewhat car-like compared to our non-U-Net equivalent which is just a blob. Because trying to do this through down and up paths — it's just asking too much. Where else, when we actually provide the downward path pixels at every point, it can actually start to create something car-ish.
 
 ```python
-show_img(py[0]>0)
+show_img(py[0] > 0)
 ```
 
 ![](/images/lesson_14_073.png)
@@ -2662,11 +2671,9 @@ Go to a smaller batch size, higher size.
 sz=512
 bs=16
 
-tfms = tfms_from_model(resnet34, sz, crop_type=CropType.NO,
-                       tfm_y=TfmType.CLASS, aug_tfms=aug_tfms)
-datasets = ImageData.get_ds(MatchedFilesDataset, (trn_x,trn_y),
-                            (val_x,val_y), tfms, path=PATH)
-md = ImageData(PATH, datasets, bs, num_workers=4, classes=None)
+tfms = tfms_from_model(resnet34, sz, crop_type=CropType.NO, tfm_y=TfmType.CLASS, aug_tfms=aug_tfms)
+datasets = ImageData.get_ds(MatchedFilesDataset, (trn_x, trn_y), (val_x, val_y), tfms, path=PATH)
+md = ImageData(PATH, datasets, bs, num_workers=4, classes=None) # num_workers depends on batch size
 
 denorm = md.trn_ds.denorm
 
@@ -2675,70 +2682,84 @@ m = to_gpu(Unet34(m_base))
 models = UnetModel(m)
 
 learn = ConvLearner(md, models)
-learn.opt_fn=optim.Adam
-learn.crit=nn.BCEWithLogitsLoss()
-learn.metrics=[accuracy_thresh(0.5),dice]
+learn.opt_fn = optim.Adam
+learn.crit = nn.BCEWithLogitsLoss()
+learn.metrics = [accuracy_thresh(0.5),dice]
 
 learn.freeze_to(1)
 
 learn.load('128urn-0')
 
-learn.fit(lr,1,wds=wd, cycle_len=5,use_clr=(5,5))
+%time learn.fit(lr, 1, wds=wd, cycle_len=8, use_clr=(20, 8))
 
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
+Epoch 100% 8/8 [35:41<00:00, 267.67s/it]
 epoch      trn_loss   val_loss   <lambda>   dice
-    0      0.071421   0.02362    0.996459   0.991772
-    1      0.070373   0.014013   0.996558   0.992602
-    2      0.067895   0.011482   0.996705   0.992883
-    3      0.070653   0.014256   0.996695   0.992771
-    4      0.068621   0.013195   0.996993   0.993359
-[0.013194938530288046, 0.996993034604996, 0.993358936574724]
+    0      0.013183   0.017253   0.992196   0.983875
+    1      0.014358   0.012795   0.995054   0.988391
+    2      0.012857   0.012711   0.994946   0.988293
+    3      0.012494   0.012167   0.995214   0.988786
+    4      0.011796   0.011778   0.995447   0.989214
+    5      0.011607   0.011574   0.995224   0.989329
+    6      0.010983   0.010902   0.995638   0.989993
+    7      0.010343   0.010676   0.995724   0.990229
+[array([0.01068]), 0.9957240573943608, 0.990229018171244]
+CPU times: user 43min 54s, sys: 5min 4s, total: 48min 59s
+Wall time: 35min 41s
 ```
 
-You can see the dice coefficients really going up [1:56:30]. So notice above, I'm loading in the 128x128 version of the network. We are doing this progressive resizing trick again, so that gets us .993.
+You can see the dice coefficients really going up [1:56:30]. So notice above, I'm loading in the 128x128 version of the network. We are doing this progressive resizing trick again, so that gets us .990.
 
 ```python
-learn.save('512urn-tmp')
+learn.save('512urn-tmp-2')
 
 learn.unfreeze()
 learn.bn_freeze(True)
 
-learn.load('512urn-tmp')
+learn.load('512urn-tmp-2')
 
-learn.fit(lrs/4,1,wds=wd, cycle_len=8,use_clr=(20,8))
+%time learn.fit(lrs / 4, 1, wds=wd, cycle_len=10, use_clr=(20, 10))
 
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
-epoch      trn_loss   val_loss   <lambda>   dice
-    0      0.06605    0.013602   0.997      0.993014
-    1      0.066885   0.011252   0.997248   0.993563
-    2      0.065796   0.009802   0.997223   0.993817
-    3      0.065089   0.009668   0.997296   0.993744
-    4      0.064552   0.011683   0.997269   0.993835
-    5      0.065089   0.010553   0.997415   0.993827
-    6      0.064303   0.009472   0.997431   0.994046
-    7      0.062506   0.009623   0.997441   0.994118
-[0.009623114736602894, 0.9974409020136273, 0.9941179137381296]
+Epoch 100% 10/10 [57:47<00:00, 346.72s/it]
+epoch      trn_loss   val_loss   mask_acc   dice
+    0      0.009372   0.010585   0.995743   0.990435
+    1      0.009201   0.009934   0.995893   0.990923
+    2      0.022731   0.014535   0.994104   0.986531
+    3      0.012456   0.012546   0.994909   0.988559
+    4      0.011394   0.011722   0.995429   0.989384
+    5      0.010975   0.011325   0.995433   0.989744
+    6      0.010621   0.011133   0.995728   0.990007
+    7      0.010379   0.011007   0.995749   0.990243
+    8      0.010233   0.010774   0.995854   0.990384
+    9      0.010275   0.010706   0.995858   0.990412
+[array([0.01071]), 0.9958578631991432, 0.99041168513311]
+
+CPU times: user 1h 8min 16s, sys: 6min 22s, total: 1h 14min 39s
+Wall time: 57min 48s
 ```
 
 Then unfreeze to get to .994.
+
+_:memo: note-to-self: I am unable to replicate this dice score, even after trying re-train with different clr and number of cycle, so for now I proceed and need to revisit this at a later time_
 
 ```python
 learn.save('512urn')
 
 learn.load('512urn')
 
-x,y = next(iter(md.val_dl))
+x, y = next(iter(md.val_dl))
 py = to_np(learn.model(V(x)))
 ```
 
 And you can see, it's now looking pretty good.
 
 ```python
-show_img(py[0]>0)
+show_img(py[0] > 0)
 ```
 
 ![](/images/lesson_14_075.png)
@@ -2750,7 +2771,7 @@ show_img(y[0])
 ![](/images/lesson_14_076.png)
 
 ```python
-.close()
+m.close()
 ```
 
 #### 1024x1024 [[01:56:53](https://youtu.be/nG3tT31nPmQ?t=1h56m53s)]
@@ -2758,13 +2779,11 @@ show_img(y[0])
 Go down to a batch size of 4, size of 1024.
 
 ```python
-sz=1024
-bs=4
+sz = 1024
+bs = 4
 
-tfms = tfms_from_model(resnet34, sz, crop_type=CropType.NO,
-                         tfm_y=TfmType.CLASS)
-datasets = ImageData.get_ds(MatchedFilesDataset, (trn_x,trn_y),
-                            (val_x,val_y), tfms, path=PATH)
+tfms = tfms_from_model(resnet34, sz, crop_type=CropType.NO, tfm_y=TfmType.CLASS)
+datasets = ImageData.get_ds(MatchedFilesDataset, (trn_x, trn_y), (val_x, val_y), tfms, path=PATH)
 md = ImageData(PATH, datasets, bs, num_workers=16, classes=None)
 
 denorm = md.trn_ds.denorm
@@ -2774,9 +2793,9 @@ m = to_gpu(Unet34(m_base))
 models = UnetModel(m)
 
 learn = ConvLearner(md, models)
-learn.opt_fn=optim.Adam
-learn.crit=nn.BCEWithLogitsLoss()
-learn.metrics=[accuracy_thresh(0.5),dice]
+learn.opt_fn = optim.Adam
+learn.crit = nn.BCEWithLogitsLoss()
+learn.metrics = [accuracy_thresh(0.5), dice]
 ```
 
 Load in what we just saved with the 512.
@@ -2786,18 +2805,23 @@ learn.load('512urn')
 
 learn.freeze_to(1)
 
-learn.fit(lr,1, wds=wd, cycle_len=2,use_clr=(5,4))
+learn.fit(lr,1, wds=wd, cycle_len=2, use_clr=(5, 4))
 
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
+Epoch 100% 2/2 [45:06<00:00, 1353.19s/it]
 epoch      trn_loss   val_loss   <lambda>   dice
-    0      0.007656   0.008155   0.997247   0.99353
-    1      0.004706   0.00509    0.998039   0.995437
-[0.005090427414942828, 0.9980387706605215, 0.995437301104031]
+    0      0.013102   0.013132   0.994931   0.988265
+    1      0.010119   0.011204   0.99575    0.989929
+[array([0.0112]), 0.9957499636544122, 0.9899293804994912]
+CPU times: user 45min 17s, sys: 6min 50s, total: 52min 8s
+Wall time: 45min 6s
 ```
 
 That gets us to .995.
+
+_:memo: note-to-self: I am unable to replicate this dice score, so for now I proceed and need to revisit this at a later time._
 
 ```python
 learn.save('1024urn-tmp')
@@ -2807,38 +2831,68 @@ learn.load('1024urn-tmp')
 learn.unfreeze()
 learn.bn_freeze(True)
 
-lrs = np.array([lr/200,lr/30,lr])
-
-learn.fit(lrs/10,1, wds=wd,cycle_len=4,use_clr=(20,8))
-
-# -----------------------------------------------------------------------------
-# Output
-# -----------------------------------------------------------------------------
-epoch      trn_loss   val_loss   <lambda>   dice
-    0      0.005688   0.006135   0.997616   0.994616
-    1      0.004412   0.005223   0.997983   0.995349
-    2      0.004186   0.004975   0.99806    0.99554
-    3      0.004016   0.004899   0.99812    0.995627
-[0.004898778487196458, 0.9981196409180051, 0.9956271404784823]
-
-learn.fit(lrs/10,1, wds=wd,cycle_len=4,use_clr=(20,8))
+lrs = np.array([lr / 200, lr / 30, lr])
+lrs
 
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
-epoch      trn_loss   val_loss   <lambda>   dice
-    0      0.004169   0.004962   0.998049   0.995517
-    1      0.004022   0.004595   0.99823    0.995818
-    2      0.003772   0.004497   0.998215   0.995916
-    3      0.003618   0.004435   0.998291   0.995991
-[0.004434524739663753, 0.9982911745707194, 0.9959913929776539]
+array([0.0002 , 0.00133, 0.04   ])
+
+%time learn.fit(lrs / 10, 1, wds=wd, cycle_len=4, use_clr=(20, 8))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+Epoch 100% 4/4 [1:52:35<00:00, 1688.95s/it]
+epoch      trn_loss   val_loss   mask_acc   dice
+    0      0.008753   0.010227   0.996026   0.990752
+    1      0.008583   0.009887   0.996214   0.990971
+    2      0.008157   0.009736   0.996149   0.991187
+    3      0.008089   0.00963    0.996239   0.991263
+[array([0.00963]), 0.9962390765311226, 0.9912625075008968]
+CPU times: user 1h 53min, sys: 13min 28s, total: 2h 6min 28s
+Wall time: 1h 52min 36s
+
+learn.sched.plot_loss()
+```
+
+![](/images/lesson_14_084.png)
+
+```
+learn.sched.plot_lr()
+```
+
+![](/images/lesson_14_085.png)
+
+_4 cycles for 4 epochs. So, 1 cycle is 1 epoch. Therefore, 1 epoch is 1000 iterations._
+
+```python
+%time learn.fit(lrs / 10, 1, wds=wd, cycle_len=4, use_clr=(20, 8))
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+Epoch 100% 4/4 [1:52:23<00:00, 1685.90s/it]
+epoch      trn_loss   val_loss   mask_acc   dice
+    0      0.008318   0.009903   0.996072   0.991031
+    1      0.008046   0.009467   0.996279   0.991389
+    2      0.007842   0.009408   0.99639    0.991476
+    3      0.00743    0.00936    0.996377   0.991522
+[array([0.00936]), 0.9963768663860503, 0.9915224222062244]
+CPU times: user 1h 52min 46s, sys: 13min 25s, total: 2h 6min 11s
+Wall time: 1h 52min 24s
 ```
 
 Unfreeze takes us to… we'll call that .996.
 
+_:memo: note-to-self: I am unable to replicate this dice score, so for now I proceed and need to revisit this at a later time._
+
 ```python
 learn.sched.plot_loss()
 ```
+
+During training, the GPU memory usage peak at 11 GB on a K80.
 
 ![](/images/lesson_14_077.png)
 
@@ -2847,11 +2901,11 @@ learn.save('1024urn')
 
 learn.load('1024urn')
 
-x,y = next(iter(md.val_dl))
+x, y = next(iter(md.val_dl))
 py = to_np(learn.model(V(x)))
 ```
 
-As you can see, that actually looks good [1:57:17]. In accuracy terms, 99.82%. You can see this is looking like something you could just about use to cut out. I think, at this point, there's a couple of minor tweaks we can do to get up to .997 but really the key thing then, I think, is just maybe to do a few bit of smoothing maybe or a little bit of post-processing. You can go and have a look at the Carvana winners' blogs and see some of these tricks, but as I say, the difference between where we are at .996 and what the winners got of .997, it's not heaps. So really that just the Unet on its own pretty much solves that problem.
+As you can see, that actually looks good [1:57:17]. In accuracy terms, 99.82%. You can see this is looking like something you could just about use to cut out. I think, at this point, there's a couple of minor tweaks we can do to get up to .997 but really the key thing then, I think, is just maybe to do a few bit of smoothing maybe or a little bit of post-processing. :bookmark: You can go and have a look at the Carvana winners' blogs and see some of these tricks, but as I say, the difference between where we are at .996 and what the winners got of .997, it's not heaps. So really that just the U-Net on its own pretty much solves that problem.
 
 ```python
 show_img(py[0]>0)
@@ -2867,7 +2921,7 @@ show_img(y[0])
 
 ### Back to Bounding Box [[01:58:15](https://youtu.be/nG3tT31nPmQ?t=1h58m15s)]
 
-Okay, so that's it. The last thing I wanted to mention is now to come all the way back to bounding boxes because you might remember, I said our bounding box model was still not doing very well on small objects. So hopefully you might be able to guess where I'm going to go with this which is that for the bounding box model, remember how we had at different grid cells we spat out outputs of the model. And it was those earlier ones with the small grid sizes that weren't very good. How do we fix it? U-Net it! Let's have an upward path with cross connections. So then we are just going to do a U-Net and then spit them out of that. Because now those finer grid cells have all of the information of that path, and that path, and that path, and that path for leverage. Now of course, this is deep learning so that means you can't write a paper saying we just used U-Net for bounding boxes. You have to invent a new word so this is called feature pyramid networks or FPNs. And this was used in RetinaNet paper, it was created in an earlier paper specifically about FPNs. And if memory serves correctly, they did briefly cite the U-Net paper but they kind of made it sound like it was this vaguely slightly connected thing that maybe some people could consider slightly useful. But really, FPNs are U-Nets.
+Okay, so that's it. The last thing I wanted to mention is now to come all the way back to bounding boxes because you might remember, I said our bounding box model was still not doing very well on small objects. So hopefully you might be able to guess where I'm going to go with this which is that for the bounding box model, remember how we had at different grid cells we spat out outputs of the model. And it was those earlier ones with the small grid sizes that weren't very good. How do we fix it? U-Net it! Let's have an upward path with cross connections. So then we are just going to do a U-Net and then spit them out of that. Because now those finer grid cells have all of the information of that path, and that path, and that path, and that path for leverage. Now of course, this is deep learning so that means you can't write a paper saying we just used U-Net for bounding boxes. You have to invent a new word so this is called **[feature pyramid networks](https://arxiv.org/abs/1612.03144) or FPNs**. And this was used in RetinaNet paper, it was created in an earlier paper specifically about FPNs. And if memory serves correctly, they did briefly cite the U-Net paper but they kind of made it sound like it was this vaguely slightly connected thing that maybe some people could consider slightly useful. But really, FPNs are U-Nets.
 
 I don't have an implementation of it to show you but it will be a fun thing, maybe for some of us to try and I know some of the students have been trying to get it working well on the forums. So yeah, interesting thing to try. So I think a couple of things to look at after this class as well as the other things I mentioned would be playing around with FPNs and also maybe trying Kerem's DynamicUnet. They would both be interesting things to look at.
 
