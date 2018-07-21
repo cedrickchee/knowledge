@@ -56,8 +56,3 @@ _My personal notes from [fast.ai course](http://www.fast.ai/). These notes will 
     * [Lesson 12 - DarkNet; Generative Adversarial Networks \(GANs\)](deep-learning-part-2/2018-edition/lesson-12-gan.md)
     * [Lesson 13 - Image Enhancement; Style Transfer; Data Ethics](deep-learning-part-2/2018-edition/lesson-13-image-enhancement.md)
     * [Lesson 14 - Super Resolution; Image Segmentation with U-Net](deep-learning-part-2/2018-edition/lesson-14-image-segmentation.md)
-
-
-
-
-
