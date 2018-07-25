@@ -66,13 +66,13 @@ _These are my personal notes from fast.ai course and will continue to be updated
 
 Let's build a sequence-to-sequence model! We are going to be working on machine translation. Machine translation is something that's been around for a long time, but we are going to look at an approach called neural translation which uses neural networks for translation. Neural machine translation appeared a couple years ago and it was not as good as the statistical machine translation approaches that use classic feature engineering and standard NLP approaches like stemming, fiddling around with word frequencies, n-grams, etc. By a year later, it was better than everything else. It is based on a metric called BLEU — we are not going to discuss the metric because it is not a very good metric and it is not interesting, but everybody uses it.
 
-![Progress in Machine Translation](/images/translate_notebook_001.png)
+![Progress in Machine Translation](../../../../images/translate_notebook_001.png)
 
 We are seeing machine translation starting down the path that we saw starting computer vision object classification in 2012 which just surpassed the state-of-the-art and now zipping past it at great rate. It is unlikely that anybody watching this is actually going to build a machine translation model because https://translate.google.com/ works quite well. So **why are we learning about machine translation**? The reason we are learning about machine translation is that the general idea of taking some kind of input like a sentence in French and transforming it into some other kind of output with arbitrary length such as a sentence in English is **a really useful thing to do**. For example, as we just saw, Hamel took GitHub issues and turn them into summaries. Another example is taking videos and turning them into descriptions, or basically anything where you are spitting out an arbitrary sized output which is very often a sentence. Maybe taking a CT scan and spitting out a radiology report — this is where you can use sequence to sequence learning.
 
 #### Four big wins of Neural Machine Translation [[00:08:36](https://youtu.be/tY0n9OT5_nA?t=8m36s)]
 
-![Four big wins of Neural MT](/images/translate_notebook_002.png)
+![Four big wins of Neural MT](../../../../images/translate_notebook_002.png)
 
 - End-to-end training: No fussing around with heuristics and hacky feature engineering.
 - We are able to build these distributed representations which are shared by lots of concepts within a single network.
@@ -81,7 +81,7 @@ We are seeing machine translation starting down the path that we saw starting co
 
 #### BiLSTMs(+Attention) not just for neural MT [[00:09:20](https://youtu.be/tY0n9OT5_nA?t=9m20s)]
 
-![](/images/translate_notebook_003.png)
+![](../../../../images/translate_notebook_003.png)
 
 We are going to use bi-directional GRU (basically the same as LSTM) with attention — these general ideas can also be used for lots of other things as you see above.
 
@@ -118,11 +118,11 @@ fr_fname = PATH / f'{fname}.fr'
 
 For bounding boxes, all of the interesting stuff was in the loss function, but for neural translation, all of the interesting stuff is going to be in the architecture [00:13:01]. Let's zip through this pretty quickly and one of the things Jeremy wants you to think about particularly is what are the relationships or the similarities in terms of the tasks we are doing and how we do it between language modeling vs. neural translation.
 
-![We're going to look at Neural Translation, using a form of seq2seq learning](/images/translate_notebook_004.png)
+![We're going to look at Neural Translation, using a form of seq2seq learning](../../../../images/translate_notebook_004.png)
 
 The first step is to do the exact same thing we do in a language model which is to take a sentence and chuck it through an RNN[00:13:35].
 
-![We already saw the idea of concat pooling in part 1](/images/translate_notebook_005.png)
+![We already saw the idea of concat pooling in part 1](../../../../images/translate_notebook_005.png)
 
 Now with the classification model, we had a decoder which took the RNN output and grabbed three things: `maxpool` and `meanpool` over all of the time steps, and the value of the RNN at the last time step, stack all those together and put it through a linear layer [00:14:24]. Most people do not do that and just use the last time step, so all the things we will be talking about today uses the last time step.
 
@@ -147,27 +147,27 @@ But we do not know yet how to do a general purpose sequence to sequence, so that
 
 We learnt that an RNN at its heart is a standard fully connected network. Below is one with 4 layers — takes an input and puts it through four layers, but at the second layer, it concatenates in the second input, third layer concatenated in the third input, but we actually wrote this in Python as just a four layer neural network. There was nothing else we used other than linear layers and ReLUs. We used the same weight matrix every time when an input came in, we used the same matrix every time when we went from one of the hidden states to the next — that is why these arrows are the same color.
 
-![](/images/translate_notebook_006.png)
+![](../../../../images/translate_notebook_006.png)
 
 We can redraw the above diagram like the below [00:19:29].
 
-![](/images/translate_notebook_007.png)
+![](../../../../images/translate_notebook_007.png)
 
 Not only did we redraw it but we took the four lines of linear code in PyTorch and we replaced it with a for loop. Remember, we had something that did exactly the same thing as below, but it just had four lines of code saying `self.l_in(input)` and we replaced it with a for loop because that's nice to refactor. The refactoring which does not change any of the math, any of the ideas, or any of the outputs is an RNN. It's turning a bunch of separate lines in the code into a Python for loop.
 
-![](/images/translate_notebook_008.png)
+![](../../../../images/translate_notebook_008.png)
 
 We could take the output so that it is not outside the loop and put it inside the loop [00:20:25]. If we do that, we are now going to generate a separate output for every input. The code above, the hidden state gets replaced each time and we end up just spitting out the final hidden state. But if instead, we had something that said `hs.append(h)` and returned `hs` at the end, that would be the picture below.
 
-![](/images/translate_notebook_009.png)
+![](../../../../images/translate_notebook_009.png)
 
 The main thing to remember is when we say hidden state, we are referring to a vector — technically a vector for each thing in the mini-batch so it's a matrix, but generally when Jeremy speaks about these things, he ignores the mini-batch piece and treat it for just a single item.
 
-![](/images/translate_notebook_010.png)
+![](../../../../images/translate_notebook_010.png)
 
 We also learned that you can stack these layers on top of each other [00:21:41]. So rather than the left RNN (in the diagram above) spitting out output, they could just spit out inputs into a second RNN. If you are thinking at this point "I think I understand this but I am not quite sure" that means you don't understand this. The only way you know that you actually understand it is to go and write this from scratch in PyTorch or Numpy. If you can't do that, then you know you don't understand it and you can go back and re-watch lesson 6 and check out the notebook and copy some of the ideas until you can. It is really important that you can write that from scratch — it's less than a screen of code. So you want to make sure you can create a 2 layer RNN. Below is what it looks like if you unroll it.
 
-![](/images/translate_notebook_011.png)
+![](../../../../images/translate_notebook_011.png)
 
 To get to a point that we have (x, y) pairs of sentences, we will start by downloading the dataset [00:22:39]. Training a translation model takes a long time. Google's translation model has eight layers of RNN stacked on top of each other. There is no conceptual difference between eight layers and two layers. If you are Google and you have more GPUs or TPUs than you know what to do with, then you are fine doing that. Where else, in our case, it's pretty likely that the kind of sequence to sequence models we are building are not going to require that level of computation. So to keep things simple [00:23:22], let's do a cut-down thing where rather than learning how to translate French into English for any sentence, let's learn to translate French questions into English questions — specifically questions that start with what/where/which/when. So here is a regex which looks for things that start with "wh" and end with a question mark.
 
@@ -224,11 +224,11 @@ fr_tok = Tokenizer.proc_all_mp(partition_by_cores(fr_qs), 'fr')
 
 It is unlikely that any of you are going to have RAM problems here because this is not particularly big corpus but some of the students were trying to train a new language models during the week and were having RAM problems. If you do, it's worth knowing what these functions (`proc_all_mp`) are actually doing. `proc_all_mp` is processing every sentence across multiple processes [00:25:59]:
 
-![](/images/translate_notebook_012.png)
+![](../../../../images/translate_notebook_012.png)
 
 The function above finds out how many CPUs you have, divide it by two (because normally with hyper-threading they don't actually all work in parallel), then in parallel run this `proc_all` function. So that is going to spit out a whole separate Python processes for every CPU you have. If you have a lot of cores, that is a lot of Python processes — everyone is going to load all this data in and that can potentially use up all your RAM. So you could replace that with just `proc_all` rather than `proc_all_mp` to use less RAM. Or you could just use less cores. At the moment, we are calling `partition_by_cores` which calls `partition` on a list and asks to split it into a number of equal length things according to how many CPUs you have. So you could replace that to split into a smaller list and run it on less things.
 
-![](/images/translate_notebook_013.png)
+![](../../../../images/translate_notebook_013.png)
 
 Having tokenized the English and French, you can see how it gets split up [00:28:04]:
 
@@ -530,7 +530,7 @@ We are not using fastai for very much at all in this example. We used PyTorch co
 
 #### Architecture [[00:46:59](https://youtu.be/tY0n9OT5_nA?t=46m59s)]
 
-![](/images/translate_notebook_014.png)
+![](../../../../images/translate_notebook_014.png)
 
 - The architecture is going to take our sequence of tokens.
 - It is going to spit them into an encoder (a.k.a. backbone).
@@ -736,7 +736,7 @@ learn.crit = seq2seq_loss
 
 We then need something that tells it how to handle learning rate groups so there is a thing called `SingleModel` that you can pass it to which treats the whole thing as a single learning rate group [01:09:40]. So this is the easiest way to turn a PyTorch module into a fastai model.
 
-![](/images/translate_notebook_015.png)
+![](../../../../images/translate_notebook_015.png)
 
 We could just call `Learner` to turn that into a learner, but if we call `RNN_Learner`, it does add in `save_encoder` and `load_encoder` that can be handy sometimes. In this case, we really could have said `Leaner` but `RNN_Learner` also works.
 
@@ -746,7 +746,7 @@ learn.lr_find()
 learn.sched.plot()
 ```
 
-![](/images/translate_notebook_016.png)
+![](../../../../images/translate_notebook_016.png)
 
 ```python
 # Fit the model (15-20 mins to train)
@@ -775,7 +775,7 @@ learn.save('initial')
 learn.load('initial')
 ```
 
-![Training loss plot](/images/translate_notebook_017.png)
+![Training loss plot](../../../../images/translate_notebook_017.png)
 
 It took me ~2 minutes (109.80s) to train 1 epoch on K80, roughly 3.35 iteration/s.
 The full training took me ~20 minutes.
@@ -937,7 +937,7 @@ epoch      trn_loss   val_loss
 [array([3.37375])]
 ```
 
-![Training loss curve](/images/translate_notebook_018.png)
+![Training loss curve](../../../../images/translate_notebook_018.png)
 
 It took me ~2 minutes (115.30s) to train 1 epoch on K80, roughly 3.10 iteration/s.
 The full training took me ~23 minutes.
@@ -956,7 +956,7 @@ We got 3.5963 cross entropy loss with single direction [01:21:46]. With bi-direc
 
 Now let's talk about teacher forcing. When a model starts learning, it knows nothing about nothing. So when the model starts learning, it is not going to spit out "Er" at the first step, it is going to spit out some random meaningless word because it doesn't know anything about German or about English or about the idea of language. And it is going to feed it to the next process as an input and be totally unhelpful. That means, early learning is going to be very difficult because it is feeding in an input that is stupid into a model that knows nothing and somehow it's going to get better. So it is not asking too much eventually it gets there, but it's definitely not as helpful as we can be. So what if instead of feeing in the thing I predicted just now, what if we instead we feed in the actual correct word was meant to be. We can't do that at inference time because by definition we don't know the correct word - it has to translate it. We can't require the correct translation in order to do translation.
 
-![](/images/translate_notebook_019.png)
+![](../../../../images/translate_notebook_019.png)
 
 So the way it's set up is we have this thing called `pr_force` which is probability of forcing [01:24:01]. If some random number is less than that probability then we are going to replace our decoder input with the actual correct thing. If we have already gone too far and if it is already longer than the target sequence, we are just going to stop because obviously we can't give it the correct thing. So you can see how beautiful PyTorch is for this. The key reasons that we switched to PyTorch at this exact point in last year's class was because Jeremy tried to implement teacher forcing in Keras and TensorFlow and went even more insane than he started. It was weeks of getting nowhere then he saw on Twitter Andrej Karpathy said something about this thing called PyTorch that just came out and it's really cool. He tried it that day, by the next day, he had teacher forcing. All this stuff of trying to debug things was suddenly so much easier and and this kind of dynamic thing is so much easier. So this is a great example of "hey, I get to use random numbers and if statements".
 
@@ -1031,7 +1031,7 @@ class Seq2SeqRNN_TeacherForcing(nn.Module):
 
 Let's now write something such that in the training loop, it gradually decreases `pr_force` [01:26:01]. How do we do that? One approach would be to write our own training loop but let's not do that because we already have a training loop that has progress bars, uses exponential weighted averages to smooth out the losses, keeps track of metrics, and does bunch of things. They also keep track of calling the reset for RNN at the start of the epoch to make sure the hidden state is set to zeros. What we've tended to find is that as we start to write some new thing and we need to replace some part of the code, we then add some little hook so that we can all use that hook to make things easier. In this particular case, there is a hook that Jeremy has ended up using all the time which is the hook called the stepper. If you look at the source code, `model.py` is where our fit function lives which is the lowest level thing that does not require learner or anything much at all — just requires a standard PyTorch model and a model data object. You just need to know how many epochs, a standard PyTorch optimizer, and a standard PyTorch loss function. We hardly ever used in the class, we normally call `learn.fit`, but `learn.fit` calls this.
 
-![](/images/translate_notebook_020.png)
+![](../../../../images/translate_notebook_020.png)
 
 We have to look at the source code sometime [01:27:49]. We've seen how it loop through each epoch and that loops through each thing in our batch and calls `stepper.step`. `stepper.step` is the thing that is responsible for:
 
@@ -1040,7 +1040,7 @@ We have to look at the source code sometime [01:27:49]. We've seen how it loop t
 - finding the loss function
 - calling the optimizer
 
-![](/images/translate_notebook_021.png)
+![](../../../../images/translate_notebook_021.png)
 
 So by default, `stepper.step` uses a particular class called `Stepper` which basically calls the model, zeros the gradient, calls the loss function, calls backward, does gradient clipping if necessary, then calls the optimizer. They are basic steps that back when we looked at "PyTorch from scratch" we had to do. The nice thing is, we can replace that with something else rather than replacing the training loop. If you inherit from `Stepper`, then write your own version of `step`, you can just copy and paste the contents of `step` and add whatever you like. Or if it's something that you're going to do before or afterwards, you could even call `super.step`. In this case, Jeremy rather suspects he has been unnecessarily complicated [01:29:12] — he probably could have done something like:
 
@@ -1087,7 +1087,7 @@ epoch      trn_loss   val_loss
 [array([3.43289])]
 ```
 
-![Training loss curve](/images/translate_notebook_022.png)
+![Training loss curve](../../../../images/translate_notebook_022.png)
 
 It took me ~1 minute (78.62s) to train 1 epoch on K80, roughly 5.0 iteration/s.
 The full training took me ~16 minutes.
@@ -1098,15 +1098,15 @@ And now our loss is down to 3.43. We needed to make sure at least do 10 epochs b
 
 This next trick is a bigger and pretty cool trick. It's called "attention." The basic idea of attention is this — expecting the entirety of the sentence to be summarized into this single hidden vector is asking a lot. It has to know what was said, how it was said, and everything necessary to create the sentence in German. The idea of attention is basically maybe we are asking too much. Particularly because we could use this form of model (below) where we output every step of the loop to not just have a hidden state at the end but to have a hidden state after every single word. Why not try and use that information? It's already there but so far we've just been throwing it away. Not only that but bi-directional, we got two vectors of state every step that we can use. How can we do this?
 
-![](/images/translate_notebook_023.png)
+![](../../../../images/translate_notebook_023.png)
 
 Let's say we are translating a word "liebte" right now [01:32:34]. Which of previous 5 pieces of state do we want? We clearly want "love" because it is the word. How about "zu"? We probably need "eat" and "to" and loved" to make sure we have gotten the tense right and know that I actually need this part of the verb and so forth. So depending on which bit we are translating, we would need one or more bits of these various hidden states. In fact, we probably want some weighting of them. In other words, for these five pieces of hidden state, we want a weighted average [01:33:47]. We want it weighted by something that can figure out which bits of the sentence is the most important right now. How do we figure out something like which bits of the sentence are important right now? We create a neural net and we train the neural net to figure it out. When do we train that neural net? End to end. So let's now train two neural nets [01:34:18]. Well, we've already got a bunch — RNN encoder, RNN decoder, a couple of linear layers, what the heck, let's add another neural net into the mix. This neural net is going to spit out a weight for every one of these states and we will take the weighted average at every step, and it's just another set of parameters that we learn all at the same time. So that is called "attention".
 
-![](/images/translate_notebook_024.png)
+![](../../../../images/translate_notebook_024.png)
 
 The idea is that once that attention has been learned, each word is going to take a weighted average as you can see in this terrific demo from Chris Olah and Shan Carter [01:34:50]. Check out this [distill.pub article](https://distill.pub/2016/augmented-rnns/) — these things are interactive diagrams that shows you how the attention works and what the actual attention looks like in a trained translation model.
 
-![Diagram derived from Fig. 3 of "Neural Machine Translation by Jointly Learning to Align and Translate" Bahdanau, et al.](/images/translate_notebook_025.png)
+![Diagram derived from Fig. 3 of "Neural Machine Translation by Jointly Learning to Align and Translate" Bahdanau, et al.](../../../../images/translate_notebook_025.png)
 
 Let's try and implement attention [01:35:47]:
 
@@ -1208,11 +1208,11 @@ In Python, `A @ B` is the matrix product, `A * B` the element-wise product.
 
 Sure! Let's go back and look at our original encoder.
 
-![](/images/translate_notebook_026.png)
+![](../../../../images/translate_notebook_026.png)
 
 The RNN spits out two things: it spits out a list of the state after every time step (`enc_out`), and it also tells you the state at the last time step (`h`)and we used the state at the last time step to create the input state for our decoder which is one vector `s` below:
 
-![](/images/translate_notebook_027.png)
+![](../../../../images/translate_notebook_027.png)
 
 But we know that it's creating a vector at every time steps (orange arrows), so wouldn't it be nice to use them all? But wouldn't it be nice to use the one or ones that's most relevant to translating the word we are translating now? So wouldn't it be nice to be able to take a weighted average of the hidden state at each time step weighted by whatever is the appropriate weight right now. For example, "liebte" would definitely be time step #2 is what it's all about because that is the word I'm translating. So how do we get a list of weights that is suitable for the word we are training right now? The answer is by training a neural net to figure out the list of weights. So anytime we want to figure out how to train a little neural net that does any task, the easiest way, normally always to do that is to include it in your module and train it in line with everything else. The minimal possible neural net is something that contains two layers and one nonlinear activation function, so `self.l2` is one linear layer.
 
@@ -1262,7 +1262,7 @@ epoch      trn_loss   val_loss
 [array([3.24059])]
 ```
 
-![Training loss curve](/images/translate_notebook_028.png)
+![Training loss curve](../../../../images/translate_notebook_028.png)
 
 It took me ~1 min 22s (82.42s) to train 1 epoch on K80, roughly 4.65 iteration/s.
 The full training took me ~25 minutes.
@@ -1350,11 +1350,11 @@ for i, ax in enumerate(axes.flat):
     ax.plot(attn[i])
 ```
 
-![](/images/translate_notebook_029.png)
+![](../../../../images/translate_notebook_029.png)
 
 When you are Chris Olah and Shan Carter, you make things that looks like :point_down: when you are Jeremy Howard, the exact same information looks like :point_up: [01:48:24]. You can see at each different time step, we have a different attention.
 
-![](/images/translate_notebook_030.png)
+![](../../../../images/translate_notebook_030.png)
 
 It's very important when you try to build something like this, you don't really know if it's not working right because if it's not working (as per usual Jeremy's first 12 attempts of this were broken) and they were broken in a sense that it wasn't really learning anything useful. Therefore, it was giving equal attention to everything and it wasn't worse — it just wasn't much better. Until you actually find ways to visualize the thing in a way that you know what it ought to look like ahead of time, you don't really know if it's working [01:49:16]. So it's really important that you try to find ways to check your intermediate steps in your outputs.
 
@@ -1776,7 +1776,7 @@ Because validation set is ordered, all the stuff of the same type are in the sam
 show_imgs(denorm(md.val_ds[start:start + 25][0]), 5, (10, 10))
 ```
 
-![](/images/devise_notebook_001.png)
+![](../../../../images/devise_notebook_001.png)
 
 **Nearest neighbor search** [02:10:56]: What we can now do is we can now use nearest neighbors search. So nearest neighbors search means here is one 300 dimensional vector and here is a whole a lot of other 300 dimensional vectors, which things is it closest to? Normally that takes a very long time because you have to look through every 300 dimensional vector, calculate its distance, and find out how far away it is. But there is an amazing almost unknown library called **[NMSLib](https://github.com/nmslib/nmslib)** that does that incredibly fast. Some of you may have tried other nearest neighbor's libraries, I guarantee this is faster than what you are using — I can tell you that because it's been bench marked by people who do this stuff for a living. This is by far the fastest on every possible dimension. We want to create an index on angular distance, and we need to do it on all of our ImageNet word vectors. Adding a whole batch, create the index, and now we can query a bunch of vectors all at once, get the 10 nearest neighbors. The library uses multi-threading and is absolutely fantastic. You can install from pip (`pip install nmslib`) and it just works.
 
@@ -1880,7 +1880,7 @@ vec = en_vecd['boat'] # get the vector for boat
 text2img(vec) # pull images who's vector is close to our 'boat' vector
 ```
 
-![](/images/devise_notebook_002.png)
+![](../../../../images/devise_notebook_002.png)
 
 What if we now take engine's vector and boat's vector and take their average and what if we now look in our nearest neighbors for that [02:14:04]?
 
@@ -1889,7 +1889,7 @@ vec = (en_vecd['engine'] + en_vecd['boat']) / 2
 text2img(vec)
 ```
 
-![](/images/devise_notebook_003.png)
+![](../../../../images/devise_notebook_003.png)
 
 These are boats with engines. I mean, yes, the middle one is actually a boat with an engine — it just happens to have wings on as well. By the way, sail is not an ImageNet thing , neither is boat. Here is the average of two things that are not ImageNet things and yet with one exception, it's found us two sailboats.
 
@@ -1898,7 +1898,7 @@ vec = (en_vecd['sail'] + en_vecd['boat']) / 2
 text2img(vec)
 ```
 
-![](/images/devise_notebook_004.png)
+![](../../../../images/devise_notebook_004.png)
 
 ##### Image->image [[02:14:35](https://youtu.be/tY0n9OT5_nA?t=2h14m35s)]
 
@@ -1910,7 +1910,7 @@ img = open_image(PATH/fname)
 show_img(img)
 ```
 
-![](/images/devise_notebook_005.png)
+![](../../../../images/devise_notebook_005.png)
 
 ```python
 t_img = md.val_ds.transform(img)
@@ -1919,7 +1919,7 @@ idxs,dists = get_knn(nn_predwv, pred)
 show_imgs([open_image(PATH / md.val_ds.fnames[i]) for i in idxs[1:4]], 3, figsize=(9, 3))
 ```
 
-![](/images/devise_notebook_006.png)
+![](../../../../images/devise_notebook_006.png)
 
 And here are all the other images of whatever that is. So you can see, this is crazy — we've trained a thing on all of ImageNet in an hour, using a custom head that required basically like two lines of code, and these things run in 300 milliseconds to do these searches.
 

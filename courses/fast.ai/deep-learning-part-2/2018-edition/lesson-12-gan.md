@@ -57,7 +57,7 @@ Very hot technology but definitely deserving to be in the cutting edge deep lear
 
 From the last lecture [00:01:04]: One of our diversity fellows Christine Payne has a master's in medicine from Stanford and so she had an interest in thinking what it would look like if we built a language model of medicine. One of the things we briefly touched on back in lesson 4 but didn't really talk much about last time is this idea that you can actually seed a generative language model which means you've trained a language model on some corpus and then you are going to generate some text from that language model. You can start off by feeding it a few words to say "here is the first few words to create the hidden state in the language model and generate from there please. Christine did something clever which was to seed it with a question and repeat the question three times and let it generate from there. She fed a language model lots of different medical texts and fed in questions as you see below:
 
-![](/images/lesson_12_001.png)
+![](../../../../images/lesson_12_001.png)
 
 What Jeremy found interesting about this is it's pretty close to being a believable answer to the question for people without master's in medicine. But it has no bearing on reality whatsoever. He thinks it is an interesting kind of ethical and user experience quandary. Jeremy is involved in a company called doc.ai that's trying to doing a number of things but in the end provide an app for doctors and patients which can help create a conversational user interface around helping them with their medical issues. He's been continually saying to the software engineers on that team please **don't try to create a generative model using LSTM or something because they are going to be really good at creating bad advice that sounds impressive** — kind of like political pundits or tenured professor who can say bullcrap with great authority. So he thought it was really interesting experiment. If you've done some interesting experiments, share them in the forum, blog, Twitter. Let people know about it and get noticed by awesome people.
 
@@ -160,7 +160,7 @@ We will start by determining what our basic unit is going to be and define it in
 
 ##### Leaky ReLU [[00:12:43](https://youtu.be/ondivPiwQho?t=12m43s)]:
 
-![](/images/lesson_12_002.png)
+![](../../../../images/lesson_12_002.png)
 
 The gradient of Leaky ReLU (where x < 0) varies but something about 0.1 or 0.01 is common. The idea behind it is that when you are in the negative zone, you don't end up with a zero gradient which makes it very hard to update it. **In practice, people have found Leaky ReLU more useful on smaller datasets and less useful in big datasets**. But it is interesting that for the [YOLO v3](https://pjreddie.com/media/files/papers/YOLOv3.pdf) paper, they used Leaky ReLU and got great performance from it. It rarely makes things worse and it often makes things better. So it's probably not bad if you need to create your own architecture to make that your default go-to is to use Leaky ReLU.
 
@@ -170,7 +170,7 @@ You'll notice that we don't define PyTorch module in `conv_layer`, we just do nn
 
 As mentioned before that there is generally a number of hierarchies of units in most modern networks, and we know now that the next level in this unit hierarchy for ResNet is the ResBlock or residual block (see `ResLayer`). Back when we last did CIFAR10, we oversimplified this (cheated a little bit). We had `x` coming in and we put that through a `conv`, then we added it back up to `x` to go out. In the real ResBlock, there are two of them. When we say "conv" we are using it as a shortcut for our `conv_layer` (conv, batch norm, ReLU).
 
-![](/images/lesson_12_003.png)
+![](../../../../images/lesson_12_003.png)
 
 One interesting insight here is the number of channels in these convolutions [00:16:47]. We have some `ni` coming in (some number of input channels/filters). The way the darknet folks set things up is they make every one of these Res layers spit out the same number of channels that came in, and Jeremy liked that and that's why he used it in `ResLayer` because it makes life simpler. The first conv halves the number of channels, and then second conv doubles it again. So you have this funneling effect where 64 channels coming in, squished down with a first conv down to 32 channels, and then taken back up again to 64 channels coming out.
 
@@ -202,11 +202,11 @@ Immediately after the `Conv`, there is a `BatchNorm`. Remember, `BatchNorm` has 
 
 Also another little trick is, most people's `conv_layer`'s have padding as a parameter [00:21:11]. But generally speaking, you should be able to calculate the padding easily enough. If you have a kernel size of 3, then obviously that is going to overlap by one unit on each side, so we want padding of 1. Or else, if it's kernel size of 1, then we don't need any padding. So in general, padding of kernel size "integer divided" by 2 is what you need. There're some tweaks sometimes but in this case, this works perfectly well. Again, trying to simplify my code by having the computer calculate stuff for me rather than me having to do it myself.
 
-![](/images/lesson_12_004.png)
+![](../../../../images/lesson_12_004.png)
 
 Another thing with the two `conv_layer`'s [00:22:14]: We had this idea of bottleneck (reducing the channels and then increase them again), there is also what kernel size to use. The first one has 1 by 1 `Conv`. What actually happen in 1 by 1 conv? If we have 4 by 4 grid with 32 filters/channels and we will do 1 by 1 conv, the kernel for the conv looks like the one in the middle. When we talk about the kernel size, we never mention the last piece — but let's say it's 1 by 1 by 32 because that's the part of the filters in and filters out. The kernel gets placed on the first cell in yellow and we get a dot product these 32 deep bits which gives us our first output. We then move it to the second cell and get the second output. So there will be bunch of dot products for each point in the grid. It is allowing us to change the dimensionality in whatever way we want in the channel dimension. We are creating `ni//2` filters and we will have `ni//2` dot products which are basically different weighted averages of the input channels. With very little computation, it lets us add this additional step of calculations and nonlinearities. It is a cool trick to take advantage of these 1 by 1 convs, creating this bottleneck, and then pulling it out again with 3 by 3 convs — which will take advantage of the 2D nature of the input properly. Or else, 1 by 1 conv doesn't take advantage of that at all.
 
-![](/images/lesson_12_005.png)
+![](../../../../images/lesson_12_005.png)
 
 These two lines of code, there is not much in it, but it's a really great test of your understanding and intuition about what is going on [00:25:17] — why does it work? why do the tensor ranks line up? why do the dimensions all line up nicely? why is it a good idea? what is it really doing? It's a really good thing to fiddle around with. Maybe create some small ones in Jupyter Notebook, run them yourself, see what inputs and outputs come in and out. Really get a feel for that. Once you've done so, you can then play around with different things.
 
@@ -249,11 +249,11 @@ What this says is create five group layers: the first one will contain 1 extra R
 
 **Sequential** [00:35:53]: A nice way to create architectures is to start out by creating a list, in this case this is a list with just one `conv_layer` in, and `make_group_layer` returns another list. Then we can append that list to the previous list with `+=` and do the same for another list containing `AdaptiveAvgPool2d`. Finally we will call `nn.Sequential` of all those layers. Now the forward is just `self.layers(x)`.
 
-![](/images/lesson_12_006.png)
+![](../../../../images/lesson_12_006.png)
 
 This is a nice picture of how to make your architectures as simple as possible. There are a lot you can fiddle around with. You can parameterize the divider of `ni` to make it a number that you pass in to pass in different numbers- maybe do times 2 instead. You can also pass in things that change the kernel size, or change the number of convolutional layers. Jeremy has a version of this which he is going to run for you which implements all of the different parameters that were in the Wide ResNet paper, so he could fiddle around to see what worked well.
 
-![](/images/lesson_12_007.png)
+![](../../../../images/lesson_12_007.png)
 
 ```python
 lr = 1.3
@@ -270,7 +270,7 @@ Once we've got that, we can use `ConvLearner.from_model_data` to take our PyTorc
 %time learn.fit(lr, 1, wds=wd, cycle_len=30, use_clr_beta=(20, 20, 0.95, 0.85))
 ```
 
-![](/images/lesson_12_008.png)
+![](../../../../images/lesson_12_008.png)
 
 :memo: *On my server with a single Tesla K80, I am able to train to 91% accuracy in 52 minutes 38 seconds.*
 
@@ -278,7 +278,7 @@ Once we've got that, we can use `ConvLearner.from_model_data` to take our PyTorc
 
 Sure. Normally when we are doing average pooling, let's say we have 4x4 and we did `avgpool((2, 2))` [00:40:35]. That creates 2x2 area (blue in the below) and takes the average of those four. If we pass in `stride=1`, the next one is 2x2 shown in green and take the average. So this is what a normal 2x2 average pooling would be. If we didn't have any padding, that would spit out 3x3. If we wanted 4x4, we can add padding.
 
-![](/images/lesson_12_009.png)
+![](../../../../images/lesson_12_009.png)
 
 What if we wanted 1x1? Then we could say `avgpool((4,4), stride=1)` that would do 4x4 in yellow and average the whole lot which results in 1x1. But that's just one way to do it. Rather than saying the size of the pooling filter, why don't we instead say "I don't care what the size of the input grid is. I always want one by one". That's where you say `adap_avgpool(1)`. In this case, you don't say what's the size of the pooling filter, you instead say what the size of the output we want. We want something that's one by one. If you put a single integer `n`, it assumes you mean `n` by `n`. In this case, adaptive average pooling 1 with a 4x4 grid coming in is the same as average pooling (4, 4). If it was 7x7 grid coming in, it would be the same as average pooling (7, 7). It is the same operation, it's just expressing it in a way that regardless of the input, we want something of that sized output.
 
@@ -289,7 +289,7 @@ Let's see how we go with our simple network against these state-of-the-art resul
 - Leslie Smith's one cycle
 - Half-precision floating-point implementation
 
-![](/images/lesson_12_010.png)
+![](../../../../images/lesson_12_010.png)
 
 This is going to run on AWS p3 which has 8 GPUs and Volta architecture GPUs which have special support for half-precision floating-point. Fastai is the first library to actually integrate the Volta optimized half-precision floating-point into the library, so you can just do `learn.half()` and get that support automatically. And it's also the first to integrate one cycle.
 
@@ -299,15 +299,15 @@ You can see it's training three or four seconds when you do it this way. Where e
 
 **Checking on the status** [[00:43:19](https://youtu.be/ondivPiwQho?t=43m19s)]:
 
-![](/images/lesson_12_011.png)
+![](../../../../images/lesson_12_011.png)
 
 It's done! We got to 94% and it took 3 minutes and 11 seconds. Previous state-of-the-art was 1 hour 7 minutes. Was it worth fiddling around with those parameters and learning a little bit about how these architectures actually work and not just using what came out of the box? Well, holy crap. We just used a publicly available instance (we used a spot instance so it costs us $8 per hour — for 3 minutes, 40 cents) to train this from scratch 20 times faster than anybody has ever done it before. So that is one of the craziest state-of-the-art result. We've seen many but this one just blew it out of the water. This is partly thanks to fiddling around with those parameters of the architecture, mainly frankly about using Leslie Smith's one cycle. Reminder of what it is doing [00:44:35], for learning rate, it creates upward path that is equally long as the downward path so it's true triangular cyclical learning rate (CLR). As per usual, you can pick the ratio of x and y (i.e. starting LR / peak LR).
 
-![](/images/lesson_12_012.png)
+![](../../../../images/lesson_12_012.png)
 
 In this case, we picked 50 for the ratio. So we started out with much smaller learning rate. Then it has this cool idea where you get to say what percentage of your epochs is spent going from the bottom of the triangle all the way down pretty much to zero — that is the second number. So 15% of the batches are spent going from the bottom of our triangle even further.
 
-![](/images/lesson_12_013.png)
+![](../../../../images/lesson_12_013.png)
 
 That is not the only thing one cycle does, we also have momentum. Momentum goes from .95 to .85. In other words, when learning rate is really low, we use a lot of momentum and when the learning rate is really high, we use very little momentum which makes a lot of sense but until Leslie Smith showed this in the paper, Jeremy has never seen anybody do it before. It's a really cool trick. You can now use that by using `use-clr-beta` parameter in fastai ([forum post by Sylvain](http://forums.fast.ai/t/using-use-clr-beta-and-new-plotting-tools/14702)) and you should be able to replicate the state-of-the-art result. You can use it on your own computer or your Paperspace, the only thing you won't get is the multi-GPU piece, but that makes it a bit easier to train anyway.
 
@@ -324,11 +324,11 @@ Usually the strides I have seen are odd [00:46:52]. Strides are either one or tw
 
 We are going to talk about generative adversarial networks also known as GANs and specifically we are going to focus on Wasserstein GAN paper which included Soumith Chintala who went on to create PyTorch. Wasserstein GAN (WGAN) was heavily influenced by the deep convolutional generative adversarial network paper which also Soumith was involved with. It is a really interesting paper to read. A lot of it looks like this:
 
-![](/images/lesson_12_014.png)
+![](../../../../images/lesson_12_014.png)
 
 The good news is you can skip those bits because there is also a bit that looks like this:
 
-![](/images/lesson_12_015.png)
+![](../../../../images/lesson_12_015.png)
 
 A lot of papers have a theoretical section which seems to be there entirely to get past the reviewer's need for theory. That's not true with WGAN paper. The theory bit is actually interesting — you don't need to know it to use it, but if you want to learn about some cool ideas and see the thinking behind why this particular algorithm, it's absolutely fascinating. Before this paper came out, Jeremy knew nobody who studied the math it's based on, so everybody had to learn the math. The paper does a pretty good job of laying out all the pieces (you have to do a bunch of reading yourself). So if you are interested in digging into the deeper math behind some paper to see what it's like to study it, I would pick this one because at the end of that theory section, you'll come away saying "I can see now why they made this algorithm the way it is."
 
@@ -511,25 +511,25 @@ So the generator needs to start with a vector and end up with a rank 3 tensor. W
 
 Here is a convolution. We start, let's say, with a 4 by 4 grid cell with a single channel. Let's put it through a 3 by 3 kernel with a single output filter. So we have a single channel in, a single filter kernel, so if we don't add any padding, we are going to end up with 2 by 2. Remember, the convolution is just the sum of the product of the kernel and the appropriate grid cell [1:11:09]. So there is our standard 3 by 3 conv one channel one filter.
 
-![](/images/lesson_12_016.png)
+![](../../../../images/lesson_12_016.png)
 
 So the idea now is we want to go the opposite direction [1:11:25]. We want to start with our 2 by 2 and we want to create a 4 by 4. Specifically we want to create the same 4 by 4 that we started with. And we want to do that by using a convolution. How would we do that?
 
 If we have a 3 by 3 convolution, then if we want to create a 4 by 4 output, we are going to need to create this much padding:
 
-![](/images/lesson_12_017.png)
+![](../../../../images/lesson_12_017.png)
 
 Because with this much padding, we are going to end up with 4 by 4. So let's say our convolutional filter was just a bunch of zeros then we can calculate our error for each cell just by taking this subtraction:
 
-![](/images/lesson_12_018.png)
+![](../../../../images/lesson_12_018.png)
 
 Then we can get the sum of absolute values (L1 loss) by summing up the absolute values of those errors:
 
-![](/images/lesson_12_019.png)
+![](../../../../images/lesson_12_019.png)
 
 So now we could use optimization, in Excel it's called "solver" to do a gradient descent. So we will set the Total cell equal to minimum and we'll try and reduce our loss by changing our filter. You can see it's come up with a filter such that Result is almost like Data. It's not perfect, and in general, you can't assume that a deconvolution can exactly create the same exact thing you want because there is just not enough. Because there is 9 things in the filter and 16 things in the result. But it's made a pretty good attempt. So this is what a deconvolution looks like — a stride 1, 3x3 deconvolution on a 2x2 grid cell input.
 
-![](/images/lesson_12_020.png)
+![](../../../../images/lesson_12_020.png)
 
 :question: How difficult is it to create a discriminator to identify fake news vs. real news [1:13:43]?
 
@@ -549,29 +549,29 @@ The reason it's called a ConvTranspose is because it turns out that this is the 
 
 #### Visualizing [[1:16:33](https://youtu.be/ondivPiwQho?t=1h16m33s)]
 
-![http://deeplearning.net/software/theano/tutorial/conv_arithmetic.html](/images/lesson_12_021.png)
+![http://deeplearning.net/software/theano/tutorial/conv_arithmetic.html](../../../../images/lesson_12_021.png)
 
 One on the left is what we just saw of doing a 2x2 deconvolution. If there is a stride 2, then you don't just have padding around the outside, but you actually have to put padding in the middle as well. They are not actually quite implemented this way because this is slow to do. In practice, you'll implement them in a different way but it all happens behind the scene, so you don't have to worry about it. We've talked about this convolution arithmetic tutorial before and if you are still not comfortable with convolutions and in order to get comfortable with deconvolutions, this is a great site to go to. If you want to see the paper, it is [A guide to convolution arithmetic for deep learning](https://arxiv.org/abs/1603.07285).
 
 `DeconvBlock` looks identical to a `ConvBlock` except it has the word `Transpose` [1:17:49]. We just go conv → relu → batch norm as before, and it has input filters and output filters. The only difference is that stride 2 means that the grid size will double rather than half.
 
-![](/images/lesson_12_022.png)
+![](../../../../images/lesson_12_022.png)
 
 :question: Both `nn.ConvTranspose2d` and `nn.Upsample` seem to do the same thing, i.e. expand grid-size (height and width) from previous layer. Can we say `nn.ConvTranspose2d` is always better than `nn.Upsample`, since `nn.Upsample` is merely resize and fill unknowns by zero's or interpolation [1:18:10]?
 
 No, you can't. There is a fantastic interactive paper on distill.pub called [Deconvolution and Checkerboard Artifacts](https://distill.pub/2016/deconv-checkerboard/) which points out that what we are doing right now is extremely suboptimal but the good news is everybody else does it.
 
-![](/images/lesson_12_023.png)
+![](../../../../images/lesson_12_023.png)
 
 Have a look here, could you see these checkerboard artifacts? These are all from actual papers and basically they noticed every one of these papers with generative models have these checkerboard artifacts and what they realized is it's because when you have a stride 2 convolution of size three kernel, they overlap. So some grid cells gets twice as much activation.
 
-![](/images/lesson_12_024.png)
+![](../../../../images/lesson_12_024.png)
 
 So even if you start with random weights, you end up with a checkerboard artifacts. So deeper you get, the worse it gets. Their advice is less direct than it ought to be, Jeremy found that for most generative models, upsampling is better. If you `nn.Upsample`, it's basically doing the opposite of pooling — it says let's replace this one grid cell with four (2x2). There is a number of ways to upsample — one is just to copy it all across to those four, and other is to use bilinear or bicubic interpolation. There are various techniques to try and create a smooth upsampled version and you can choose any of them in PyTorch. If you do a 2 x 2 upsample and then regular stride one 3 x 3 convolution, that is another way of doing the same kind of thing as a ConvTranspose — it's doubling the grid size and doing some convolutional arithmetic on it. For generative models, it pretty much always works better. In that distil.pub publication, they indicate that maybe that's a good approach but they don't just come out and say just do this whereas Jeremy would just say just do this. Having said that, for GANS, he hasn't had that much success with it yet and he thinks it probably requires some tweaking to get it to work, The issue is that in the early stages, it doesn't create enough noise. He had a version where he tried to do it with an upsample and you could kind of see that the noise didn't look very noisy. Next week when we look at style transfer and super-resolution, you will see `nn.Upsample` really comes into its own.
 
 The generator, we can now start with the vector [1:22:04]. We can decide and say okay let's not think of it as a vector but actually it's 1x1 grid cell, and then we can turn it into a 4x4 then 8x8 and so forth. That is why we have to make sure it's a suitable multiple so that we can create something of the right size. As you can see, it's doing the exact opposite as before. It's making the cell size bigger and bigger by 2 at a time as long as it can until it gets to half the size that we want, and then finally we add `n` more on at the end with stride 1. Then we add one more ConvTranspose to finally get to the size that we wanted and we are done. Finally we put that through a `tanh` and that will force us to be in the zero to one range because of course we don't want to spit out arbitrary size pixel values. So we have a generator architecture which spits out an image of some given size with the correct number of channels with values between zero and one.
 
-![](/images/lesson_12_025.png)
+![](../../../../images/lesson_12_025.png)
 
 At this point, we can now create our model data object [1:23:38]. These things take a while to train, so we made it 128 by 128 (just a convenient way to make it a little bit faster). So that is going to be the size of the input, but then we are going to use transformation to turn it into 64 by 64.
 
@@ -590,7 +590,7 @@ x, _ = next(iter(md.val_dl))
 plt.imshow(md.trn_ds.denorm(x)[0])
 ```
 
-![](/images/lesson_12_026.png)
+![](../../../../images/lesson_12_026.png)
 
 #### Putting them all together [[1:24:30](https://youtu.be/ondivPiwQho?t=1h24m30s)]
 
@@ -619,7 +619,7 @@ for i, ax in enumerate(axes.flat):
     ax.imshow(pred_ims[i])
 ```
 
-![](/images/lesson_12_027.png)
+![](../../../../images/lesson_12_027.png)
 
 So here is an example of creating some noise and resulting four different pieces of noise.
 
@@ -635,7 +635,7 @@ def gallery(x, nc=3):
 
 We need an optimizer in order to update our gradients [1:26:41]. In the Wasserstein GAN paper, they told us to use RMSProp:
 
-![](/images/lesson_12_028.png)
+![](../../../../images/lesson_12_028.png)
 
 We can easily do that in PyTorch:
 
@@ -707,11 +707,11 @@ What we are going to do now is we have a generator that is random at the moment 
 
 So you can see that here [1:30:58]:
 
-![](/images/lesson_12_029.png)
+![](../../../../images/lesson_12_029.png)
 
 They don't talk about the loss, they actually just talk about one of the gradient updates.
 
-![](/images/lesson_12_030.png)
+![](../../../../images/lesson_12_030.png)
 
 In PyTorch, we don't have to worry about getting the gradients, we can just specify the loss and call `loss.backward()` then discriminator's `optimizer.step()` [1:34:27]. There is one key step which is that we have to keep all of our weights which are the parameters in PyTorch module in the small range of -0.01 and 0.01. Why? Because the mathematical assumptions that make this algorithm work only apply in a small ball. It is interesting to understand the math of why that is the case, but it's very specific to this one paper and understanding it won't help you understand any other paper, so only study it if you are interested. It is nicely explained and Jeremy thinks it's fun but it won't be information that you will reuse elsewhere unless you get super into GANs. He also mentioned that after the paper came out, an improved Wasserstein GAN came out that said there are better ways to ensure that your weight space is in this tight ball which was to penalize gradients that are too high, so nowadays there are slightly different ways to do this. But this line of code is the key contribution and it is what makes it Wasserstein GAN:
 
@@ -792,11 +792,11 @@ save_state(netD, 'netD_full_data.h5') # save discriminator
 
 Generated images of training using the full data:
 
-![](/images/lesson_12_038.png)
+![](../../../../images/lesson_12_038.png)
 
 Generated images of training using the sample data:
 
-![](/images/lesson_12_031.png)
+![](../../../../images/lesson_12_031.png)
 
 These are results of training using the sample data, a random 10% of our dataset and full data. ~~We will try experimenting using the full dataset.~~
 
@@ -833,7 +833,7 @@ Yeah, absolutely you can use GAN for data augmentation. Should you? I don't know
 
 We are going to use Cycle GAN to turn horses into zebras. You can also use it to turn Monet prints into photos or to turn photos of Yosemite in summer into winter.
 
-![](/images/lesson_12_032.gif)
+![](../../../../images/lesson_12_032.gif)
 
 This is going to be really straight forward because it's just a neural net [1:44:46]. All we are going to do is we are going to create an input containing lots of zebra photos and with each one we'll pair it with an equivalent horse photo and we'll just train a neural net that goes from one to the other. Or you could do the same thing for every Monet painting — create a dataset containing the photo of the place …oh wait, that's not possible because the places that Monet painted aren't there anymore and there aren't exact zebra versions of horses …how the heck is this going to work? This seems to break everything we know about what neural nets can do and how they do them.
 
@@ -843,12 +843,12 @@ The person I know who is doing the most interesting practice of Cycle GAN right 
 
 |                                 |                                 |
 |:-------------------------------:|:-------------------------------:|
-|![](/images/lesson_12_033.jpeg)  | ![](/images/lesson_12_034.jpeg) |
-| ![](/images/lesson_12_035.jpeg) | ![](/images/lesson_12_036.jpeg) |
+|![](../../../../images/lesson_12_033.jpeg)  | ![](../../../../images/lesson_12_034.jpeg) |
+| ![](../../../../images/lesson_12_035.jpeg) | ![](../../../../images/lesson_12_036.jpeg) |
 
 Here are some more of her amazing works and I think it's really interesting. I mentioned at the start of this class that GANs are in the category of stuff that is not there yet, but it's nearly there. And in this case, there is at least one person in the world who is creating beautiful and extraordinary artworks using GANs (specifically Cycle GANs). At least a dozen people I know of who are just doing interesting creative work with neural nets more generally. And the field of creative AI is going to expand dramatically.
 
-![](/images/lesson_12_037.png)
+![](../../../../images/lesson_12_037.png)
 
 Here is the basic trick [1:50:11]. This is from the Cycle GAN paper. We are going to have two images (assuming we are doing this with images). The key thing is they are not paired images, so we don't have a dataset of horses and the equivalent zebras. We have bunch of horses, and bunch of zebras. Grab one horse *X*, grab one zebra *Y*. We are going to train a generator (what they call here a "mapping function") that turns horse into zebra. We'll call that mapping function *G* and we'll create one mapping function (a.k.a. generator) that turns a zebra into a horse and we will call that *F*. We will create a discriminator just like we did before which is going to get as good as possible at recognizing real from fake horses so that will be *Dx*. Another discriminator which is going to be as good as possible at recognizing real from fake zebras, we will call that *Dy*. That is our starting point.
 
@@ -858,7 +858,7 @@ So notice *F* (zebra to horse) and *G* (horse to zebra) are doing two things [1:
 
 It's good to look at the equations in this paper because they are good examples — they are written pretty simply and it's not like some of the Wasserstein GAN paper which is lots of theoretical proofs and whatever else [1:54:05]. In this case, they are just equations that lay out what's going on. You really want to get to a point where you can read them and understand them.
 
-![](/images/lesson_12_039.png)
+![](../../../../images/lesson_12_039.png)
 
 So we've got a horse *X* and a zebra *Y* [1:54:34]. For some mapping function *G* which is our horse to zebra mapping function, then there is a GAN loss which is a bit we are already familiar with it says we have a horse, a zebra, a fake zebra recognizer, and a horse-zebra generator. The loss is what we saw before — it's our ability to draw one zebra out of our zebras and recognize whether it is real or fake. Then take a horse and turn it into a zebra and recognize whether that's real or fake. You then do one minus the other (in this case, they have a log in there but the log is not terribly important). So this is the thing we just saw. That is why we did Wasserstein GAN first. This is just a standard GAN loss in math form.
 
@@ -872,7 +872,7 @@ So we've got a horse *X* and a zebra *Y* [1:54:34]. For some mapping function *G
 
 So we've got a GAN loss and the next piece is the cycle-consistency loss. So the basic idea here is that we start with our horse, use our zebra generator on that to create a zebra, use our horse generator on that to create a horse and compare that to the original horse. This double lines with the 1 is the L1 loss — sum of the absolute value of differences [1:57:35]. Where else if this was 2, it would be the L2 loss so the 2-norm which would be the sum of the squared differences.
 
-![](/images/lesson_12_040.png)
+![](../../../../images/lesson_12_040.png)
 
 We now know this squiggle idea which is from our horses grab a horse. This is what we mean by sample from a distribution. There's all kinds of distributions but most commonly in these papers we're using an empirical distribution, in other words we've got some rows of data, grab a row. So here, it is saying grab something from the data and we are going to call that thing *x*. To recapture:
 
@@ -887,7 +887,7 @@ That is our cycle-consistency loss.
 
 #### Full objective [[1:58:54](https://youtu.be/ondivPiwQho?t=1h58m54s)]
 
-![](/images/lesson_12_041.png)
+![](../../../../images/lesson_12_041.png)
 
 Now we get our loss function and the whole loss function depends on:
 
@@ -1029,7 +1029,7 @@ The first thing we are going to need is a data loader. So this is also a great o
 
 Here is `CreateDataset` and this library does more than just Cycle GAN — it handles both aligned and unaligned image pairs [2:04:46]. We know that our image pairs are unaligned so we are going to `UnalignedDataset`.
 
-![](/images/lesson_12_042.png)
+![](../../../../images/lesson_12_042.png)
 
 As expected, it has `__getitem__` and `__len__`. For length, *A* and *B* are our horses and zebras, we got two sets, so whichever one is longer is the length of the `DataLoader`. `__getitem__` is going to:
 
@@ -1041,7 +1041,7 @@ As expected, it has `__getitem__` and `__len__`. For length, *A* and *B* are our
 
 Hopefully you can kind of see that this is looking pretty similar to the kind of things fast.ai does. Fast.ai obviously does quite a lot more when it comes to transforms and performance, but remember, this is research code for this one thing and it's pretty cool that they did all this work.
 
-![](/images/lesson_12_043.png)
+![](../../../../images/lesson_12_043.png)
 
 ```python
 data_loader = CreateDataLoader(opt)
@@ -1061,11 +1061,11 @@ We've got a data loader so we can go and load our data into it [2:06:17]. That w
 
 Next step is to create a model. Same idea, we've got different kind of models and we're going to be doing a Cycle GAN.
 
-![](/images/lesson_12_044.png)
+![](../../../../images/lesson_12_044.png)
 
 Here is our `CycleGANModel`. There is quite a lot of stuff in `CycleGANModel`, so let's go through and find out what's going to be used. At this stage, we've just called initializer so when we initialize it, it's going to go through and define two generators which is not surprising a generator for our horses and a generator for zebras. There is some way for it to generate a pool of fake data and then we're going to grab our GAN loss, and as we talked about our cycle-consistency loss is an L1 loss. They are going to use Adam, so obviously for Cycle GANS they found Adam works pretty well. Then we are going to have an optimizer for our horse discriminator, an optimizer for our zebra discriminator, and an optimizer for our generator. The optimizer for the generator is going to contain the parameters both for the horse generator and the zebra generator all in one place.
 
-![](/images/lesson_12_045.png)
+![](../../../../images/lesson_12_045.png)
 
 So the initializer is going to set up all of the different networks and loss functions we need and they are going to be stored inside this `model` [2:08:14].
 
@@ -1232,7 +1232,7 @@ model [CycleGANModel] was created
 
 It then prints out and shows us exactly the PyTorch model we have. It's interesting to see that they are using ResNets and so you can see the ResNets look pretty familiar, so we have conv, batch norm, Relu. `InstanceNorm` is just the same as batch norm basically but it applies to one image at a time and the difference isn't particularly important. And you can see they are doing reflection padding just like we are. You can kind of see when you try to build everything from scratch like this, it is a lot of work and you can forget the nice little things that fastai does automatically for you. You have to do all of them by hand and only you end up with a subset of them. So over time, hopefully soon, we'll get all of this GAN stuff into fastai and it'll be nice and easy.
 
-![](/images/lesson_12_046.png)
+![](../../../../images/lesson_12_046.png)
 
 We've got our model and remember the model contains the loss functions, generators, discriminators, all in one convenient place [2:09:32]. I've gone ahead and copied and pasted and slightly refactored the training loop from their code so that we can run it inside the notebook. So this one should look a lot familiar. A loop to go through each epoch and a loop to go through the data. Before we did this, we set up `dataset`. This is actually not a PyTorch dataset, I think this is what they used slightly confusingly to talk about their combined what we would call a model data object — all the data that they need. Loop through that with `tqdm` to get a progress bar, and so now we can go through and see what happens in the model.
 
@@ -1279,25 +1279,25 @@ def train(total_steps=0):
 
 `set_input` [2:10:32]: It's a different approach to what we do in fastai. This is kind of neat, it's quite specific to Cycle GANs but basically internally inside this model is this idea that we are going to go into our data and grab the appropriate one. We are either going horse to zebra or zebra to horse, depending on which way we go, `A` is either horse or zebra, and vice versa. If necessary put it on the appropriate GPU, then grab the appropriate paths. So the model now has a mini-batch of horses and a mini-batch of zebras.
 
-![](/images/lesson_12_047.png)
+![](../../../../images/lesson_12_047.png)
 
 Now we optimize the parameters [2:11:19]. It's kind of nice to see it like this. You can see each step. First of all, try to optimize the generators, then try to optimize the horse discriminators, then try to optimize the zebra discriminator. `zero_grad()` is a part of PyTorch, as well as `step()`. So the interesting bit is the actual thing that does the back propagation on the generator.
 
-![](/images/lesson_12_048.png)
+![](../../../../images/lesson_12_048.png)
 
 Here it is [2:12:04]. Let's jump to the key pieces. There's all the formula that we just saw in the paper. Let's take a horse and generate a zebra. Let's now use the discriminator to see if we can tell whether it's fake or not (`pred_fake`). Then let's pop that into our loss function which we set up earlier to get a GAN loss based on that prediction. Let's do the same thing going the opposite direction using the opposite discriminator then put that through the loss function again. Then let's do the cycle consistency loss. Again, we take our fake which we created and try and turn it back again into the original. Let's use the cycle consistency loss function we created earlier to compare it to the real original. And here is that lambda — so there's some weight that we used and that would set up, actually we just use the default that they suggested in their options. Then do the same for the opposite direction and then add them all together. We then do the backward step. That's it.
 
-![](/images/lesson_12_049.png)
+![](../../../../images/lesson_12_049.png)
 
-![](/images/lesson_12_050.png)
+![](../../../../images/lesson_12_050.png)
 
 So we can do the same thing for the first discriminator [2:13:50]. Since basically all the work has been done now, there's much less to do here. There that is. We won't step all through it but it's basically the same basic stuff that we've already seen.
 
-![](/images/lesson_12_051.png)
+![](../../../../images/lesson_12_051.png)
 
 So `optimize_parameters()` is calculating the losses and doing the optimizer step. From time to time, save and print out some results. Then from time to time, update the learning rate so they've got some learning rate annealing built in here as well. Kind of like fast.ai, they've got this idea of schedulers which you can then use to update your learning rates.
 
-![](/images/lesson_12_052.png)
+![](../../../../images/lesson_12_052.png)
 
 For those of you are interested in better understanding deep learning APIs, contributing more to fast.ai, or creating your own version of some of this stuff in some different back-end, it's cool to look at a second API that covers some subset of some of the similar things to get a sense for how they are solving some of these problems and what the similarities/differences are.
 
@@ -1314,43 +1314,43 @@ We train that for a little while and then we can just grab a few examples and he
 
 1. After train for 4 epochs:
 
-![](/images/lesson_12_053.png)
+![](../../../../images/lesson_12_053.png)
 
-![](/images/lesson_12_054.png)
+![](../../../../images/lesson_12_054.png)
 
-![](/images/lesson_12_055.png)
+![](../../../../images/lesson_12_055.png)
 
-![](/images/lesson_12_056.png)
+![](../../../../images/lesson_12_056.png)
 
-![](/images/lesson_12_057.png)
+![](../../../../images/lesson_12_057.png)
 
-![](/images/lesson_12_058.png)
+![](../../../../images/lesson_12_058.png)
 
-![](/images/lesson_12_059.png)
+![](../../../../images/lesson_12_059.png)
 
-![](/images/lesson_12_060.png)
+![](../../../../images/lesson_12_060.png)
 
 2. After train for 300 epochs + 100 epochs with learning rate annealing:
 
-![](/images/lesson_12_061.png)
+![](../../../../images/lesson_12_061.png)
 
-![](/images/lesson_12_062.png)
+![](../../../../images/lesson_12_062.png)
 
-![](/images/lesson_12_063.png)
+![](../../../../images/lesson_12_063.png)
 
-![](/images/lesson_12_064.png)
+![](../../../../images/lesson_12_064.png)
 
-![](/images/lesson_12_065.png)
+![](../../../../images/lesson_12_065.png)
 
-![](/images/lesson_12_066.png)
+![](../../../../images/lesson_12_066.png)
 
-![](/images/lesson_12_067.png)
+![](../../../../images/lesson_12_067.png)
 
-![](/images/lesson_12_068.png)
+![](../../../../images/lesson_12_068.png)
 
-![](/images/lesson_12_069.png)
+![](../../../../images/lesson_12_069.png)
 
-![](/images/lesson_12_070.png)
+![](../../../../images/lesson_12_070.png)
 
 It took Jeremy like 24 hours to train it even that far so it's kind of slow [2:16:39]. I know Helena is constantly complaining on Twitter about how long these things take. I don't know how she's so productive with them.
 

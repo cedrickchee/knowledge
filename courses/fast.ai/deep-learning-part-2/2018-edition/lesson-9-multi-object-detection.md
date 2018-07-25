@@ -136,7 +136,7 @@ b: [  1.  89. 499. 192.]
 b: [  1.  89. 499. 192.]
 ```
 
-![Bounding box problem when using data augmentation](/images/pascal_notebook_data_aug_wrong_bbox.png)
+![Bounding box problem when using data augmentation](../../../../images/pascal_notebook_data_aug_wrong_bbox.png)
 
 As you can see, the image gets rotated and lighting varies, but bounding box is not moving and is in a wrong spot [00:06:17]. This is the problem with data augmentations when your dependent variable is pixel values or in some way connected to the independent variable — they need to be augmented together.
 
@@ -180,13 +180,13 @@ for i, ax in enumerate(axes.flat):
 [  0.  53. 224. 139.]
 ```
 
-![Bounding box moves with the image and is in the right spot](/images/pascal_notebook_obj_det_one_img_bbox_plot.png)
+![Bounding box moves with the image and is in the right spot](../../../../images/pascal_notebook_obj_det_one_img_bbox_plot.png)
 
 ##### `custom_head`
 
 `learn.summary()` will run a small batch of data through a model and prints out the size of tensors at every layer. As you can see, right before the `Flatten` layer, the tensor has the shape of 512 by 7 by 7. So if it were a rank 1 tensor (i.e. a single vector) its length will be 25088 (512 * 7 * 7)and that is why our custom header's input size is 25088. Output size is 4 since it is the bounding box coordinates.
 
-![Model summary](/images/pascal_notebook_model_summary.png)
+![Model summary](../../../../images/pascal_notebook_model_summary.png)
 
 ### Single Object Detection
 
@@ -281,7 +281,7 @@ class ConcatLblDataset(Dataset):
     """
     A dataset that adds a second label to an existing dataset.
     """
-    
+
     def __init__(self, ds, y2):
         """
         Initialize
@@ -290,10 +290,10 @@ class ConcatLblDataset(Dataset):
         y2: contains the additional dependent variables
         """
         self.ds, self.y2 = ds, y2
-    
+
     def __len__(self):
         return len(self.ds)
-    
+
     def __getitem__(self, i):
         x, y = self.ds[i]
 
@@ -349,7 +349,7 @@ draw_rect(ax, b)
 draw_text(ax, b[:2], md2.classes[y[1][idx]])
 ```
 
-![Single image object detection](/images/pascal_notebook_single_obj_det.png)
+![Single image object detection](../../../../images/pascal_notebook_single_obj_det.png)
 
 Let's break that code down a bit.
 
@@ -459,7 +459,7 @@ The loss function needs to look at these `4 + len(cats)` activations and decide 
 def detn_loss(input, target):
     """
     Loss function for the position and class of the largest object in the image.
-    """    
+    """
     bb_t, c_t = target
     # bb_i: the 4 values for the bbox
     # c_i: the 20 classes `len(cats)`
@@ -526,10 +526,10 @@ learn.fit(lr, 1, cycle_len=3, use_clr=(32, 5))
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
-epoch      trn_loss   val_loss   detn_acc   detn_l1       
-    0      71.055205  48.157942  0.754      33.202651 
-    1      51.411235  39.722549  0.776      26.363626     
-    2      42.721873  38.36225   0.786      25.658993     
+epoch      trn_loss   val_loss   detn_acc   detn_l1
+    0      71.055205  48.157942  0.754      33.202651
+    1      51.411235  39.722549  0.776      26.363626
+    2      42.721873  38.36225   0.786      25.658993
 [array([38.36225]), 0.7860000019073486, 25.65899333190918]
 ```
 
@@ -547,12 +547,12 @@ learn.fit(lrs/5, 1, cycle_len=5, use_clr=(32, 10))
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
-epoch      trn_loss   val_loss   detn_acc   detn_l1       
-    0      36.650519  37.198765  0.768      23.865814 
-    1      30.822986  36.280846  0.776      22.743629     
-    2      26.792856  35.199342  0.756      21.564384     
-    3      23.786961  33.644777  0.794      20.626075     
-    4      21.58091   33.194585  0.788      20.520627     
+epoch      trn_loss   val_loss   detn_acc   detn_l1
+    0      36.650519  37.198765  0.768      23.865814
+    1      30.822986  36.280846  0.776      22.743629
+    2      26.792856  35.199342  0.756      21.564384
+    3      23.786961  33.644777  0.794      20.626075
+    4      21.58091   33.194585  0.788      20.520627
 [array([33.19459]), 0.788, 20.52062666320801]
 ```
 
@@ -564,17 +564,17 @@ learn.fit(lrs/10, 1, cycle_len=10, use_clr=(32, 10))
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
-epoch      trn_loss   val_loss   detn_acc   detn_l1       
-    0      19.133272  33.833656  0.804      20.774298 
-    1      18.754909  35.271939  0.77       20.572007     
-    2      17.824877  35.099138  0.776      20.494296     
-    3      16.8321    33.782667  0.792      20.139132     
-    4      15.968     33.525141  0.788      19.848904     
-    5      15.356815  33.827995  0.782      19.483242     
-    6      14.589975  33.49683   0.778      19.531291     
-    7      13.811117  33.022376  0.794      19.462907     
-    8      13.238251  33.300647  0.794      19.423868     
-    9      12.613972  33.260653  0.788      19.346758     
+epoch      trn_loss   val_loss   detn_acc   detn_l1
+    0      19.133272  33.833656  0.804      20.774298
+    1      18.754909  35.271939  0.77       20.572007
+    2      17.824877  35.099138  0.776      20.494296
+    3      16.8321    33.782667  0.792      20.139132
+    4      15.968     33.525141  0.788      19.848904
+    5      15.356815  33.827995  0.782      19.483242
+    6      14.589975  33.49683   0.778      19.531291
+    7      13.811117  33.022376  0.794      19.462907
+    8      13.238251  33.300647  0.794      19.423868
+    9      12.613972  33.260653  0.788      19.346758
 [array([33.26065]), 0.7880000019073486, 19.34675830078125]
 ```
 
@@ -588,7 +588,7 @@ Interestingly, when we do accuracy (classification) and bounding box at the same
 
 Here are the result [00:24:34]. As before, it does a good job when there is single major object in the image.
 
-![Training results](/images/pascal_notebook_single_obj_det_train_results.png)
+![Training results](../../../../images/pascal_notebook_single_obj_det_train_results.png)
 
 ### Multi Label Classification
 
@@ -731,10 +731,10 @@ learn.fit(lr, 1, cycle_len=3, use_clr=(32, 5))
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
-epoch      trn_loss   val_loss   <lambda>                  
-    0      0.319539   0.139347   0.9535    
-    1      0.172275   0.080689   0.9724                    
-    2      0.116136   0.075965   0.975                     
+epoch      trn_loss   val_loss   <lambda>
+    0      0.319539   0.139347   0.9535
+    1      0.172275   0.080689   0.9724
+    2      0.116136   0.075965   0.975
 
 [array([0.07597]), 0.9750000004768371]
 
@@ -750,12 +750,12 @@ learn.fit(lrs/10, 1, cycle_len=5, use_clr=(32, 5))
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
-epoch      trn_loss   val_loss   <lambda>                   
-    0      0.071997   0.078266   0.9734    
-    1      0.055321   0.082668   0.9737                     
-    2      0.040407   0.077682   0.9757                     
-    3      0.027939   0.07651    0.9756                     
-    4      0.019983   0.07676    0.9763                     
+epoch      trn_loss   val_loss   <lambda>
+    0      0.071997   0.078266   0.9734
+    1      0.055321   0.082668   0.9737
+    2      0.040407   0.077682   0.9757
+    3      0.027939   0.07651    0.9756
+    4      0.019983   0.07676    0.9763
 [array([0.07676]), 0.9763000016212463]
 
 # Save the model
@@ -781,7 +781,7 @@ for i, ax in enumerate(axes.flat):
 plt.tight_layout()
 ```
 
-![Multi-class classification](/images/pascal_multi_notebook_img_classification_plot.png)
+![Multi-class classification](../../../../images/pascal_multi_notebook_img_classification_plot.png)
 
 Multi-class classification is pretty straight forward [00:28:28]. One minor tweak is the use of `set` in this line so that each object type appear once:
 
@@ -797,7 +797,7 @@ We have an input image that goes through a conv net which outputs a vector of si
 
 The second way to do this is rather than using `nn.linear`, what if instead, we took from our ResNet convolutional backbone and added an nn.Conv2d with stride 2 [00:31:32]? This will give us a `4 x 4 x [# of filters]` tensor — here let's make it `4 x 4 x (4 + c)` so that we get a tensor where the number of elements is exactly equal to the number of elements we wanted. Now if we created a loss function that took a `4 x 4 x (4 + c)` tensor and and mapped it to 16 objects in the image and checked whether each one was correctly represented by these `4 + c` activations, this would work as well. It turns out, both of these approaches are actually used [00:33:48]. The approach where the output is one big long vector from a fully connected linear layer is used by a class of models known as [YOLO (You Only Look Once)](https://arxiv.org/abs/1506.02640), where else, the approach of the convolutional activations is used by models which started with something called [SSD (Single Shot Detector)](https://arxiv.org/abs/1512.02325). Since these things came out very similar times in late 2015, things are very much moved towards SSD. So the point where this morning, [YOLO version 3](https://pjreddie.com/media/files/papers/YOLOv3.pdf) came out and is now doing SSD, so that's what we are going to do. We will also learn about why this makes more sense as well.
 
-![Possible architectures of identifying 16 objects](/images/pascal_multi_notebook_possible_arch_det_16_obj.png)
+![Possible architectures of identifying 16 objects](../../../../images/pascal_multi_notebook_possible_arch_det_16_obj.png)
 
 #### Anchor Boxes
 
@@ -805,7 +805,7 @@ The second way to do this is rather than using `nn.linear`, what if instead, we 
 
 Let's imagine that we had another `Conv2d(stride=2)` then we would have `2 x 2 x (4 + c)` tensor. Basically, it is creating a grid that looks something like this:
 
-![Grid](/images/pascal_multi_notebook_grid.png)
+![Grid](../../../../images/pascal_multi_notebook_grid.png)
 
 This is how the geometry of the activations of the second extra convolutional stride 2 layer are.
 
@@ -821,11 +821,11 @@ Take a single activation (in this case in the maxpool layer) and let's see where
 
 If we trace one of the maxpool activation backwards:
 
-![Excel spreadsheet - maxpool activations](/images/pascal_multi_receptive_field_excel_1.png)
+![Excel spreadsheet - maxpool activations](../../../../images/pascal_multi_receptive_field_excel_1.png)
 
 Tracing back even farther until we get back to the source image:
 
-![Excel spreadsheet - source image](/images/pascal_multi_receptive_field_excel_2.png)
+![Excel spreadsheet - source image](../../../../images/pascal_multi_receptive_field_excel_2.png)
 
 What is more, the middle portion has lots of weights (or connections) coming out of where else, cells in the outside (edges) only have one (don't have many) weight coming out. In other words, the center of the box has more dependencies. So we call this 6 x 6 cells the receptive field of the one activation we picked.
 
@@ -850,7 +850,7 @@ class StdConv(nn.Module):
         self.conv = nn.Conv2d(nin, nout, 3, stride=stride, padding=1)
         self.bn = nn.BatchNorm2d(nout)
         self.drop = nn.Dropout(drop)
-        
+
     def forward(self, x):
         return self.drop(self.bn(F.relu(self.conv(x))))
 
@@ -863,7 +863,7 @@ def flatten_conv(x, k):
 class OutConv(nn.Module):
     """
     A combination block of `Conv2d`, `4 x Stride 1`, `Conv2d`, `C x Stride 1` with two layers.
-    
+
     We are outputting `4 + C`
     """
     def __init__(self, k, nin, bias):
@@ -872,7 +872,7 @@ class OutConv(nn.Module):
         self.oconv1 = nn.Conv2d(nin, (len(id2cat) + 1) * k, 3, padding=1) # +1 is adding one more class for background.
         self.oconv2 = nn.Conv2d(nin, 4 * k, 3, padding=1)
         self.oconv1.bias.data.zero_().add(bias)
-        
+
     def forward(self, x):
         return [flatten_conv(self.oconv1(x), self.k),
                 flatten_conv(self.oconv2(x), self.k)]
@@ -889,7 +889,7 @@ class SSD_Head(nn.Module):
         self.sconv0 = StdConv(512, 256, stride=1)
         self.sconv2 = StdConv(256, 256)
         self.out = OutConv(k, 256, bias)
-        
+
     def forward(self, x):
         x = self.drop(F.relu(x))
         x = self.sconv0(x)
@@ -912,17 +912,17 @@ SSD_Head:
 4. At the end, the output of step 3 is `4x4` which gets passed to `OutConv`.
 
     `OutConv` has two separate convolutional layers each of which is stride 1 so it is not changing the geometry of the input. One of them is of length of the number of classes (ignore `k` for now and `+1` is for "background" — i.e. no object was detected), the other's length is 4.
-    
+
     Rather than having a single conv layer that outputs `4 + c`, let's have two conv layers and return their outputs in a list.
-    
+
     > This allows these layers to specialize just a little bit. We talked about this idea that when you have multiple tasks, they can share layers, but they do not have to share all the layers.
-    
+
     In this case, our two tasks of creating a classifier and creating bounding box regression share every single layers except the very last one.
 5. At the end, we flatten out the convolution because Jeremy wrote the loss function to expect flattened out tensor, but we could totally rewrite it to not do that.
 
 #### [Fastai Coding Style](https://github.com/fastai/fastai/blob/master/docs/style.md)
 
-It is very heavily orient towards the idea of expository programming which is the idea that programming code should be something that you can use to explain an idea, ideally as readily as mathematical notation, to somebody that understands your coding method. 
+It is very heavily orient towards the idea of expository programming which is the idea that programming code should be something that you can use to explain an idea, ideally as readily as mathematical notation, to somebody that understands your coding method.
 
 **How do we write a loss function for this?**
 
@@ -936,7 +936,7 @@ The loss function needs to take each of the objects in the image and match them 
 
 Here's our goal:
 
-![Loss function mapping dependent variables from `mbb.csv` to final conv layer activations](/images/pascal_multi_notebook_goal_dep_vars_fin_layer_loss_fn.png)
+![Loss function mapping dependent variables from `mbb.csv` to final conv layer activations](../../../../images/pascal_multi_notebook_goal_dep_vars_fin_layer_loss_fn.png)
 
 Our dependent variable looks like the one on the left, and our final convolutional layer is going to be `4 x 4 x (c + 1)` in this case `c = 20`. We then flatten that out into a vector. Our goal is to come up with a function which takes in a dependent variable and also some particular set of activations that ended up coming out of the model and returns a higher number if these activations are not a good reflection of the ground truth bounding boxes; or a lower number if it is a good reflection.
 
@@ -1092,7 +1092,7 @@ _Note that the bounding box coordinates have been scaled to between 0 and 1._
 def torch_gt(ax, ima, bbox, clas, prs=None, thresh=0.4):
     """
     We already have `show_ground_truth` function.
-    
+
     This function simply converts tensors into numpy array. (gt stands for ground truth)
     """
     return show_ground_truth(ax, ima, to_np((bbox * 224).long()),
@@ -1104,7 +1104,7 @@ fig, ax = plt.subplots(figsize=(7, 7))
 torch_gt(ax, ima, bbox, clas)
 ```
 
-![Ground truth](/images/pascal_multi_notebook_ground_truth.png)
+![Ground truth](../../../../images/pascal_multi_notebook_ground_truth.png)
 
 The above is a ground truth.
 
@@ -1115,7 +1115,7 @@ fig, ax = plt.subplots(figsize=(7, 7))
 torch_gt(ax, ima, anchor_cnr, b_clasi.max(1)[1])
 ```
 
-![4x4 grid cells from final conv layer](/images/pascal_multi_notebook_4_by_4_grid_from_fin_conv_layer.png)
+![4x4 grid cells from final conv layer](../../../../images/pascal_multi_notebook_4_by_4_grid_from_fin_conv_layer.png)
 
 Each of these square boxes, different papers call them different things. The three terms you'll hear are: anchor boxes, prior boxes, or default boxes. We will stick with the term **anchor boxes**.
 
@@ -1169,7 +1169,7 @@ fig, ax = plt.subplots(figsize=(7, 7))
 torch_gt(ax, ima, a_ic, b_clasi.max(1)[1], b_clasi.max(1)[0].sigmoid(), thresh=0.0)
 ```
 
-![Activations mapped to bounding boxes](/images/pascal_multi_notebook_activations_to_bbox_plot.png)
+![Activations mapped to bounding boxes](../../../../images/pascal_multi_notebook_activations_to_bbox_plot.png)
 
 **Calculate Jaccard index (all objects `x` all grid cells)**
 
@@ -1183,12 +1183,12 @@ overlaps
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
-Columns 0 to 9 
+Columns 0 to 9
  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0091
  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0356  0.0549
  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000
 
-Columns 10 to 15 
+Columns 10 to 15
  0.0922  0.0000  0.0000  0.0315  0.3985  0.0000
  0.0103  0.0000  0.2598  0.4538  0.0653  0.0000
  0.0000  0.1897  0.0000  0.0000  0.0000  0.0000
@@ -1209,7 +1209,7 @@ overlaps.max(1) # axis 1 -> horizontal (left-to-right)
   0.3985
   0.4538
   0.1897
- [torch.cuda.FloatTensor of size 3 (GPU 0)], 
+ [torch.cuda.FloatTensor of size 3 (GPU 0)],
   14
   13
   11
@@ -1241,7 +1241,7 @@ overlaps.max(0) # axis 0 -> vertical (top-to-bottom)
   0.4538
   0.3985
   0.0000
- [torch.cuda.FloatTensor of size 16 (GPU 0)], 
+ [torch.cuda.FloatTensor of size 16 (GPU 0)],
   0
   0
   0
@@ -1296,7 +1296,7 @@ gt_overlap, gt_idx
   1.9900
   1.9900
   0.0000
- [torch.cuda.FloatTensor of size 16 (GPU 0)], 
+ [torch.cuda.FloatTensor of size 16 (GPU 0)],
   0
   0
   0
@@ -1502,7 +1502,7 @@ for idx, ax in enumerate(axes.flat):
 plt.tight_layout()
 ```
 
-![Matching stage result](/images/pascal_multi_notebook_matching_stage_result.png)
+![Matching stage result](../../../../images/pascal_multi_notebook_matching_stage_result.png)
 
 In practice, we want to remove the background and also add some threshold for probabilities, but it is on the right track. The potted plant image, the result is not surprising as all of our anchor boxes were small (4x4 grid).
 
@@ -1519,7 +1519,7 @@ We then grab the actual position of the anchor boxes, and we will move them arou
 ```Python
 def actn_to_bb(actn, anchors):
     # e.g. of actn tensor of shape (16, 4): [[0.2744 0.2912 -0.3941 -0.7735], [...]]
-    
+
     # normalize actn values between 1 and -1 (tanh func)
     actn_bbs = torch.tanh(actn)
     # actn_bbs[:, :2] grab the first 2 columns (obj bbox top-left coords) from the tensor & scale back the coords to grid sizes
@@ -1540,17 +1540,17 @@ If it has multiple things in it, you cannot use softmax because softmax really e
 class BCE_Loss(nn.Module):
     """
     Binomial Cross Entropy Loss.
-    
+
     Each anchor box can only have one object associated with it. Its possible for an anchor box to have NOTHING in it.
     We could:
-    
+
     1. treat background as a class - difficult, because its asking the NN to say 'does this square NOT have 20 other things'
     2. BCE loss, checks by process of elimination - if there's no 20 object detected, then its background (0 positives)
     """
     def __init__(self, num_classes):
         super().__init__()
         self.num_classes = num_classes
-    
+
     def forward(self, pred, targ):
         # take the one hot embedding of the target (at this stage, we do have the idea of background)
         t = one_hot_embedding(targ, self.num_classes + 1)
@@ -1560,7 +1560,7 @@ class BCE_Loss(nn.Module):
         w = self.get_weight(x, t)
         # use binary cross-entropy predictions
         return F.binary_cross_entropy_with_logits(x, t, w, size_average=False) / self.num_classes
-    
+
     def get_weight(self, x, t):
         return None
 ```
@@ -1622,7 +1622,7 @@ There are 3 ways to do this:
 
 Combining these approaches, you can create lots of anchor boxes.
 
-![More anchors](/images/pascal_multi_notebook_more_anchors.png)
+![More anchors](../../../../images/pascal_multi_notebook_more_anchors.png)
 
 **Create anchors**
 
@@ -1731,11 +1731,11 @@ learn.fit(lrs, 1, cycle_len=4, use_clr=(20, 8))
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
-epoch      trn_loss   val_loss                           
+epoch      trn_loss   val_loss
     0      159.414772 140.101793
-    1      126.402466 102.215643                         
-    2      108.585769 92.588025                          
-    3      96.446407  88.625489                           
+    1      126.402466 102.215643
+    2      108.585769 92.588025
+    3      96.446407  88.625489
 [array([88.62549])]
 
 learn.save('tmp')
@@ -1746,11 +1746,11 @@ learn.fit(lrs / 2, 1, cycle_len=4, use_clr=(20, 8))
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
-epoch      trn_loss   val_loss                            
+epoch      trn_loss   val_loss
     0      92.379641  101.096312
-    1      86.359159  84.90464                            
-    2      77.63975   80.936112                           
-    3      69.843253  77.107912                           
+    1      86.359159  84.90464
+    2      77.63975   80.936112
+    3      69.843253  77.107912
 [array([77.10791])]
 
 learn.save('prefocal')
@@ -1774,7 +1774,7 @@ for idx,ax in enumerate(axes.flat):
 plt.tight_layout()
 ```
 
-![More anchors training result](/images/pascal_multi_notebook__more_anchors_training_res_plot.png)
+![More anchors training result](../../../../images/pascal_multi_notebook__more_anchors_training_res_plot.png)
 
 #### Focal Loss
 
@@ -1792,17 +1792,17 @@ When we defined the binomial cross entropy loss, you may have noticed that there
 class BCE_Loss(nn.Module):
     """
     Binomial Cross Entropy Loss.
-    
+
     Each anchor box can only have one object associated with it. Its possible for an anchor box to have NOTHING in it.
     We could:
-    
+
     1. treat background as a class - difficult, because its asking the NN to say 'does this square NOT have 20 other things'
     2. BCE loss, checks by process of elimination - if there's no 20 object detected, then its background (0 positives)
     """
     def __init__(self, num_classes):
         super().__init__()
         self.num_classes = num_classes
-    
+
     def forward(self, pred, targ):
         # take the one hot embedding of the target (at this stage, we do have the idea of background)
         t = one_hot_embedding(targ, self.num_classes + 1)
@@ -1812,7 +1812,7 @@ class BCE_Loss(nn.Module):
         w = self.get_weight(x, t)
         # use binary cross-entropy predictions
         return F.binary_cross_entropy_with_logits(x, t, w, size_average=False) / self.num_classes
-    
+
     def get_weight(self, x, t):
         return None
 ```
@@ -1846,17 +1846,17 @@ learn.fit(lrs, 1, cycle_len=10, use_clr=(20, 10))
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
-epoch      trn_loss   val_loss                            
-    0      15.550314  21.57637  
-    1      16.648582  18.164512                           
-    2      15.653142  14.748936                           
-    3      14.288999  15.339103                           
-    4      12.949968  12.573363                           
-    5      11.752214  12.210602                           
-    6      10.788599  11.682604                           
-    7      10.097296  11.840508                           
-    8      9.543635   11.384417                           
-    9      9.004486   11.148148                           
+epoch      trn_loss   val_loss
+    0      15.550314  21.57637
+    1      16.648582  18.164512
+    2      15.653142  14.748936
+    3      14.288999  15.339103
+    4      12.949968  12.573363
+    5      11.752214  12.210602
+    6      10.788599  11.682604
+    7      10.097296  11.840508
+    8      9.543635   11.384417
+    9      9.004486   11.148148
 [array([11.14815])]
 
 learn.save('fl0')
@@ -1867,17 +1867,17 @@ learn.fit(lrs / 4, 1, cycle_len=10, use_clr=(20, 10))
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
-epoch      trn_loss   val_loss                            
-    0      8.384461   11.417507 
-    1      8.436978   11.682564                           
-    2      8.360014   11.665135                           
-    3      8.155825   11.368144                           
-    4      7.931341   11.36015                            
-    5      7.63321    11.13176                            
-    6      7.330255   11.283114                           
-    7      7.063865   11.128076                           
-    8      6.867503   11.084224                           
-    9      6.725401   11.066812                           
+epoch      trn_loss   val_loss
+    0      8.384461   11.417507
+    1      8.436978   11.682564
+    2      8.360014   11.665135
+    3      8.155825   11.368144
+    4      7.931341   11.36015
+    5      7.63321    11.13176
+    6      7.330255   11.283114
+    7      7.063865   11.128076
+    8      6.867503   11.084224
+    9      6.725401   11.066812
 [array([11.06681])]
 
 learn.save('drop4')
@@ -1886,7 +1886,7 @@ learn.load('drop4')
 plot_results(0.75)
 ```
 
-![Focal loss training result](/images/pascal_multi_notebook_focal_loss_training_res.png)
+![Focal loss training result](../../../../images/pascal_multi_notebook_focal_loss_training_res.png)
 
 This time things are looking quite a bit better.
 
@@ -1955,11 +1955,11 @@ def show_nmf(idx):
     a_ic = actn_to_bb(b_bb[idx], anchors)
     clas_pr, clas_ids = b_clas[idx].max(1)
     clas_pr = clas_pr.sigmoid()
-    
+
     conf_scores = b_clas[idx].sigmoid().t().data
-    
+
     out1, out2, cc = [], [], []
-    
+
     for cl in range(0, len(conf_scores) - 1):
         c_mask = conf_scores[cl] > 0.25
         if c_mask.sum() == 0:
@@ -1975,33 +1975,33 @@ def show_nmf(idx):
     cc = T(np.concatenate(cc))
     out1 = torch.cat(out1)
     out2 = torch.cat(out2)
-    
+
     fig, ax = plt.subplots(figsize=(8, 8))
     torch_gt(ax, ima, out2, cc, out1, 0.1)
 
 for i in range(12):
-    show_nmf(i)    
+    show_nmf(i)
 ```
 
-![Full model result - image 1](/images/pascal_multi_notebook_full_model_res_01.png)
+![Full model result - image 1](../../../../images/pascal_multi_notebook_full_model_res_01.png)
 
-![Full model result - image 2](/images/pascal_multi_notebook_full_model_res_02.png)
+![Full model result - image 2](../../../../images/pascal_multi_notebook_full_model_res_02.png)
 
-![Full model result - image 3](/images/pascal_multi_notebook_full_model_res_03.png)
+![Full model result - image 3](../../../../images/pascal_multi_notebook_full_model_res_03.png)
 
-![Full model result - image 4](/images/pascal_multi_notebook_full_model_res_04.png)
+![Full model result - image 4](../../../../images/pascal_multi_notebook_full_model_res_04.png)
 
-![Full model result - image 5](/images/pascal_multi_notebook_full_model_res_05.png)
+![Full model result - image 5](../../../../images/pascal_multi_notebook_full_model_res_05.png)
 
-![Full model result - image 6](/images/pascal_multi_notebook_full_model_res_06.png)
+![Full model result - image 6](../../../../images/pascal_multi_notebook_full_model_res_06.png)
 
-![Full model result - image 7](/images/pascal_multi_notebook_full_model_res_07.png)
+![Full model result - image 7](../../../../images/pascal_multi_notebook_full_model_res_07.png)
 
-![Full model result - image 8](/images/pascal_multi_notebook_full_model_res_08.png)
+![Full model result - image 8](../../../../images/pascal_multi_notebook_full_model_res_08.png)
 
-![Full model result - image 9](/images/pascal_multi_notebook_full_model_res_09.png)
+![Full model result - image 9](../../../../images/pascal_multi_notebook_full_model_res_09.png)
 
-![Full model result - image 10](/images/pascal_multi_notebook_full_model_res_10.png)
+![Full model result - image 10](../../../../images/pascal_multi_notebook_full_model_res_10.png)
 
 There are some things still to fix here. The trick will be to use something called **feature pyramid**. That is what we are going to do in lesson 14.
 

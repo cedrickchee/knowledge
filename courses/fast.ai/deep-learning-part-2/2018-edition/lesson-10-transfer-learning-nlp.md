@@ -55,7 +55,7 @@ _These are my personal notes from fast.ai course and will continue to be updated
 - So once we have something which can predict the class and bounding box for one object, we went to multiple objects by just creating more activations [[0:02:40](https://youtu.be/h5Tz7gZT9Fo?t=2m40s)]. We had to then deal with the matching problem, having dealt with a matching problem, we then moved each of those anchor boxes in and out a little bit and around a little bit, so they tried to line up with particular ground truth objects.
 - We talked about how we took advantage of the convolutional nature of the network to try to have activations that had a receptive field that was similar to the ground truth object we were predicting. Chloe provided the following fantastic picture to talk about what `SSD_MultiHead.forward` does line by line:
 
-![Visualizing the `SSD_MultiHead.forward` line-by-line by [Chloe Sultan](http://forums.fast.ai/u/chloews)](/images/ssd_multihead_linebyline.png)
+![Visualizing the `SSD_MultiHead.forward` line-by-line by [Chloe Sultan](http://forums.fast.ai/u/chloews)](../../../../images/ssd_multihead_linebyline.png)
 
 What Chloe's done here is she's focused particularly on the dimensions of the tensor at each point in the path as we gradually downsampled using stride 2 convolutions, making sure she understands why those grid sizes happen then understanding how the outputs come out of those.
 
@@ -268,7 +268,7 @@ Why are we doing this? The reason is because there is a somewhat standard approa
 df_trn.head()
 ```
 
-![Training set dataframe](/images/imdb_notebook_001.png)
+![Training set dataframe](../../../../images/imdb_notebook_001.png)
 
 ```python
 # we remove everything that has a label of 2 because label of 2 is "unsupervised" and we can't use it.
@@ -446,7 +446,7 @@ Here is the result at the end [00:35:42]. Beginning of the stream token (`xbos`)
 
 **`tk_rep`** : Similarly, if you have 29 `!` in a row, we don't learn a separate token for 29 exclamation marks — instead we put in a special token for "the next thing repeats lots of times" and then put the number 29 and an exclamation mark (i.e. `tk_rep 29 !`). So there are a few tricks like that. If you are interested in NLP, have a look at the tokenizer code for these little tricks that Jeremy added in because some of them are kind of fun.
 
-![Tokenized result](/images/imdb_notebook_002.png)
+![Tokenized result](../../../../images/imdb_notebook_002.png)
 
 The nice thing with doing things this way is we can now just `np.save` that and load it back up later [00:37:44]. We don't have to recalculate all this stuff each time like we tend to have to do with torchtext or a lot of other libraries.
 
@@ -708,7 +708,7 @@ Basic approach we are going to use is we are going to concatenate all of the doc
 
 The goal of fastai doc project is to create documentation that makes readers say "wow, that's the most fantastic documentation I've ever read" and we have some specific ideas about how to do that. It's the same kind of idea of top-down, thoughtful, take full advantage of the medium approach, interactive experimental code first that we are all familiar with. If you are interested in getting involved, you can see the basic approach [in the docs directory](https://github.com/fastai/fastai/tree/master/docs). In there, there is, amongst other things, [transforms-tmpl.adoc](https://raw.githubusercontent.com/fastai/fastai/master/docs/transforms-tmpl.adoc). `adoc` is [AsciiDoc](http://asciidoc.org/). AsciiDoc is like markdown but it's like what markdown needs to be to create actual books. A lot of actual books are written in AsciiDoc and it's as easy to use as markdown but there's way more cool stuff you can do with it. [Here](https://raw.githubusercontent.com/fastai/fastai/master/docs/transforms.adoc) is more standard AsciiDoc example. You can do things like inserting a table of contents (`:toc:`). `::` means put a definition list here. `+` means this is a continuation of the previous list item. So there are many super handy features and it is like turbo-charged markdown. So this AsciiDoc creates this HTML and no custom CSS or anything added:
 
-![Sample of rendered fastai doc](/images/imdb_notebook_003.png)
+![Sample of rendered fastai doc](../../../../images/imdb_notebook_003.png)
 
 We literally started this project 4 hours ago. So you have a table of contents with hyper links to specific sections. We have cross reference we can click on to jump straight to the cross reference. Each method comes along with its details and so on. To make things even easier, they've created a special template for argument, cross reference, method, etc. The idea is, it will almost be like a book. There will be tables, pictures, video segments, and hyperlink throughout.
 
@@ -749,11 +749,11 @@ This is the `LanguageModelLoader` and I really hope that by now, you've learned 
 
 So this is the source code for `LanguageModelLoader`, and it's interesting to notice that it's not doing anything particularly tricky. It's not deriving from anything at all. What makes something that's capable of being a data loader is that it's something you can iterate over.
 
-![Source code for `LanguageModelLoader`](/images/imdb_notebook_004.png)
+![Source code for `LanguageModelLoader`](../../../../images/imdb_notebook_004.png)
 
 Here is the `fit` function inside fastai.model [01:03:41]. This is where everything ends up eventually which goes through each epoch, creates an iterator from the data loader, and then just does a for loop through it. So anything you can do a for loop through can be a data loader. Specifically it needs to return tuples of independent and dependent variables for mini-batches.
 
-![`fit` function source code](/images/imdb_notebook_005.png)
+![`fit` function source code](../../../../images/imdb_notebook_005.png)
 
 So anything with a `__iter__` method is something that can act as an iterator [01:04:09].
 
@@ -769,7 +769,7 @@ So we have 64 columns and each of those is 1/64th of our 25 million tokens, and 
 
 Pretty much all of the cool stuff in the language model is stolen from Stephen Merity's AWD-LSTM [01:06:59] including this little trick here:
 
-![Snippet from AWD-LSTM code](/images/imdb_notebook_006.png)
+![Snippet from AWD-LSTM code](../../../../images/imdb_notebook_006.png)
 
 If we always grab 70 at a time and then we go back and do a new epoch, we're going to grab exactly the same batches every time — there is no randomness. Normally, we shuffle our data every time we do an epoch or every time we grab some data we grab it at random. You can't do that with a language model because this set has to join up to the previous set because it's trying to learn the sentence. If you suddenly jump somewhere else, that doesn't make any sense as a sentence. So Stephen's idea is to say "okay, since we can't shuffle the order, let's instead randomly change the sequence length". Basically, 95% of the time, we will use `bptt` (i.e. 70) but 5% of the time, we'll use half that. Then he says "you know what, I'm not even going to make that the sequence length, I'm going to create a normally distributed random number with that average and a standard deviation of 5, and I'll make that the sequence length." So the sequence length is seventy-ish and that means every time we go through, we are getting slightly different batches. So we've got that little bit of extra randomness. Jeremy asked Stephen Merity where he came up with this idea, did he think of it? and he said "I think I thought of it, but it seemed so obvious that I bet I didn't think of it" — which is true of every time Jeremy comes up with an idea in deep learning. It always seems so obvious that you just assume somebody else has thought of it. But Jeremy thinks Stephen thought of it.
 
@@ -789,7 +789,7 @@ Now generally speaking, we want to create a learner and the way we normally do t
 
 Here are all of the pieces. We are going to create a custom learner, a custom model data class, and a custom model class. So a model data class, again this one doesn't inherit from anything so you really see there's almost nothing to do. You need to tell it most importantly what's your training set (give it a data loader), what's the validation set (give it a data loader), and optionally, give it a test set (data loader), plus anything else that needs to know. It might need to know the bptt, it needs to know number of tokens(i.e. the vocab size), and it needs to know what is the padding index. And so that it can save temporary files and models, model datas as always need to know the path. So we just grab all that stuff and we dump it. That's it. That's the entire initializer. There is no logic there at all.
 
-![Custom model data code](/images/imdb_notebook_007.png)
+![Custom model data code](../../../../images/imdb_notebook_007.png)
 
 Then all of the work happens inside `get_model` [01:10:55]. `get_model` calls something we will look at later, which just grabs a normal PyTorch `nn.Module` architecture, and chucks it on GPU. Note: with PyTorch, we would say `.cuda()`, with fastai it's better to say `to_gpu()`, the reason is that if you don't have GPU, it will leave it on the CPU. It also provides a global variable you can set to choose whether it goes on the GPU or not, so it's a better approach. We wrapped the model in a `LanguageModel` and the `LanguageModel` is a subclass of `BasicModel` which almost does nothing except it defines layer groups. Remember when we do discriminative learning rates where different layers have different learning rates or we freeze different amounts, we don't provide a different learning rate for every layer because there can be a thousand layers. We provide a different learning rate for every layer group. So when you create a custom model, you just have to override this one thing which returns a list of all of your layer groups. In this case, the last layer group contains the last part of the model and one bit of dropout. The rest of it (`*` here means pull this apart) so this is going to be one layer per RNN layer. So that's all that is.
 
@@ -797,7 +797,7 @@ Then finally turn that into a learner [01:12:41]. So a learner, you just pass in
 
 The interesting part of this code base is `get_language_model` [01:13:18]. Because that gives us our AWD LSTM. It actually contains the big idea. The big, incredibly simple idea that everybody else here thinks it's really obvious that everybody in the NLP community Jeremy spoke to thought was insane. That is, every model can be thought of as a backbone plus a head, and if you pre-train the backbone and stick on a random head, you can do fine-tuning and that's a good idea.
 
-![The big (simple!) idea slide](/images/imdb_notebook_008.png)
+![The big (simple!) idea slide](../../../../images/imdb_notebook_008.png)
 
 These two bits of code, literally right next to each other, this is all there is inside `fastai.lm_rnn`.
 
@@ -813,17 +813,17 @@ Yes, this whole thing works in any languages. Would you have to retrain your lan
 
 Here is our RNN encoder [01:16:49]. It is a standard `nn.Module`. It looks like there is more going on in it than there actually is, but really all there is is we create an embedding layer, create an LSTM for each layer that's been asked for, that's it. Everything else in it is dropout. Basically all of the interesting stuff (just about) in the AWS LSTM paper is all of the places you can put dropout. Then the forward is basically the same thing. Call the embedding layer, add some dropout, go through each layer, call that RNN layer, append it to our list of outputs, add dropout, that's about it. So it's pretty straight forward.
 
-![Custom RNN encoder code](/images/imdb_notebook_009.png)
+![Custom RNN encoder code](../../../../images/imdb_notebook_009.png)
 
 :memo: The paper you want to be reading is the AWD LSTM paper which is [Regularizing and Optimizing LSTM Language Models](https://arxiv.org/abs/1708.02182). It's well written, pretty accessible, and entirely implemented inside fastai as well — so you can see all of the code for that paper. A lot of the code actually is shamelessly plagiarized with Stephen's permission from his excellent GitHub repo [AWD LSTM](https://github.com/Smerity/awd-lstm-lm).
 
 The paper refers to other papers. For things like why is it that the encoder weight and the decoder weight are the same. It's because there is this thing called "tie weights". Inside `get_language_model`, there is a thing called `tie_weights` which defaults to true. If it's true, then we literally use the same weight matrix for the encoder and the decoder. They are pointing at the same block of memory. Why is that? What's the result of it? That's one of the citations in Stephen's paper which is also a well written paper you can look up and learn about weight tying.
 
-![Weight Tying code](/images/imdb_notebook_010.png)
+![Weight Tying code](../../../../images/imdb_notebook_010.png)
 
 We have basically a standard RNN [01:19:52]. The only reason where it's not standard is it has lots more types of dropout in it. In a sequential model on top of the RNN, we stick a linear decoder which is literally half the screen of code. It has a single linear layer, we initialize the weights to some range, we add some dropout, and that's it. So it's a linear layer with dropout.
 
-![Linear Decoder class code](/images/imdb_notebook_011.png)
+![Linear Decoder class code](../../../../images/imdb_notebook_011.png)
 
 So the language model is:
 
@@ -902,9 +902,9 @@ learner.save_encoder('lm1_enc')
 learner.sched.plot_loss()
 ```
 
-![Training LM model - interrupted at epoch 3](/images/imdb_notebook_023.png)
+![Training LM model - interrupted at epoch 3](../../../../images/imdb_notebook_023.png)
 
-![Training loss](/images/imdb_notebook_024.png)
+![Training loss](../../../../images/imdb_notebook_024.png)
 
 Resume training (after disconnected from network):
 
@@ -936,9 +936,9 @@ epoch      trn_loss   val_loss   accuracy
 learner.sched.plot_loss()
 ```
 
-![Training LM model](/images/imdb_notebook_025.png)
+![Training LM model](../../../../images/imdb_notebook_025.png)
 
-![Training loss](/images/imdb_notebook_026.png)
+![Training loss](../../../../images/imdb_notebook_026.png)
 
 It took me ~1 hour 25 minutes (5147.63s) to train 1 epoch on K80, roughly 1.39 iteration/s.
 The full training took me ~20 hours.
@@ -978,7 +978,7 @@ learner.save_encoder('lm1_enc')
 
 You'll see there are two different versions of save. `save` saves the whole model as per usual. `save_encoder` just saves that bit:
 
-![`rnn_enc` code](/images/imdb_notebook_012.png)
+![`rnn_enc` code](../../../../images/imdb_notebook_012.png)
 
 In other words, in the sequential model, it saves just `rnn_enc` and not `LinearDecoder(n_tok, emb_sz, dropout, tie_encoder=enc)` (which is the bit that actually makes it into a language model). We don't care about that bit in the classifier, we just care about `rnn_enc`. That's why we save two different models here.
 
@@ -986,7 +986,7 @@ In other words, in the sequential model, it saves just `rnn_enc` and not `Linear
 learner.sched.plot_loss()
 ```
 
-![Training loss](/images/imdb_notebook_026.png)
+![Training loss](../../../../images/imdb_notebook_026.png)
 
 ### ([01:32:31](https://youtu.be/h5Tz7gZT9Fo?t=1h32m31s)) Classifier tokens
 
@@ -1064,7 +1064,7 @@ The basic idea here is that for the classifier, we do really want to look at one
 
 Here is how Jeremy implemented that [01:35:10]. The first thing we need is a Dataset. So we have a Dataset passing in the documents and their labels. Here is `TextDataSet` which inherits from `Dataset` and `Dataset` from PyTorch is also shown below:
 
-![`TextDataset class code`](/images/imdb_notebook_014.png)
+![`TextDataset class code`](../../../../images/imdb_notebook_014.png)
 
 Actually `Dataset` doesn't do anything at all [01:35:34]. It says you need `__getitem__` if you don't have one, you're going to get an error. Same is true for `__len__`. So this is an abstract class. To `TextDataset`, we are going to pass in our `x` and `y`, and `__getitem__` will grab `x` and `y`, and return them — it couldn't be much simpler. Optionally,
 
@@ -1091,7 +1091,7 @@ To turn it into a DataLoader, you simply pass the `Dataset` to the `DataLoader` 
 - For validation set, we are going to define something that actually just sorts. It just deterministically sorts it so that all the shortest documents will be at the start, all the longest documents will be at the end, and that's going to minimize the amount of padding.
 - For training sampler, we are going to create this thing called sort-ish sampler which also sorts (ish!)
 
-![DataLoader lets us customize how batches are created by using a custom Sampler](/images/imdb_notebook_015.png)
+![DataLoader lets us customize how batches are created by using a custom Sampler](../../../../images/imdb_notebook_015.png)
 
 What's great about PyTorch is that they came up with this idea for an API for their data loader where we can hook in new classes to make it behave in different ways [01:37:27]. `SortSampler` is something which has a length which is the length of the data source and has an iterator which is simply an iterator which goes through the data source sorted by length (which is passed in as `key`). For the `SortishSampler`, it basically does the same thing with a little bit of randomness. It's just another of those beautiful design things in PyTorch that Jeremy discovered. He could take James Bradbury's ideas which he had written a whole new set of classes around, and he could just use in-built hooks inside PyTorch. You will notice data loader is not actually PyTorch's data loader — it's actually fastai's data loader. But it's basically almost entirely plagiarized from PyTorch but customized in some ways to make it faster mainly using multi-threading instead of multi-processing.
 
@@ -1153,7 +1153,7 @@ learn.lr_find(lrs / 1000)
 learn.sched.plot()
 ```
 
-![](/images/imdb_notebook_027.png)
+![](../../../../images/imdb_notebook_027.png)
 
 ```python
 learn.fit(lrs, 1, wds=wd, use_clr=(8, 3), cycle_len=1)
@@ -1162,7 +1162,7 @@ learn.save('clas_0')
 learn.load('clas_0')
 ```
 
-![](/images/imdb_notebook_028.png)
+![](../../../../images/imdb_notebook_028.png)
 
 It took me ~13 minutes to train 1 epoch, roughly ~2.2 iteration/s.
 
@@ -1177,7 +1177,7 @@ learn.save('clas_1')
 learn.load('clas_1')
 ```
 
-![](/images/imdb_notebook_029.png)
+![](../../../../images/imdb_notebook_029.png)
 
 It took me ~14 minutes to train 1 epoch, roughly ~1.74 iteration/s.
 
@@ -1214,9 +1214,9 @@ epoch      trn_loss   val_loss   accuracy
 learn.save('clas_2')
 ```
 
-![Training results](/images/imdb_notebook_037.png)
+![Training results](../../../../images/imdb_notebook_037.png)
 
-![Training loss curve](/images/imdb_notebook_038.png)
+![Training loss curve](../../../../images/imdb_notebook_038.png)
 
 It took me ~25 minutes (1470.71s) to train 1 epoch, roughly 1.35 iteration/s. The full training took me ~6 hours 11 minutes.
 
@@ -1226,7 +1226,7 @@ What they did is they used a pre-trained translation model but they didn't fine 
 
 ### ([1:44:02](https://youtu.be/h5Tz7gZT9Fo?t=1h44m2s)) Universal Language Model Fine-tuning for Text Classification (ULMFiT / FiTLaM) Paper
 
-![ULMFiT paper](/images/imdb_notebook_016.png)
+![ULMFiT paper](../../../../images/imdb_notebook_016.png)
 
 So we turned this into a paper, and when I say we, I did it with this guy Sebastian Ruder. Now you might remember his name because in lesson 5, I told you that I actually had shared lesson 4 with Sebastian because I think he is an awesome researcher who I thought might like it. I didn't know him personally at all. Much to my surprise, he actually watched the video. He watched the whole video and said:
 
@@ -1252,25 +1252,25 @@ Then two days later, he comes back and says "okay, I've done a draft of the pape
 
 He took all my code, so I'd already done all the fastai.text and as you have seen, it lets us work with large corpuses. Sebastian is fantastically well-read and he said "here's a paper that Yann LeCun and some guys just came out with where they tried lots of classification datasets so I'm going to try running your code on all these datasets." So these are the datasets:
 
-![Text classification datasets](/images/imdb_notebook_017.png)
+![Text classification datasets](../../../../images/imdb_notebook_017.png)
 
 Some of them had many many hundreds of thousands of documents and they were far bigger than I had tried — but I thought it should work.
 
 And he had a few good ideas as we went along and so you should totally make sure you read the paper. He said "well, this thing that you called in the lessons differential learning rates, differential kind of means something else. Maybe we should rename it" so we renamed it. It's now called **discriminative learning rate**. So this idea that we had from part one where we use different learning rates for different layers, after doing some literature research, it does seem like that hasn't been done before so it's now officially a thing — discriminative learning rates. This is something we learnt in lesson 1 but it now has an equation with Greek and everything [01:48:41]:
 
-![Discriminative learning rates](/images/imdb_notebook_018.png)
+![Discriminative learning rates](../../../../images/imdb_notebook_018.png)
 
 When you see an equation with Greek and everything, that doesn't necessarily mean it's more complex than anything we did in lesson 1 because this one isn't.
 
 Again, that idea of like unfreezing a layer at a time, also seems to never been done before so it's now a thing and it's got the very clever name "gradual unfreezing" [01:48:57].
 
-![Gradual unfreezing](/images/imdb_notebook_019.png)
+![Gradual unfreezing](../../../../images/imdb_notebook_019.png)
 
 #### ([1:49:09](https://youtu.be/h5Tz7gZT9Fo?t=1h49m09s)) New version of Cyclical Learning Rate
 
 So then, as promised, we will look at **slanted triangular learning rates** . This actually was not my idea. Leslie Smith, one of my favorite researchers who you all now know about, emailed me a while ago and said "I'm so over cyclical learning rates. I don't do that anymore. I now do a slightly different version where I have one cycle which goes up quickly at the start, and then slowly down afterwards. I often find it works better." I've tried going back over all of my old datasets and it works better for all of them — every one I tried. So this is what the learning rate look like. You can use it in fastai just by adding `use_clr=` to your `fit`. The first number is the ratio between the highest learning rate and the lowest learning rate so the initial learning rate is 1/32 of the peak. The second number is the ratio between the first peak and the last peak. The basic idea is if you are doing a cycle length 10, that you want the first epoch to be the upward bit and the other 9 epochs to be the downward bit, then you would use 10. I find that works pretty well and that was also Leslie's suggestion is make about 1/10 of it the upward bit and 9/10 the downward bit. Since he told me about it, maybe two days ago, he wrote this amazing paper: [A DISCIPLINED APPROACH TO NEURAL NETWORK HYPER-PARAMETERS](https://arxiv.org/abs/1803.09820). In which, he describes something very slightly different to this again, but the same basic idea. This is a **must read paper**. It's got all the kinds of ideas that fastai talks about a lot in great depth and nobody else is talking about this. It's kind of a slog, unfortunately Leslie had to go away on a trip before he really had time to edit it properly, so it's a little bit slow reading, but don't let that stop you. It's amazing.
 
-![We introduced a tweaked approach to Cyclical Learning Rates (CLR), based on Leslie Smith's paper](/images/imdb_notebook_020.png)
+![We introduced a tweaked approach to Cyclical Learning Rates (CLR), based on Leslie Smith's paper](../../../../images/imdb_notebook_020.png)
 
 The equation on the right is from my paper with Sebastian. Sebastian asked "Jeremy, can you send me the math equation behind that code you wrote?" and I said "no, I just wrote the code. I could not turn it into math" so he figured out the math for it.
 
@@ -1278,7 +1278,7 @@ The equation on the right is from my paper with Sebastian. Sebastian asked "Jere
 
 So you might have noticed, the first layer of our classifier was equal to embedding size*3 . Why times 3? Times 3 because, and again, this seems to be something which people haven't done before, so a new idea "concat pooling". It is that we take the average pooling over the sequence of the activations, the max pooling of the sequence over the activations, and the final set of activations, and just concatenate them all together. This is something which we talked about in part 1 but doesn't seem to be in the literature before so it's now called "concat pooling" and it's now got an equation and everything but this is the entirety of the implementation. So you can go through this paper and see how the fastai code implements each piece.
 
-![The idea of concat pooling in part 1](/images/imdb_notebook_021.png)
+![The idea of concat pooling in part 1](../../../../images/imdb_notebook_021.png)
 
 #### ([1:52:44](https://youtu.be/h5Tz7gZT9Fo?t=1h52m44s)) RNN encoder and `MultiBatchRNN` encoder - BPTT for text classification (BPT3C)
 
@@ -1286,19 +1286,19 @@ One of the kind of interesting pieces is the difference between `RNN_Encoder` wh
 
 :memo: *Note-to-self: I have skimmed through the paper. TODO: read the paper throughly.*
 
-![The idea behind MultiBatchRNN is called BPT3C](/images/imdb_notebook_022.png)
+![The idea behind MultiBatchRNN is called BPT3C](../../../../images/imdb_notebook_022.png)
 
 #### ([01:55:56](https://youtu.be/h5Tz7gZT9Fo?t=1h55m56s)) Results
 
 What was the result? On every single dataset we tried, we got better result than any previous academic paper for text classification. All different types. Honestly, IMDb was the only one I spent any time trying to optimize the model, so most of them, we just did it whatever came out first. So if we actually spent time with it, I think this would be a lot better. The things that these are comparing to, most of them are different on each table because they are customized algorithms on the whole. So this is saying one simple fine-tuning algorithm can beat these really customized algorithms.
 
-![Test error on text classification datasets from ULMFiT paper](/images/imdb_notebook_030.png)
+![Test error on text classification datasets from ULMFiT paper](../../../../images/imdb_notebook_030.png)
 
 ### ([01:56:56](https://youtu.be/h5Tz7gZT9Fo?t=1h56m56s)) Ablation studies
 
 Here is the ablation studies Sebastian did. I was really keen that if you are going to publish a paper, we had to say why it works. So Sebastian went through and tried removing all of those different contributions I mentioned. So what is we don't use gradual freezing? What if we don't use discriminative learning rates? What if instead of discrimination rates, we use cosign annealing? What if we don't do any pre-training with Wikipedia? What if we don't do any fine tuning? And the really interesting one to me was, what's the validation error rate on IMDb if we only used a hundred training examples (vs. 200, vs. 500, etc). And you can see, very interestingly, the full version of this approach is nearly as accurate on just a hundred training examples — it's still very accurate vs. full 20,000 training examples. Where as if you are training from scratch on 100, it's almost random. It's what I expected. I've said to Sebastian I really think that this is most beneficial when you don't have much data. This is where fastai is most interested in contributing — small data regimes, small compute regimes, and so forth. So he did these studies to check.
 
-![Ablation studies are important](/images/imdb_notebook_031.png)
+![Ablation studies are important](../../../../images/imdb_notebook_031.png)
 
 #### ([1:58:32](https://youtu.be/h5Tz7gZT9Fo?t=1h58m32s)) Tricks to run ablation studies
 
@@ -1315,7 +1315,7 @@ The first trick is something which I know you're all going to find really handy.
 
 Chuck the lines at the end of your `./vnc/xstartup` configuration file, and then run this command (`tightvncserver :13 -geometry 1200x900`):
 
-![VNC client and server](/images/imdb_notebook_032.png)
+![VNC client and server](../../../../images/imdb_notebook_032.png)
 
 It's now running a server where you can then run the TightVNC Viewer or any VNC viewer on your computer and you point it at your server. But specifically, what you do is you use SSH port forwarding to forward :5913 to localhost:5913:
 
@@ -1325,7 +1325,7 @@ Then you connect to port 5013 on localhost. It will send it off to port 5913 on 
 
 **Trick #2: Google Fire** ([02:01:27](https://youtu.be/h5Tz7gZT9Fo?t=2h1m27s))
 
-![Google's Fire library is helpful for running ablation studies](/images/imdb_notebook_033.png)
+![Google's Fire library is helpful for running ablation studies](../../../../images/imdb_notebook_033.png)
 
 Trick #2 is to create Python scripts, and this is what we ended up doing. So I ended up creating a little Python script for Sebastian to kind of say this is the basic steps you need to do, and now you need to create different versions for everything else. And I suggested to him that he tried using this thing called Google Fire. What Google Fire does is, you create a function with tons of parameters, so these are all the things that Sebastian wanted to try doing — different dropout amounts, different learning rates, do I use pre-training or not, do I use CLR or not, do I use discriminative learning rate or not, etc. So you create a function, and then you add something saying:
 
@@ -1337,15 +1337,15 @@ You do nothing else at all — you don't have to add any metadata, any docst
 
 You'll find inside the `courses/dl2` directory in fastai GitHub repo, there's now something called `imdb_scripts`, and I put all the scripts Sebastian and I used. Because we needed to tokenize and numericalize every dataset, then train a language model and a classifier for every dataset. And we had to do all of those things in a variety of different ways to compare them, so we had scripts for all those things. You can check out and see all of the scripts that we used.
 
-![IMDb scripts - terminal](/images/imdb_notebook_034.png)
+![IMDb scripts - terminal](../../../../images/imdb_notebook_034.png)
 
-![IMDb scripts - codes](/images/imdb_notebook_035.png)
+![IMDb scripts - codes](../../../../images/imdb_notebook_035.png)
 
 **Trick #4: pip install -e** ([02:03:32](https://youtu.be/h5Tz7gZT9Fo?t=2h3m32s))
 
 When you are doing a lot of scripts, you got different code all over the place. Eventually it might get frustrating that you don't want to symlink your fastai library again and again. But you probably don't want to pip install it because that version tends to be a little bit old as we move so fast that you want to use the current version in Git. If you say `pip install -e` . from fastai repo base, it does something quite neat which is basically creates a symlink to the fastai library (i.e. your locally cloned Git repo) inside site-packages directory. Your site-packages directory is your main Python library. So if you do this, you can then access fastai from anywhere but every time you do `git pull`, you've got the most recent version. One downside of this is that it installs any updated versions of packages from pip which can confuse Conda a little bit, so another alternative here is just do symlink the fastai library to your site packages library. That works just as well. You can use fastai from anywhere and it's quite handy when you want to run scripts that use fastai from different directories on your system.
 
-![`pip -e` (*editable install*) can be handy](/images/imdb_notebook_036.png)
+![`pip -e` (*editable install*) can be handy](../../../../images/imdb_notebook_036.png)
 
 **Trick #5: SentencePiece; Tokenize sub-word units** ([02:05:06](https://youtu.be/h5Tz7gZT9Fo?t=2h5m6s))
 

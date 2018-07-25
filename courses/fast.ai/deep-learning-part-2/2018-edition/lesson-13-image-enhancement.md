@@ -59,15 +59,15 @@ _These are my personal notes from fast.ai course and will continue to be updated
 
 ### Image enhancement
 
-![](/images/lesson_13_001.png)
+![](../../../../images/lesson_13_001.png)
 
-![](/images/lesson_13_002.png)
+![](../../../../images/lesson_13_002.png)
 
 Image enhancement — we'll cover things like this painting that you might be familiar with. However, you might not have noticed before that this painting of an eagle in it. The reason you may not have noticed that before is this painting didn't used to have an eagle in it. By the same token, the painting on the first slide did not used to have Captain America's shield on it either.
 
 #### Deep painterly harmonization paper - style transfer [[00:00:40](https://youtu.be/xXXiC4YRGrQ?t=40)]
 
-![](/images/lesson_13_003.png)
+![](../../../../images/lesson_13_003.png)
 
 This is a cool new paper that just came out a couple of days ago called [Deep Painterly Harmonization](https://arxiv.org/abs/1804.03189) and it uses almost exactly the technique we are going to learn in this lesson with some minor tweaks. But you can see the basic idea is to take one picture pasted on top of another picture, and then use some kind of approach to combine the two. The approach is called a "style transfer".
 
@@ -85,7 +85,7 @@ Another very cool contribution to the fastai library is a new Train Phase API. A
 
 It's called the `TrainPhase` API [00:03:32] and the easiest way to show it is to show an example of what it does. Here is an iteration against learning rate chart as you are familiar with seeing. This is one where we train for a while at the learning rate of 0.01 and then we train for a while at the learning rate of 0.001. I actually wanted to create something very much like that learning rate chart because most people that trained ImageNet use this stepwise approach and it's actually not something that's built into fastai because it's not generally something we recommend. But in order to replicate existing papers, I wanted to do it the same way. So rather than writing a number of fit, fit, fit calls with different learning rates, it would be nice to be able to say train for *n* epochs at this learning rate and then *m* epochs at that learning rate.
 
-![](/images/lesson_13_004.png)
+![](../../../../images/lesson_13_004.png)
 
 So here is how you do that:
 
@@ -114,7 +114,7 @@ So here is a fixed learning rate, then a linear decay learning rate, and then a 
 lr_i = start_lr + (end_lr - start_lr) * i/n
 ```
 
-![](/images/lesson_13_005.png)
+![](../../../../images/lesson_13_005.png)
 
 This might be quite a good way to train because we know at high learning rates, you get to explore better, and at low learning rates, you get to fine-tune better. And it's probably better to gradually slide between the two. So this actually isn't a bad approach, I suspect.
 
@@ -132,7 +132,7 @@ This probably makes even more sense as a genuinely potentially useful learning r
 lr_i = end_lr + (start_lr - end_lr) / 2 * (1 + np.cos(i * np.pi) / n)
 ```
 
-![](/images/lesson_13_006.png)
+![](../../../../images/lesson_13_006.png)
 
 Exponential which is super popular approach:
 
@@ -140,7 +140,7 @@ Exponential which is super popular approach:
 lr_i = start_lr * (end_lr / start_lr)**(i / n)
 ```
 
-![](/images/lesson_13_007.png)
+![](../../../../images/lesson_13_007.png)
 
 Polynomial which isn't terribly popular but actually in the literature works better than just about anything else, but seems to have been largely ignored. So polynomial is good to be aware of. And what Sylvain has done is he's given us the formula for each of these curves. So with a polynomial, you get to pick what polynomial to use. I believe `p` of `0.9` is the one I've seen really good results for — FYI.
 
@@ -148,7 +148,7 @@ Polynomial which isn't terribly popular but actually in the literature works bet
 lr_i = end_lr + (start_lr - end_lr) * (1 - i / n)**p
 ```
 
-![](/images/lesson_13_008.png)
+![](../../../../images/lesson_13_008.png)
 
 If you don't give a tuple of learning rates when there is an LR decay, then it will decay all the way down to zero [00:07:26]. And as you can see, you can happily start the next cycle at a different point.
 
@@ -158,7 +158,7 @@ phases = [TrainingPhase(epochs=1, opt_fn=optim.SGD, lr=1e-2),
           TrainingPhase(epochs=1, opt_fn=optim.SGD, lr=1e-3)]
 ```
 
-![](/images/lesson_13_009.png)
+![](../../../../images/lesson_13_009.png)
 
 ### SGDR [[00:07:43](https://youtu.be/xXXiC4YRGrQ?t=7m43s)]
 
@@ -178,7 +178,7 @@ def phases_sgdr(lr, opt_fn, num_cycle, cycle_len, cycle_mult):
 
 So you can see, if he runs this schedule, here is what it looks like:
 
-![](/images/lesson_13_010.png)
+![](../../../../images/lesson_13_010.png)
 
 He's even done the little trick I have where you're training at really low learning rate just for a little bit and then pop up and do a few cycles, and the cycles are increasing in length [00:08:05]. And that's all done in a single function.
 
@@ -206,7 +206,7 @@ def phases_1cycle(cycle_len, lr, div, pct, max_mom, min_mom):
 
 So if we fit with that, we get this triangle followed by a little flatter bit and the momentum is a cool thing — the momentum has a momentum decay. And in the third `TrainingPhase`, we have a fixed momentum. So it's doing the momentum and the learning rate at the same time.
 
-![](/images/lesson_13_011.png)
+![](../../../../images/lesson_13_011.png)
 
 ### Discriminative learning rates + 1cycle [[00:08:53](https://youtu.be/xXXiC4YRGrQ?t=8m53s)]
 
@@ -241,7 +241,7 @@ learn.fit_opt_sched(phases, data_list=[data1, data2])
 
 That's really cool because we can use that now like we could use that in our DAWNBench entries and see what happens when we actually increase the size with very little code. So what happens when we do that [00:13:02]? The answer is here in DAWNBench training on ImageNet:
 
-![](/images/lesson_13_012.png)
+![](../../../../images/lesson_13_012.png)
 
 You can see here that Google has won this with half an hour on a cluster of TPUs. The best non-cluster of TPU result is fast.ai + students under 3 hours beating out Intel on 128 computers, where else, we ran on a single computer. We also beat Google running on a TPU so using this approach, we've shown:
 
@@ -255,13 +255,13 @@ These TPU pods, you can't use unless you're Google. Also the cost is tiny ($72.5
 
 Our CIFAR10 results are also now up there officially and you might remember the previous best was a bit over an hour. The trick here was using 1cycle, so all of this stuff that's in Sylvain's training phase API is really all the stuff that we used to get these top results. And another fast.ai student who goes by the name *bkj* has taken that and done his own version, he took a Resnet18 and added the concat pooling that you might remember that we learnt about on top, and used Leslie Smith's 1cycle and so he's got on the leaderboard. So all the top 3 are fast.ai students which wonderful.
 
-![](/images/lesson_13_013.png)
+![](../../../../images/lesson_13_013.png)
 
 #### CIFAR10 cost result [[00:16:05](https://youtu.be/xXXiC4YRGrQ?t=16m5s)]
 
 Same for cost — the top 3 and you can see, Paperspace. Brett ran this on Paperspace and got the cheapest result just ahead of *bkj*.
 
-![](/images/lesson_13_014.png)
+![](../../../../images/lesson_13_014.png)
 
 So I think you can see [00:16:25], a lot of the interesting opportunities at the moment for the training stuff more quickly and cheaply are all about learning rate annealing, size annealing, and training with different parameters at different times, and I still think everybody is scratching the surface. I think we can go a lot faster and a lot cheaper. That's really helpful for people in resource constrained environment which is basically everybody except Google, maybe Facebook.
 
@@ -269,7 +269,7 @@ So I think you can see [00:16:25], a lot of the interesting opportunities at the
 
 Architectures are interesting as well though, and one of the things we looked at last week was creating a simpler version of DarkNet architecture. But there's a piece of architecture we haven't talk about which is necessary to understand the [Inception network](https://arxiv.org/abs/1409.4842v1). The Inception network is actually pretty interesting because they use some tricks to make things more efficient. We are not currently using these tricks and I feel that maybe we should try it. The most interesting and most successful Inception network is their [Inception-ResNet-v2](https://ai.googleblog.com/2016/08/improving-inception-and-image.html) network and most of the blocks in that looks something like this:
 
-![](/images/lesson_13_015.png)
+![](../../../../images/lesson_13_015.png)
 
 It looks a lot like a standard ResNet block in that there's an identity connection, and there's a conv path, and we add them up together [00:17:47]. But it's not quite that. The first is the middle conv path is a 1x1 conv, and it's worth thinking about what a 1x1 conv actually is.
 
@@ -291,7 +291,7 @@ But if you think about it [00:23:18], if we've got some input coming in and we h
 
 The cool thing is [00:26:16], if we replace our 7x7 conv with a 1x7 and 7x1, for each cell (grid), it has 14 by input channel by output channel dot products to do, whereas 7x7 one has 49 to do. So it's going to be a lot faster and we have to hope that it's going to be nearly as good. It's certainly capturing as much width of information by definition.
 
-![](/images/lesson_13_016.png)
+![](../../../../images/lesson_13_016.png)
 
 #### Factored convolutions
 
@@ -301,7 +301,7 @@ If you are interested in learning more about this, specifically in a deep learni
 
 They actually use it in their stem. We've talked before about how we tend to add-on — we tend to say this is main backbone when we have ResNet34, for example. This is main backbone which is all of the convolutions, and then we can add on to it a custom head that tends to be a max pooling or a fully connected layer. It's better to talk about the backbone is containing two pieces: one is the stem and the other is the main backbone. The reason is that the thing that's coming in has only 3 channels, so we want some sequence of operations which is going to expand that out into something richer — generally something like 64 channels.
 
-![](/images/lesson_13_017.png)
+![](../../../../images/lesson_13_017.png)
 
 In ResNet, the stem is super simple. It's a 7x7 stride 2 conv followed by a stride 2 max pool (I think that's it if memory serves correctly). Inception have a much more complex stem with multiple paths getting combined and concatenated including factored conv (1x7 and 7x1). I'm interested in what would happen if you stacked a standard ResNet on top of an Inception stem, for instance. I think that would be a really interesting thing to try because an Inception stem is quite a carefully engineered thing, and this thing of how you take 3 channel input and turn it into something richer seems really important. And all of that work seems to have gotten thrown away for ResNet. We like ResNet, it works really well. But what if we put a dense net backbone on top of an Inception stem? Or what if we replaced the 7x7 conv with a 1x7 and 7x1 factored conv in standard ResNet? There are lots of things we could try and I think it would be really interesting. :bookmark: So there's some more thoughts about potential research directions.
 
@@ -313,7 +313,7 @@ So that was kind of my little bunch of random stuff section [00:29:51]. Moving a
 
 #### Progressive GAN - increase image size
 
-![](/images/lesson_13_018.png)
+![](../../../../images/lesson_13_018.png)
 
 They really go back and they start with 4x4 GAN [00:31:47]. Literally, they are trying to replicate 4x4 pixel, and then 8x8 (the upper left ones above). This is the CelebA dataset so we are trying to recreate pictures of celebrities. Then they go 16x16, 32, 64, 128, then 256. One of the really nifty things they do is that as they increase the size, they also add more layers to the network. Which kind of makes sense because if you are doing more of a ResNet-y type thing, then you are spitting out something which hopefully makes sense at each grid cell size, so you should be able to layer stuff on top. They do another nifty thing where they add a skip connection when they do that, and they gradually change the linear interpolation parameter that moves it more and more away from the old 4x4 network and towards the new 8x8 network. Then once this totally moved it across, they throw away that extra connection. The details don't matter too much but it uses the basic ideas we've talked about, gradually increasing the image size and skip connections. It's a great paper to study because it is one of these rare things where good engineers actually built something that just works in a really sensible way. Now it's not surprising this actually comes from Nvidia themselves. Nvidia don't do a lot of papers and it's interesting that when they do, they build something that is so throughly practical and sensible. :bookmark: So I think **it's a great paper to study if you want to put together lots of the different things we've learned and there aren't many re-implementation of this so it's an interesting thing to project**, and maybe you could build on and find something else.
 
@@ -321,7 +321,7 @@ They really go back and they start with 4x4 GAN [00:31:47]. Literally, they are 
 
 Here is what happens next [00:33:45]. We eventually go up to 1024x1024, and you'll see that the images are not only getting higher resolution but they are getting better. So I am going to see if you can guess which one of the following is fake:
 
-![](/images/lesson_13_019.png)
+![](../../../../images/lesson_13_019.png)
 
 They are all fake. That's the next stage. You go up up up up and them BOOM. So GANS and stuff are getting crazy and some of you may have seen this during the week [00:34:16]. This video just came out and it's a speech by Barack Obama and let's check it out:
 
@@ -337,45 +337,45 @@ This is the bit where we talk about what's most important which is now that we c
 
 Let me start by saying the models we build are often pretty crappy in ways which are not immediately apparent [00:36:52]. You won't know how crappy they are unless the people that are building them with you are a range of people and the people that are using them with you are a range of people. For example, a couple of wonderful researchers, [Timnit Gebru](https://twitter.com/timnitGebru) is at Microsoft and [Joy Buolamwini](https://twitter.com/jovialjoy) just finished PhD from MIT, they did this really interesting research where they looked at some off-the-shelf face recognizers, one from FACE++ which is a huge Chinese company, IBM's, and Microsoft's, and they looked for a range of different face types.
 
-![](/images/lesson_13_020.png)
+![](../../../../images/lesson_13_020.png)
 
 Generally speaking, Microsoft one in particular was incredibly accurate unless the face type happened to be dark-skinned when suddenly it went 25 times worse. IBM got it wrong nearly half the time. For a big company like this to release a product that, for large percentage of the world, doesn't work is more than a technical failure. It's a really deep failure of understanding what kind of team needs to be used to create such a technology and to test such a technology or even an understanding of who your customers are. Some of your customers have dark skin. "I was also going to add that the classifiers all did worse on women than on men" (Rachel). Shocking. It's funny that Rachel tweeted about something like this the other day, and some guy said "What's this all about? What are you saying? Don't you know people made cars for a long time — are you saying you need women to make cars too?" And Rachel pointed out — well actually yes. For most of the history of car safety, women in cars have been far more at risk of death than men in cars because the men created male looking, feeling, sized crash test dummies, so car safety was literally not tested on women size bodies. Crappy product management with a total failure of diversity and understanding is not new to our field.
 
 "I was just going to say that was comparing impacts of similar strength for men and women " (Rachel). I don't know why whenever you say something like this on Twitter, Rachel has to say this because anytime you say something like this on Twitter, there's about 10 people who'll say "oh, you have to compare all these other things" as if we didn't know that.
 
-![](/images/lesson_13_021.png)
+![](../../../../images/lesson_13_021.png)
 
 Other things our very best most famous systems do like Microsoft's face recognizer or Google's language translator, you turn "She is a doctor. He is a nurse." into Turkish and quite correctly — both pronouns become O because there is no gendered pronouns in Turkish. Go the other direction, what does it get turned into? "He is a doctor. She is a nurse." So we've got these kind of biases built into tools that we are all using every day. And again, people say "oh, it's just showing us what's in the world" and okay, there's lots of problems with that basic assertion, but as you know, machine learning algorithms love to generalize.
 
-![](/images/lesson_13_022.png)
+![](../../../../images/lesson_13_022.png)
 
 So because they love to generalize, this is one fo the cool things about you guys knowing the technical details now, because they love to generalize when you see something like 60% of people cooking are women in the pictures they used to build this model and then you run the model on a separate set of pictures, then 84% of the people they choose as cooking are women rather than the correct 67%. Which is a really understandable thing for an algorithm to do as it took a biased input and created a more biased output because for this particular loss function, that's where it ended up. This is a really common kind of model amplification.
 
 This stuff matters [00:41:41]. It matters in ways more than just awkward translations or black people's photos not being classified correctly. Maybe there's some wins too as well — like horrifying surveillance everywhere and maybe won't work on black people. "Or it'll be even worse because it's horrifying surveillance and it's flat-out racist and wrong" (Rachel). But let's go deeper. For all we say about human failings, there is a long history of civilization and societies creating layers of human judgement which avoid, hopefully, the most horrible things happening. And sometimes companies which love technology think "let's throw away humans and replace them with technology" like Facebook did. A couple years ago, Facebook literally got rid of their human editors, and this was in the news at the time. And they were replaced with algorithms. So now as algorithms put all the stuff on your news feed and human editors were out of the loop. What happened next?
 
-![](/images/lesson_13_023.png)
+![](../../../../images/lesson_13_023.png)
 
 Many things happened next. One of which was a massive horrifying genocide in Myanmar. Babies getting torn out of their mothers arms and thrown into fires. Mass rape, murder, and an entire people exiled from their homeland.
 
-![](/images/lesson_13_024.png)
+![](../../../../images/lesson_13_024.png)
 
 Okay, I'm not gonna say that was because Facebook did this, but what I will say is that when the leaders of this horrifying project are interviewed, they regularly talk about how everything they learnt about the disgusting animal behaviors of Rohingyas that need to be thrown off the earth, they learnt from Facebook. Because the algorithms just want to feed you more stuff that gets you clicking. If you get told these people that don't look like you and you don't know the bad people and here's lots of stories about bad people and then you start clicking on them and then they feed you more of those things. Next thing you know, you have this extraordinary cycle. People have been studying this, so for example, we've been told a few times people click on our fast.ai videos and then the next thing recommended to them is like conspiracy theory videos from Alex Jones, and then continues from there. Because humans click on things that shock us, surprise us, and horrify us. At so many levels, this decision has had extraordinary consequences which we're only beginning to understand. Again, this is not to say this particular consequence is because of this one thing, but to say it's entirely unrelated would be clearly ignoring all of the evidence and information that we have.
 
 #### Unintended consequences [[00:45:04](https://youtu.be/xXXiC4YRGrQ?t=45m4s)]
 
-![](/images/lesson_13_025.png)
+![](../../../../images/lesson_13_025.png)
 
 The key takeaway is to think what are you building and how could it be used. Lots and lots of effort now being put into face detection including in our course. We've been spending a lot of time thinking about how to recognize stuff and where it is. There's lots of good reasons to want to be good at that for improving crop yields in agriculture, for improving diagnostic and treatment planning in medicine, for improving your LEGO sorting robot system, etc. But it's also being widely used in surveillance, propaganda, and disinformation. Again, the question is what do I do about that? I don't exactly know. But it's definitely at least important to be thinking about it, talking about it.
 
 #### Runaway feedback loops [[00:46:10](https://youtu.be/xXXiC4YRGrQ?t=46m10s)]
 
-![](/images/lesson_13_026.png)
+![](../../../../images/lesson_13_026.png)
 
 Sometimes you can do really good things. For example, meetup.com did something which I would put in the category of really good thing which is they recognized early a potential problem which is that more men are tending to go to their meet ups. And that was causing their collaborative filtering systems, which you are familiar building now to recommend more technical content to men. And that was causing more men to go to more technical content which was causing the recommendation system to suggest more technical content to men. This kind of runaway feedback loop is extremely common when we interface the algorithm and the human together. So what did Meetup do? They intentionally made the decision to recommend more technical content to women, not because highfalutin idea about how the world should be, but just because that makes sense. Runaway feedback loop was a bug — there are women that want to go to tech meetups, but when you turn up for a tech meet up and it's all men and you don't go, then it recommends more to men and so on and so forth. So Meetup made a really strong product management decision here which was to not do what the algorithm said to do. Unfortunately this is rare. Most of these runaway feedback loops, for example, in predictive policing where algorithms tell policemen where to go which very often is more black neighborhoods which end up crawling with more policemen which leads to more arrests which is assisting to tell more policemen to go to more black neighborhoods and so forth.
 
 ### Bias in AI [[00:48:09](https://youtu.be/xXXiC4YRGrQ?t=48m9s)]
 
-![](/images/lesson_13_027.png)
+![](../../../../images/lesson_13_027.png)
 
 This problem of algorithmic bias is now very wide spread and as algorithms become more and more widely used for specific policy decisions, judicial decisions, day-to-day decisions about who to give what offer to, this just keeps becoming a bigger problem. Some of them are really things that the people involved in the product management decision should have seen at the very start, didn't make sense, and unreasonable under any definition of the term. For example, this stuff Abe Gong pointed out — these were questions that were used for both pretrial so who was required to post bail, so these are people that haven't even been convicted, as well as for sentencing and for who gets parole. This was upheld by the Wisconsin Supreme Court last year despite all the flaws. So whether you have to stay in jail because you can't pay the bail and how long your sentence is for, and how long you stay in jail for depends on what your father did, whether your parents stayed married, who your friends are, and where you live. Now turns out these algorithms are actually terribly terribly bad so some recent analysis showed that they are basically worse than chance. But even if the company's building them were confident on these were statistically accurate correlations, does anybody imagine there's a world where it makes sense to decide what happens to you based on what your dad did?
 
@@ -383,17 +383,17 @@ A lot of this stuff at the basic level is obviously unreasonable and a lot of it
 
 ### Responsibility in hiring [[00:52:46](https://youtu.be/xXXiC4YRGrQ?t=52m46s)]
 
-![](/images/lesson_13_028.png)
+![](../../../../images/lesson_13_028.png)
 
 The other thing I know is a lot of people involved here are hiring people and if you are hiring people, I guess you are all very familiar with the fast.ai philosophy now which is the basic premise that, and I thin it comes back to this idea that I don't think people on the whole are evil, I think they need to be informed and have tools. So we are trying to give as many people the tools as possible that they need and particularly we are trying to put those tools in the hands of a more diverse range of people. So if you are involved in hiring decisions, perhaps you can keep this kind of philosophy in mind as well. If you are not just hiring a wider range of people, but also promoting a wider range of people, and providing appropriate career management for a wider range of people, apart from anything else, your company will do better. It actually turns out that more diverse teams are more creative and tend to solve problems more quickly and better than less diverse teams, but also you might avoid these kind of awful screw-ups which, at one level, are bad for the world and another level if you ever get found out, they can destroy your company.
 
 #### IBM & "Death's Calculator" [[00:54:08](https://youtu.be/xXXiC4YRGrQ?t=54m8s)]
 
-![](/images/lesson_13_029.png)
+![](../../../../images/lesson_13_029.png)
 
 Also they can destroy you or at least make you look pretty bad in history. A couple of examples, one is going right back to the second world war. IBM provided all of the infrastructure necessary to track the Holocaust. These are the forms they used and they had different code — Jews were 8, Gypsies were 12, death in the gas chambers was 6, and they all went on these punch cards. You can go and look at these punch cards in museums now and this has actually been reviewed by a Swiss judge who said that IBM's technical assistance facilitated the task of the Nazis and the commission their crimes against humanity. It is interesting to read back the history from these times to see what was going through the minds of people at IBM at that time. What was clearly going through the minds was the opportunity to show technical superiority, the opportunity to test out their new systems, and of course the extraordinary amount of money that they were making. When you do something which at some point down the line turns out to be a problem, even if you were told to do it, that can turn out to be a problem for you personally. For example, you all remember the diesel emission scandal in VW. Who is the one guy that went to jail? It was the engineer just doing his job. If all of this stuff about actually not messing up the world isn't enough to convince you, it can mess up your life too. If you do something that turns out to cause problems even though somebody told you to do it, you can absolutely be held criminally responsible. Aleksandr Kogan was the guy that handed over the Cambridge Analytica data. He is a Cambridge academic. Now a very famous Cambridge academic the world over for doing his part to destroy the foundations of democracy. This is not how we want to go down in history.
 
-![](/images/lesson_13_030.png)
+![](../../../../images/lesson_13_030.png)
 
 :question: In one of your tweets, you said dropout is patented [00:56:50]. I think this is about WaveNet patent from Google. What does it mean? Can you please share more insight on this subject? Does it mean that we will have to pay to use dropout in the future?
 
@@ -409,7 +409,7 @@ You can't avoid using patented stuff if you write code. I wouldn't be surprised 
 
 [Notebook](https://nbviewer.jupyter.org/github/fastai/fastai/blob/master/courses/dl2/style-transfer.ipynb)
 
-[![https://arxiv.org/abs/1508.06576](/images/lesson_13_031.png)](https://arxiv.org/abs/1508.06576 "A Neural Algorithm of Artistic Style")
+[![https://arxiv.org/abs/1508.06576](../../../../images/lesson_13_031.png)](https://arxiv.org/abs/1508.06576 "A Neural Algorithm of Artistic Style")
 
 This is super fun — artistic style. We are going a bit retro here because this is actually the original artistic style paper and there's been a lot of updates to it and a lot of different approaches and I actually think in many ways the original is the best. We are going to look at some of the newer approaches as well, but I actually think the original is a terrific way to do it even with everything that's gone since. Let's jump to the code.
 
@@ -445,7 +445,7 @@ plt.imshow(img)
 
 So I just grabbed the bird out of my ImageNet folder and there is my bird:
 
-![](/images/lesson_13_032.png)
+![](../../../../images/lesson_13_032.png)
 
 ```python
 sz = 288
@@ -465,11 +465,11 @@ plt.imshow(opt_img)
 
 What I'm going to do is I'm going to start with this picture:
 
-![](/images/lesson_13_033.png)
+![](../../../../images/lesson_13_033.png)
 
 And I'm going to try to make it more and more like a picture of the bird painted by Van Gogh. The way I do that is actually very simple. You're all familiar with it [1:03:44]. We will create a loss function which we will call *f*. The loss function is going to take as input a picture and spit out as output a value. The value will be lower if the image looks more like the bird photo painted by Van Gogh. Having written that loss function, we will then use the PyTorch gradient and optimizers. Gradient times the learning rate, and and we are not going to update any weights, we are going to update the pixels of the input image to make it a little bit more like a picture which would be a bird painted by Van Gogh. And we will stick it through the loss function again to get more gradients, and do it again and again. That's it. So it's identical to how we solve every problem. You know I'm a one-trick pony, right? This is my only trick. Create a loss function, use it to get some gradients, multiply it by learning rates to update something, always before, we've updated weights in a model but today, we are not going to do that. They're going to update the pixels in the input. But it's no different at all. We are just taking the gradient with respect to the input rather than respect to the weights. That's it. So we are nearly done.
 
-![](/images/lesson_13_034.png)
+![](../../../../images/lesson_13_034.png)
 
 Let's do a couple more things [1:05:49]. Let's mention here that there's going to be two more inputs to our loss function One is the picture of the bird. The second is an artwork by Van Gogh. By having those as inputs as well, that means we'll be able to rerun the function later to make it look like a bird painted by Monet or a jumbo jet painted by Van Gogh, etc. Those are going to be the three inputs. Initially, as we discussed, our input here is some random noise. We start with some random noise, use the loss function, get the gradients, make it a little bit more like a bird painted by Van Gogh, and so forth.
 
@@ -479,7 +479,7 @@ So the only outstanding question which I guess we can talk about briefly is how 
 
 **Style Loss**: Returns a lower number if the image is more like V.G.'s style.
 
-![](/images/lesson_13_035.png)
+![](../../../../images/lesson_13_035.png)
 
 There is one way to do the content loss which is very simple — we could look at the pixel of the output, compare them to the pixel of the bird, and do a mean squared error, and add them up. So if we did that, I ran this for a while. Eventually our image would turn into an image of the bird. You should try it. You should try this as an exercise. Try to use the optimizer in PyTorch to start with a random image and turn it into another image by using mean squared error pixel loss. Not terribly exciting but that would be step one.
 
@@ -489,7 +489,7 @@ The VGG network is something which takes in an input and sticks it through a num
 
 Let's start by trying to create a bird that initially is random noise and we are going to use perceptual loss to create something that is bird-like but it's not the particular bird [1:13:13]. We are going to start with 288 by 288. Because we are going to do one bird, there is going to be no GPU memory problems. I was actually disappointed that I realized that I picked a rather small input image. It would be fun to try this with something much bigger to create a really grand scale piece. The other thing to remember is if you are productionizing this, you could do a whole batch at a time. People sometimes complain about this approach (Gatys is the lead author) the Gatys' style transfer approaches being slow, and I don't agree it's slow. It takes a few seconds and you can do a whole batch in a few seconds.
 
-![](/images/lesson_13_036.png)
+![](../../../../images/lesson_13_036.png)
 
 ```python
 sz = 288
@@ -517,7 +517,7 @@ opt_img = np.random.uniform(0, 1, size=img.shape).astype(np.float32)
 plt.imshow(opt_img)
 ```
 
-![](/images/lesson_13_037.png)
+![](../../../../images/lesson_13_037.png)
 
 Here is something I discovered. Trying to turn this into a picture of anything is actually really hard. I found it very difficult to actually get an optimizer to get reasonable gradients that went anywhere. And just as I thought I was going to run out of time for this class and really embarrass myself, I realized the key issue is that pictures don't look like this. They have more smoothness, so I turned this into the following by blurring it a little bit:
 
@@ -526,13 +526,13 @@ opt_img = scipy.ndimage.filters.median_filter(opt_img, [8, 8, 1])
 plt.imshow(opt_img)
 ```
 
-![](/images/lesson_13_038.png)
+![](../../../../images/lesson_13_038.png)
 
 I used a median filter — basically it is like a median pooling, effectively. As soon as I change it to this, it immediately started training really well. A number of little tweaks you have to do to get these things to work is kind of insane, but here is a little tweak.
 
 So we start with a random image which is at least somewhat smooth [1:16:21]. I found that my bird image had a mean of pixels that was about half of this, so I divided it by 2 just trying to make it a little bit easier for it to match (I don't know if it matters). Turn that into a variable because this image, remember, we are going to be modifying those pixels with an optimization algorithm, so anything that's involved in the loss function needs to be a variable. And specifically, it requires a gradient because we are actually updating the image.
 
-![](/images/lesson_13_039.png)
+![](../../../../images/lesson_13_039.png)
 
 ```python
 opt_img = val_tfms(opt_img) / 2
@@ -641,7 +641,7 @@ So you can see the loss function going down [1:27:38]. The mean squared error be
 
 So we've now got a content loss. Now, one thing I'll say about this content loss is we don't know which layer is going to work the best. So it would be nice if we were able to experiment a little bit more. And the way it is here is annoying:
 
-![](/images/lesson_13_039_1.png)
+![](../../../../images/lesson_13_039_1.png)
 
 Maybe we even want to use multiple layers. So rather than lopping off all of the layers after the one we want, wouldn't it be nice if we could somehow grab the activations of a few layers as it calculates. Now, we already know one way to do that back when we did SSD, we actually wrote our own network which had a number of outputs. Remember? The different convolutional layers, we spat out a different `oconv` thing? But I don't really want to go and add that to the torch.vision ResNet model especially not if later on, I want to try torch.vision VGG model, and then I want to try NASNet-A model, I don't want to go into all of them and change their outputs. Beside which, I'd like to easily be able to turn certain activations on and off on demand. So we briefly touched before this idea that PyTorch has these fantastic things called **hooks**. You can have forward hooks that let you plug anything you like into the forward pass of a calculation or a backward hook that lets you plug anything you like into the backward pass. So we are going to create the world's simplest forward hook.
 
@@ -651,7 +651,7 @@ plt.figure(figsize=(7, 7))
 plt.imshow(x)
 ```
 
-![](/images/lesson_13_039.png)
+![](../../../../images/lesson_13_039.png)
 
 ### PyTorch hooks - forward hook [[01:29:42](https://youtu.be/xXXiC4YRGrQ?t=1h29m42s)]
 
@@ -769,7 +769,7 @@ plt.figure(figsize=(7,7))
 plt.imshow(x);
 ```
 
-![](/images/lesson_13_040.png)
+![](../../../../images/lesson_13_040.png)
 
 ```python
 sf.close()
@@ -779,7 +779,7 @@ sf.close()
 
 In fact, the paper has a nice picture of that showing various different layers and zooming into this house [1:38:17]. They are trying to make this house look like The Starry Night picture. And you can see that later on, it's pretty messy, and earlier on, it looks like the house. So this is just doing what we just did. One of the things I've noticed in our study group is anytime I say to somebody to answer a question, anytime I say read the paper there is a thing in the paper that tells you the answer to that question, there's always this shocked look "read the paper? me?" but seriously the papers have done these experiments and drawn the pictures. There's all this stuff in the papers. It doesn't mean you have to read every part of the paper. But at least look at the pictures. So check out Gatys' paper, it's got nice pictures. So they've done the experiment for us but looks like they didn't go as deep — they just got some earlier ones.
 
-![](/images/lesson_13_041.png)
+![](../../../../images/lesson_13_041.png)
 
 #### Style match [[01:39:29](https://youtu.be/xXXiC4YRGrQ?t=1h39m29s)]
 
@@ -801,13 +801,13 @@ plt.imshow(style_img)
 
 #### Look at painting from Wikipedia
 
-![](/images/lesson_13_043.png)
+![](../../../../images/lesson_13_043.png)
 
 I downloaded this from Wikipedia and I was wondering what is taking so long to load [1:40:39] — turns out, the Wikipedia version I downloaded was 30,000 by 30,000 pixels. It's pretty cool that they've got this serious gallery quality archive stuff there. I didn't know it existed. Don't try to run a neural net on that. Totally killed my Jupyter notebook.
 
 So we can do that for our Van Gogh image and we can do that for our optimized image. Then we can compare the two and we would end up creating an image that has content like the painting but it's not the painting — that's not what we want. We want something with the same style but it's not the painting and doesn't have the content. So we want to throw away all of the spatial information. We are not trying to create something that has a moon here, stars here, and a church here. We don't want any of that. So how do we throw away all the special information?
 
-![](/images/lesson_13_044.png)
+![](../../../../images/lesson_13_044.png)
 
 In this case, there are 19 faces on this — 19 slices. So let's grab this top slice that's going to be a 5x5 matrix. Now, let's flatten it and we've got a 25 long vector. In one stroke, we've thrown away the bulk of the spacial information by flattening it. Now let's grab a second slice (i.e. another channel) and do the same thing. So we have channel 1 flattened and channel 2 flattened, and they both have 25 elements.
 
@@ -815,7 +815,7 @@ In this case, there are 19 faces on this — 19 slices. So let's grab this t
 
 Now, let's take the dot product which we can do with `@` in NumPy (Note: [here is Jeremy's answer to my dot product vs. matrix multiplication question](http://forums.fast.ai/t/part-2-lesson-13-wiki/15297/140?u=hiromi)). So the dot product is going to give us one number. What's that number? What is it telling us? Assuming the activations are somewhere around the middle layer of the VGG network, we might expect some of these activations to be how textured is the brush stroke, and some of them to be like how bright is this area, and some of them to be like is this part of a house or a part of a circular thing, or other parts to be, how dark is this part of the painting. So a dot product is basically a correlation. If this element and and this element are both highly positive or both highly negative, it gives us a big result. Where else, if they are the opposite, it gives a small results. If they are both close to zero, it gives no result. So **basically a dot product is a measure of how similar these two things are**. So if the activations of channel 1 and channel 2 are similar, then it basically says — Let's give an example [1:44:28]. Let's say the first one was how textured are the brushstrokes (C1) and that one there says how diagonally oriented are the brush strokes (C2).
 
-![](/images/lesson_13_045.png)
+![](../../../../images/lesson_13_045.png)
 
 If C1 and C2 are both high for a cell (1, 1) at the same time, and same is true for a cell (4, 2), then it's saying grid cells that would have texture tend to also have diagonal. So dot product would be high when grid cells that have texture also have diagonal, and when they don't, they don't (have high dot product). So that's `C1 @ C2`. Where else, `C1 @ C1` is the 2-norm effectively (i.e. the sum of the squares of C1). This is basically saying how many grid cells in the textured channel is active and how active it is. So in other words, `C1 @ C1` tells us how much textured painting is going on. And `C2 @ C2` tells us how much diagonal paint stroke is going on. Maybe C3 is "is it bright colors?" so `C3 @ C3` would be how often do we have bright colored cells.
 
@@ -823,7 +823,7 @@ If C1 and C2 are both high for a cell (1, 1) at the same time, and same is true 
 
 So what we could do then is we could create a 19 by 19 matrix containing every dot product [1:47:17]. And like we discussed, mathematicians have to give everything a name, so this particular matrix where you flatten something out and then do all the dot product is called Gram matrix.
 
-![](/images/lesson_13_046.png)
+![](../../../../images/lesson_13_046.png)
 
 I'll tell you a secret [1:48:29]. Most deep learning practitioners either don't know or don't remember all these things like what is a Gram matrix if they ever did study at university. They probably forgot it because they had a big night afterwards. And the way it works in practice is you realize "oh, I could create a kind of non-spacial representation of how the channels correlate with each other" and then when I write up the paper, I have to go and ask around and say "does this thing have a name?" and somebody will be like "isn't that the Gram matrix?" and you go and look it up and it is. So don't think you have to go study all of math first. Use your intuition and common sense and then you worry about what the math is called later, normally. Sometimes it works the other way, not with me because I can't do math.
 
@@ -851,7 +851,7 @@ style.shape, img.shape
 ((291, 483, 3), (291, 483, 3))
 ```
 
-![](/images/lesson_13_047.png)
+![](../../../../images/lesson_13_047.png)
 
 So here is our painting [1:51:22]. I've tried to resize the painting so it's the same size as my bird picture. So that's all this is just doing. It doesn't matter too much which bit I use as long as it's got lots of the nice style in it.
 
@@ -945,13 +945,13 @@ plt.figure(figsize=(7, 7))
 plt.imshow(x)
 ```
 
-![](/images/lesson_13_048.png)
+![](../../../../images/lesson_13_048.png)
 
 Again Gatys has done it for us. Here is different layers of random image in the style of Van Gogh. So the first one, as you can see, the activations are simple geometric things — not very interesting at all. The later layers are much more interesting. So we kind of have a suspicion that we probably want to use later layers largely for our style loss if we wanted to look good.
 
-![](/images/lesson_13_042.png)
+![](../../../../images/lesson_13_042.png)
 
-![](/images/lesson_13_049.png)
+![](../../../../images/lesson_13_049.png)
 
 I added this `SaveFeatures.close` [1:56:35] which just calls `self.hook.remove()`. Remember, I stored the hook as `self.hook` so `hook.remove()` gets rid of it. It's a good idea to get rid of it because otherwise you can potentially just keep using memory. So at the end, I just go through each of my `SaveFeatures` object and close it:
 
@@ -1012,7 +1012,7 @@ plt.imshow(x, interpolation='lanczos')
 plt.axis('off')
 ```
 
-![](/images/lesson_13_050.png)
+![](../../../../images/lesson_13_050.png)
 
 ```python
 for sf in sfs:
@@ -1023,7 +1023,7 @@ And holy crap, it actually looks good. So I think that's pretty awesome. The mai
 
 What it actually comes to it [1:59:10], apart from implementing Gram MSE loss which was like 6 lines of code if that, that's our loss function:
 
-![](/images/lesson_13_051.png)
+![](../../../../images/lesson_13_051.png)
 
 Pass it to our optimizer, and wait about 5 seconds, and we are done. And remember, we could do a batch of these at a time, so we could wait 5 seconds and 64 of these will be done. So I think that's really interesting and since this paper came out, it has really inspired a lot of interesting work. To me though, most of the interesting work hasn't happened yet because to me, the interesting work is the work where you combine human creativity with these kinds of tools. I haven't seen much in the way of tools that you can download or use where the artist is in control and can kind of do things interactively. It's interesting talking to the guys at [Google Magenta](https://magenta.tensorflow.org/) project which is their creative AI project, all of the stuff they are doing with music is specifically about this. It's building tools that musicians can use to perform in real time. And you'll see much more of that on the music space thanks to Magenta. If you go to their website, there's all kinds of things where you can press the buttons to actually change the drum beats, melodies, keys, etc. You can definitely see Adobe or NVidia is starting to release little prototypes and starting to do this but this kind of creative AI explosion hasn't happened yet. I think we have pretty much all the technology we need but no one's put it together into a thing and said "look at the thing I built and look at the stuff that people built with my thing." So that's just a huge area of opportunity.
 
@@ -1049,17 +1049,17 @@ Oh yeah, Jeremy haven't. Jeremy had a slide about that. We're about to hit it.
 
 Before we do, just another interesting picture from the Gatys' paper. They've got a few more just didn't fit in my slide but different convolutional layers for the style. Different style to content ratios, and here's the different images. Obviously this isn't Van Gogh any more, this is a different combination. So you can see, if you just do all style, you don't see any image. If you do lots of content, but you use low enough convolutional layer, it looks okay but the back ground is kind of dumb. So you kind of want somewhere in the middle. So you can play around with it and experiment, but also use the paper to help guide you.
 
-![](/images/lesson_13_052.png)
+![](../../../../images/lesson_13_052.png)
 
 #### The Math [[02:06:33](https://youtu.be/xXXiC4YRGrQ?t=2h6m33s)]
 
 Actually, I think I might work on the math now and we'll talk about multi GPU and super resolution next week because this is from the paper and one of the things I really do want you to do after we talk about a paper is to read the paper and then ask questions on the forum anything that's not clear. But there's a key part of this paper which I wanted to talk about and discuss how to interpret it. So the paper says, we're going to be given an input image *x* and this little thing means normally it means it's a vector, Rachel, but this one is a matrix. I guess it could mean either. I don't know. Normally small letter bold means vector or a small letter with an arrow on top means vector. And normally big letter means matrix or small letter with two arrows on top means matrix. In this case, our image is a matrix. We are going to basically treat it as a vector, so maybe we're just getting ahead of ourselves.
 
-![](/images/lesson_13_053.png)
+![](../../../../images/lesson_13_053.png)
 
 So we've got an input image *x* and it can be encoded in a particular layer of the CNN by the filter responses (i.e. activations). Filter responses are activations. Hopefully, that's something you all understand. That's basically what a CNN does is it produces layers of activations. A layer has a bunch of filters which produce a number of channels. This here says that layer number L has capital N*l* filters. Again, this capital does not mean matrix. So I don't know, math notation is so inconsistent. So capital N*l* distinct filters at layer L which means it has also that many feature maps. So make sure you can see this letter Nl is the same as this letter. So you've got to be very careful to read the letters and recognize it's like snap, that's the same letter as that. So obviously, Nl filters create create Nl feature maps or channels, each one of size M*l* (okay, I can see this is where the unrolling is happening). So this is like M[*l*] in numpy notation. It's the *l*th layer. So M for the *l*th layer. The size is height times width — so we flattened it out. So the responses in a layer l can be stored in a matrix F (and now the l goes at the top for some reason). So this is not f^*l*, it's just another indexing. We are just moving it around for fun. This thing here where we say it's an element of R — this is a special R meaning the real numbers N times M (this is saying that the dimensions of this is N by M). So this is really important, you don't move on. It's just like with PyTorch, making sure that you understand the rank and size of your dimensions first, same with math. These are the bits where you stop and think why is it N by M? N is a number of filters, M is height by width. So do you remember that thing when we did `.view(b * c, -1)`? Here that is. So try to map the code to the math. So F is `x`:
 
-![](/images/lesson_13_054.png)
+![](../../../../images/lesson_13_054.png)
 
 If I was nicer to you, I would have used the same letters as the paper. But I was too busy getting this darn thing working to do that carefully. So you can go back and rename it as capital F.
 
@@ -1067,7 +1067,7 @@ So this is why we moved the L to the top is because we're now going to have some
 
 So now, the content loss, I'm not going to spend much time on but basically we are going to just check out the values of the activations vs. the predictions squared [2:12:03]. So there's our content loss. The style loss will be much the same thing, but using the Gram matrix G:
 
-![](/images/lesson_13_055.png)
+![](../../../../images/lesson_13_055.png)
 
 I really wanted to show you this one. I think it's super. Sometimes I really like things you can do in math notation, and they're things that you can also generally do in J and APL which is this kind of this implicit loop going on here. What this is saying is there's a whole bunch of values of *i* and a whole bunch of values of *j*, and I'm going to define G for all of them. And there's whole bunch of values of *l* as well, and I'm going to define G for all of those as well. So for all of my G at every *l* of every *i* at every *j*, it's going to be equal to something. And you can see that something has an *i* and a *j* and a *l*, matching G, and it also has a *k* and that's part of the sum. So what's going on here? Well, it's saying that my Gram matrix in layer *l* for the *i*th position in one axis and the *j*th position in another axis is equal to my F matrix (so my flattened out matrix) for the *i*th channel in that layer vs. the *j*th channel in the same layer, then I'm going to sum over. We are going to take the *k*th position and multiply them together and then add them all up. So that's exactly what we just did before when we calculated our Gram matrix. So this, there's a lot going on because of some, to me, very neat notation — which is there are three implicit loops all going on at the same time, plus one explicit loop in the sum, then they all work together to create this Gram matrix for every layer. So let's go back and see if you can match this. All that's happening all at once which is pretty great.
 

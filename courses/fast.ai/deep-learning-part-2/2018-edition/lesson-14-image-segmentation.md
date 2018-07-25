@@ -42,11 +42,11 @@ _These are my personal notes from fast.ai course and will continue to be updated
 
 ## My Notes
 
-![](/images/lesson_14_001.png)
+![](../../../../images/lesson_14_001.png)
 
 #### Show and tell from last week
 
-![](/images/lesson_14_002.jpeg)
+![](../../../../images/lesson_14_002.jpeg)
 
 Alena Harley did something really interesting which was she tried finding out what would happen if you did CycleGAN on just three or four hundred images and I really like these projects where people just go to Google Image Search using the API or one of the libraries out there. Some of our students have created some very [good libraries](https://github.com/hardikvasa/google-images-download) for interacting with Google images API to download a bunch of stuff they are interested in, in this case some photos and some stained glass windows. With 300~400 photos of that, she trained a few different model — this is what I particularly liked. As you can see, with quite a small number of images, she gets very nice stained-glass effects. So I thought that was an interesting example of using pretty small amounts of data that was readily available that she was able to download pretty quickly. There is [more information about that on the forum](http://forums.fast.ai/t/cycle-gan-art-completing-visual-loop/15279?u=cedric) if you are interested.
 It's interesting to wonder about what kinds of things people will come up with with this kind of generative model. It's clearly a great artistic medium. It's clearly a great medium for forgeries and fakeries. I wonder what other kinds of things people will realize they can do with these kind of generative models. I think audio is going to be the next big area. Also very interactive type stuff. Nvidia just released a [paper](https://news.developer.nvidia.com/new-ai-imaging-technique-reconstructs-photos-with-realistic-results/?ncid=nv-twi-37107) showing an interactive kind of photo repair tool where you just brush over an object and it replaces it with a deep learning generated replacement very nicely. Those kinds of interactive tools, I think would be very interesting too.
@@ -134,11 +134,11 @@ label_arr = np.array(label_arr_full, copy=False)[keeps]
 
 So we are going to use VGG16 [00:08:21] and VGG16 is something that we haven't really looked at in this class but it's a very simple model where we take our normal presumably 3 channel input, and we basically run it through a number of 3x3 convolutions, and then from time to time, we put it through a 2x2 maxpool and then we do a few more 3x3 convolutions, maxpool, so on so forth. And this is our backbone.
 
-![](/images/lesson_14_003.png)
+![](../../../../images/lesson_14_003.png)
 
 Then we don't do an adaptive average pooling layer. After a few of these, we end up with this 7x7x512 grid as usual (or something similar). So rather than average pooling, we do something different which is we flatten the whole thing — so that spits out a very long vector of activations of size 7x7x512 if memory serves correctly. Then that gets fed into two fully connected layers each one of which has 4096 activations, and one more fully connected layer which has however many classes. So if you think about it, the weight matrix here, it's HUGE 7x7x512x4096. It's **because of that weight matrix really that VGG went out of favor pretty quickly** — because it takes a lot of memory and takes a lot of computation and it's really slow. And there's a lot of redundant stuff going on here because really those 512 activations are not that specific to which of those 7x7 grid cells they are in. But when you have this entire weight matrix here of every possible combination, it treats all of them uniquely. So that can also lead to generalization problems because there's just a lot of weights and so forth.
 
-![](/images/lesson_14_004.png)
+![](../../../../images/lesson_14_004.png)
 
 #### Modern network approach
 
@@ -244,7 +244,7 @@ x.size(), y.size()
 
 You'll see here we've passed in size low res (`sz_lr`) as our size for the transforms and size high res (`sz_hr`) as, this is something new, the size *y* parameter (`sz_y`) [00:20:58]. So the two bits are going to get different sizes.
 
-![](/images/lesson_14_005.png)
+![](../../../../images/lesson_14_005.png)
 
 Here you can see the two different resolutions of our *x* and our *y* for a whole bunch of bakery.
 
@@ -255,7 +255,7 @@ show_img(x, idx, ax=axes[0])
 show_img(y, idx, ax=axes[1])
 ```
 
-![](/images/lesson_14_006.png)
+![](../../../../images/lesson_14_006.png)
 
 As per usual, `plt.subplots` to create our two plots and then we can just use the different axes that came back to put stuff next to each other.
 
@@ -273,7 +273,7 @@ for i,(x, y) in enumerate(batches):
     show_img(y, idx, ax=axes.flat[i*2+1])
 ```
 
-![](/images/lesson_14_007.png)
+![](../../../../images/lesson_14_007.png)
 
 #### Model [[00:21:48](https://youtu.be/nG3tT31nPmQ?t=21m48s)]
 
@@ -291,7 +291,7 @@ And in "do lots of computation" section, we could just have a whole bunch of 3x3
 
 So that's what we are going to do. We are going to create something with five ResNet blocks and then for each 2x scale up we have to do, we'll have one upsampling block.
 
-![](/images/lesson_14_008.png)
+![](../../../../images/lesson_14_008.png)
 
 They are all going to consist of, as per usual, convolution layers possibly with activation functions after many of them [00:24:37]. I like to put my standard convolution block into a function so I can refactor it more easily. I won't worry about passing in padding and just calculate it directly as kernel size over two.
 
@@ -308,7 +308,7 @@ def conv(ni, nf, kernel_size=3, actn=False):
 
 One interesting thing about our little conv block is that there is no batch norm which is pretty unusual for ResNet type models.
 
-[![https://arxiv.org/abs/1707.02921](/images/lesson_14_009.png)](https://arxiv.org/abs/1707.02921)
+[![https://arxiv.org/abs/1707.02921](../../../../images/lesson_14_009.png)](https://arxiv.org/abs/1707.02921)
 
 The reason there is no batch norm is because I'm stealing ideas from this fantastic recent paper which actually won a recent competition in super resolution performance. To see how good this paper is, SRResNet is the previous state of the art and what they've done here is they've zoomed way in to an upsampled mesh/fence. HR is the original. You can see in the previous best approach, there's a whole lot of distortion and blurring going on. Or else, in their approach, it's nearly perfect. So this paper was a really big step-up. They call their model EDSR (Enhanced Deep Super-Resolution network) and they did two things differently to the previous standard approaches:
 
@@ -380,19 +380,19 @@ Just to mention, as I'm tending to do now, this whole thing is done by creating 
 
 Here is our upsampling and upsampling is a bit interesting because it is not doing either of two things (transposed or fractionally strided convolutions or nearest neighbor upsampling followed by a 1x1 conv). So let's talk a bit about upsampling.
 
-![](/images/lesson_14_010.png)
+![](../../../../images/lesson_14_010.png)
 
 Here is the picture from the paper (Perceptual Losses for Real-Time Style Transfer and Super Resolution). So they are saying "hey, our approach is so much better" but look at their approach. It's got artifacts in it. These just pop up everywhere, don't they. One of the reason for this is that they use transposed convolutions and we all know, don't use transposed convolutions.
 
-![](/images/lesson_14_011.png)
+![](../../../../images/lesson_14_011.png)
 
 Here are transposed convolutions [00:35:39]. This is from this fantastic convolutional arithmetic paper that was shown also in the Theano docs. If we are going from (blue is the original image) 3x3 image up to a 5x5 image (6x6 if we added a layer of padding), then all a transpose convolution does is it uses a regular 3x3 conv but it sticks white zero pixels between every pair of pixels. That makes the input image bigger and when we run this convolution over it, therefore gives us a larger output. But that's obviously stupid because when we get here, for example, of the nine pixels coming in, eight of them are zero. So we are just wasting a whole a lot of computation. On the other hand, if we are slightly off then four of our nine are non-zero. But yet, we only have one filter/kernel to use so it can't change depending on how many zeros are coming in. So it has to be suitable for both and it's just not possible so we end up with these artifacts.
 
-![](/images/lesson_14_012.png)
+![](../../../../images/lesson_14_012.png)
 
 One approach we've learnt to make it a bit better is to not put white things here but instead to copy the pixel's value to each of these three locations [00:36:53]. So that's a nearest neighbor upsampling. That's certainly a bit better, but it's still pretty crappy because now when we get to these nine (as shown above), 4 of them are exactly the same number. And when we move across one, then now we've got a different situation entirely. So depending on where we are, in particular, if we are here, there's going to be a lot less repetition:
 
-![](/images/lesson_14_013.png)
+![](../../../../images/lesson_14_013.png)
 
 So again, we have this problem where there's wasted computation and too much structure in the data, and it's going to lead to artifacts again. So upsampling is better than transposed convolutions — it's better to copy them rather than replace them with zero. But it's still not quite good enough.
 
@@ -400,7 +400,7 @@ So again, we have this problem where there's wasted computation and too much str
 
 So instead, we are going to do the pixel shuffle [00:37:56]. Pixel shuffle is an operation in this sub-pixel convolutional neural network and it's a little bit mind-bending but it's kind of fascinating.
 
-[![Real-Time Single Image and Video Super-Resolution Using an Efficient Sub-Pixel Convolutional Neural Network](/images/lesson_14_014.png)](https://arxiv.org/abs/1609.05158)
+[![Real-Time Single Image and Video Super-Resolution Using an Efficient Sub-Pixel Convolutional Neural Network](../../../../images/lesson_14_014.png)](https://arxiv.org/abs/1609.05158)
 
 We start with our input, we go through some convolutions to create some feature maps for a while until eventually we get to layer *n[i-1]* which has *n[i-1]* feature maps. We are going to do another 3x3 conv and our goal here is to go from a 7x7 grid cell (we're going to do a 3x3 upscaling) so we are going to go up to a 21x21 grid cell. So what's another way we could do that? To make it simpler, let's just pick one face/layer- so let's take the top most filter and just do a convolution over that just to see what happens. What we are going to do is we are going to use a convolution where the kernel size (the number of filters) is nine times bigger than we need (strictly speaking). So if we needed 64 filters, we are actually going to do 64 times 9 filters. Why? Here, *r* is the scale factor so 3² is 9, so here are the nine filters to cover one of these input layers/slices. But what we can do is we started with 7x7, and we turned it into 7x7x9. The output that we want is equal to 7 times 3 by 7 times 3. In other words, there is an equal number of pixels/activations here as there are activations in the previous step. So we can literally re-shuffle these 7x7x9 activations to create this 7x3 by 7x3 map [00:40:16]. So what we are going to do is we're going to take one little tube here (all the top left hand of each grid) and we are going to put the purple one up in the top left, then the blue one one to the right, and light blue one on to the right of that, then the slightly darker one in the middle of the far left, the green one in the middle, and so forth. So each of these nine cells in the top left, they are going to end up in the little 3x3 section of our grid. Then we are going to take (2, 1) and take all of those 9 and more them to these 3x3 part of the grid and so on. So we are going to end up having every one of these 7x7x9 activations inside the 7x3 by 7x3 image.
 
@@ -411,7 +411,7 @@ So the first thing to realize is yes of course this works under some definition 
 
 So here it is:
 
-![](/images/lesson_14_015.png)
+![](../../../../images/lesson_14_015.png)
 
 It's one line of code. Here is a conv with number of in to number of filters out times four because we are doing a scale two upsample (2²=4). That's our convolution and then here is our pixel shuffle, it's built into PyTorch. Pixel shuffle is the thing that moves each thing into its right spot. So that will upsample by a scale factor of 2. So we need to do that log base 2 scale times. If scale is four, then we'll do two times to go two times two. So that's what this upsample here does.
 
@@ -419,7 +419,7 @@ It's one line of code. Here is a conv with number of in to number of filters out
 
 Great. Guess what. That does not get rid of the checkerboard patterns. We still have checkerboard patterns. So I'm sure in great fury and frustration, the same team from Twitter I think this is back when they used to be a startup called Magic Pony that Twitter bought came back again with another paper saying okay, this time we've got rid of the checkerboard.
 
-[![https://arxiv.org/abs/1707.02937](/images/lesson_14_016.png)](https://arxiv.org/abs/1707.02937)
+[![https://arxiv.org/abs/1707.02937](../../../../images/lesson_14_016.png)](https://arxiv.org/abs/1707.02937)
 
 Why do we still have a checkerboard? The reason we still have a checkerboard even after doing this is that when we randomly initialize this convolutional kernel at the start, it means that each of these 9 pixels in this little 3x3 grid over here are going to be totally randomly different. But then the next set of 3 pixels will be randomly different to each other but will be very similar to their corresponding pixel in the previous 3x3 section. So we are going to have repeating 3x3 things all the way across. Then as we try to learn something better, it's starting from this repeating 3x3 starting point which is not what we want. What we actually would want is for these 3x3 pixels to be the same to start with. To make these 3x3 pixels the same, we would need to make these 9 channels the same here for each filter. So the solution in this paper is very simple. It's that when we initialize this convolution at start when we randomly initialize it, we don't totally randomly initialize it. We randomly initialize one of the *r*² sets of channels then we copy that to the other *r*² so they are all the same. That way, initially, each of these 3x3 will be the same. So that is called ICNR (Initialized to Convolution NN Resize) and that's what we are going to use in a moment.
 
@@ -431,7 +431,7 @@ Before we do, let's take a quick look. So we've got this super resolution ResNet
 
 Then to make life faster, we are going to run things in parallel. One reason we want to run it in parallel is because Gerardo told us that he has 6 GPUs and this is what his computer looks like right now. :laughing:
 
-![](/images/lesson_14_017.png)
+![](../../../../images/lesson_14_017.png)
 
 So I'm sure anybody who has more than one GPU has had this experience before. So how do we get these men working together? All you need to do is to take your PyTorch module and wrap it with `nn.DataParallel`. Once you've done that, it copies it to each of your GPUs and will automatically run it in parallel. It scales pretty well to two GPUs, okay to three GPUs, better than nothing to four GPUs and beyond that, performance does go backwards. By default, it will copy it to all of your GPUs — you can add an array of GPUs otherwise if you want to avoid getting in trouble, for example, I have to share our box with Yannet and if I didn't put this here, then she would be yelling at me right now or boycotting my class. So this is how you avoid getting into trouble with Yannet.
 
@@ -468,7 +468,7 @@ learn.sched.plot(10, 0)
 30%|███       | 183/602 [03:10<07:17,  1.04s/it, loss=9.88]
 ```
 
-![](/images/lesson_14_018.png)
+![](../../../../images/lesson_14_018.png)
 
 ```python
 lr = 2e-3
@@ -494,7 +494,7 @@ idx = 1
 show_img(y, idx, normed=True)
 ```
 
-![](/images/lesson_14_019.png)
+![](../../../../images/lesson_14_019.png)
 
 And here is our output.
 
@@ -502,7 +502,7 @@ And here is our output.
 show_img(preds, idx, normed=True)
 ```
 
-![](/images/lesson_14_020.png)
+![](../../../../images/lesson_14_020.png)
 
 And you can see that what we've managed to do is to train a very advanced residual convolutional network that's learnt to blur things. Why is that? Well, because it's what we asked for. We said to minimize MSE loss. MSE loss between pixels really the best way to do that is just average the pixel i.e. to blur it. So that's why pixel loss is no good. So we want to use our perceptual loss.
 
@@ -510,7 +510,7 @@ And you can see that what we've managed to do is to train a very advanced residu
 show_img(x, idx, normed=True)
 ```
 
-![](/images/lesson_14_021.png)
+![](../../../../images/lesson_14_021.png)
 
 ```python
 idx = 2
@@ -519,21 +519,21 @@ idx = 2
 show_img(y, idx, normed=True)
 ```
 
-![](/images/lesson_14_022.png)
+![](../../../../images/lesson_14_022.png)
 
 ```python
 # # Upsampled image (output)
 show_img(preds, idx, normed=True)
 ```
 
-![](/images/lesson_14_023.png)
+![](../../../../images/lesson_14_023.png)
 
 ```python
 # Input image (low-res)
 show_img(x, idx, normed=True)
 ```
 
-![](/images/lesson_14_024.png)
+![](../../../../images/lesson_14_024.png)
 
 ### Perceptual loss [[00:50:57](https://youtu.be/nG3tT31nPmQ?t=50m57s)]
 
@@ -677,7 +677,7 @@ Wall time: 3min 10s
 learn.sched.plot(n_skip_end=1)
 ```
 
-![](/images/lesson_14_025.png)
+![](../../../../images/lesson_14_025.png)
 
 Fit it for a while.
 
@@ -703,19 +703,19 @@ And I fiddled around for a while trying to get some of these details right. But 
 
 So the next step is to go all the way back to the top and change to 4 scale, 32 batch size, restart. I saved the model before I do that.
 
-![](/images/lesson_14_026.png)
+![](../../../../images/lesson_14_026.png)
 
 Go back and that's why there's a little bit of fussing around in here with reloading because what I needed to do now is I needed to load my saved model back in.
 
-![](/images/lesson_14_027.png)
+![](../../../../images/lesson_14_027.png)
 
 But there's a slight issue which is I now have one more upsampling layer than I used to have to go from 2x2 to 4x4. My loop here is now looping through twice, not once. Therefore, it's added an extra conv net and an extra pixel shuffle. So how am I going to load in weights for a different network?
 
-![](/images/lesson_14_028.png)
+![](../../../../images/lesson_14_028.png)
 
 The answer is that I use a very handy thing in PyTorch `load_state_dict`. This is what `learner.load` calls behind the scenes. If I pass this parameter `strict=False` then it says "okay, if you can't fill in all of the layers, just fill in the layers you can." So after loading the model back in this way, we are going to end up with something where it's loaded in all the layers that it can and that one conv layer that's new is going to be randomly initialized.
 
-![](/images/lesson_14_029.png)
+![](../../../../images/lesson_14_029.png)
 
 Then I freeze all my layers and then unfreeze that upsampling part [1:00:45] Then use `icnr` on my newly added extra layer. Then I can go ahead and learn again. So then the rest is the same.
 
@@ -757,7 +757,7 @@ learn.save('sr1')
 learn.sched.plot_loss()
 ```
 
-![](/images/lesson_14_030.png)
+![](../../../../images/lesson_14_030.png)
 
 ```python
 def plot_ds_img(idx, ax=None, figsize=(7, 7), normed=True):
@@ -773,7 +773,7 @@ for i, ax in enumerate(axes.flat):
     plot_ds_img(i + 35, ax=ax, normed=True)
 ```
 
-![](/images/lesson_14_031.png)
+![](../../../../images/lesson_14_031.png)
 
 ```python
 x, y = md.val_ds[215]
@@ -819,7 +819,7 @@ show_img(x[None], 0, ax=axes[0])
 show_img(preds, 0, normed=True, ax=axes[1])
 ```
 
-![](/images/lesson_14_032.png)
+![](../../../../images/lesson_14_032.png)
 
 Well, that brings us to the end of super resolution [1:03:18]. Don't forget to check out the [ask Jeremy anything](http://forums.fast.ai/t/ask-jeremy-anything/15646/1) thread.
 
@@ -857,7 +857,7 @@ So Rachel has just written about this and Rachel and I spent a long time talking
 
 #### Super resolution network to a style transfer network [[01:17:57](https://youtu.be/nG3tT31nPmQ?t=1h17m57s)]
 
-![](/images/lesson_14_033.png)
+![](../../../../images/lesson_14_033.png)
 
 We are going to now turn the super resolution network into a style transfer network. And we'll do this pretty quickly. We basically already have something. *x* is my input image and I'm going to have some loss function and I've got some neural net again. Instead of a neural net that does a whole a lot of compute and then does upsampling at the end, our input this time is just as big as our output. So we are going to do some downsampling first. Then our computer, and then our upsampling. So that's the first change we are going to make — we are going to add some downsampling so some stride 2 convolution layers to the front of our network. The second is rather than just comparing *yc* and *x* are the same thing here. So we are going to basically say our input image should look like itself by the end. Specifically we are going to compare it by chucking it through VGG and comparing it at one of the activation layers. And then its style should look like some painting which we'll do just like we did with the Gatys' approach by looking at the Gram matrix correspondence at a number of layers. So that's basically it. So that ought to be super straight forward. It's really combining two things we've already done.
 
@@ -1025,7 +1025,7 @@ style_img.shape
 plt.imshow(style_img)
 ```
 
-![](/images/lesson_14_034.png)
+![](../../../../images/lesson_14_034.png)
 
 ```python
 h, w, _ = style_img.shape
@@ -1040,7 +1040,7 @@ We can resize it.
 plt.imshow(resz_style)
 ```
 
-![](/images/lesson_14_035.png)
+![](../../../../images/lesson_14_035.png)
 
 We can throw it through our transformations.
 
@@ -1156,7 +1156,7 @@ learn.sched.plot(n_skip_end=1)
 49%|████▊     | 390/802 [16:33<17:29,  2.55s/it, loss=1.86e+06]
 ```
 
-![](/images/lesson_14_036.png)
+![](../../../../images/lesson_14_036.png)
 
 ```python
 lr = 5e-3
@@ -1219,17 +1219,17 @@ show_img(x[None], 0, ax=axes[0])
 show_img(preds, 0, normed=True, ax=axes[1])
 ```
 
-![](/images/lesson_14_037.png)
+![](../../../../images/lesson_14_037.png)
 
 So I mentioned that should be pretty easy and yet it took me about 4 days because I just found this incredibly fiddly to actually get it to work [1:24:26]. So when I finally got up in the morning I said to Rachel "guess what, it trained correctly." Rachel said "I never thought that was going to happen." It just looked awful all the time and it's really about getting the exact right mix of content loss and a style loss and the mix of the layers of the style loss. The worst part was it takes a really long time to train the darn CNN and I didn't really know how long to train it before I decided it wasn't doing well. Should I just train it for longer? And I don't know all the little details didn't seem to slightly change it but just it would totally fall apart all the time. So I kind of mentioned this partly to say just remember the final answer you see here is after me driving myself crazy all week of nearly always not working until finally the last minute it finally does. Even for things which just seemed like they couldn't possibly be difficult because that is combining two things we already have working. The other is to be careful about how we interpret what authors claim.
 
-![](/images/lesson_14_038.png)
+![](../../../../images/lesson_14_038.png)
 
 It was so fiddly getting this style transfer to work [1:26:10]. After doing it, it left me thinking why did I bother because now I've got something that takes hours to create a network that can turn any kind of photo into one specific style. It just seems very unlikely I would want that for anything. The only reason I could think that being useful would be to do some art-y stuff on a video where I wanted to turn every frame into some style. It's incredibly niche thing to want to do. But when I looked at the paper, the table is saying "oh, we are a thousand times faster than the Gatys' approach which is just such an obviously meaningless thing to say. Such an incredibly misleading thing to say because it ignores all the hours of training for each individual style and I find this frustrating because groups like this Stanford group clearly know better or ought to know better, but still I guess the academic community encourages people to make these ridiculously grand claims. It also completely ignores this incredibly sensitive fiddly training process so this paper was just so well accepted when it came out. I remember everybody getting on Twitter and saying "wow, you know these Stanford people have found this way of doing style transfer a thousand times faster." And clearly people saying this were top researchers in the field, clearly none of them actually understood it because nobody said "I don't see why this is remotely useful, and also I tried it and it was incredibly fiddly to get it all to work." It's not until 18 months later I finally coming back to it and kind of thinking like "wait a minute, this is kind of stupid." So this is the answer, I think, to the question of why haven't people done follow ups on this to create really amazing best practices and better approaches like with a super resolution part of the paper. And I think the answer is because it's dumb. So I think super resolution part of the paper is clearly not dumb. And it's been improved and improved and now we have great super resolution. And I think we can derive from that great noise reduction, great colorization, great slant removal, great interactive artifact removal, etc. So I think there's a lot of really cool techniques here. It's also leveraging a lot of stuff that we've been learning and getting better and better at.
 
 ### Segmentation [[01:29:13](https://youtu.be/nG3tT31nPmQ?t=1h29m13s)]
 
-![](/images/lesson_14_039.jpg)
+![](../../../../images/lesson_14_039.jpg)
 
 Finally, let's talk about segmentation. This is from the famous [CamVid](http://mi.eng.cam.ac.uk/research/projects/VideoRec/CamVid/) (Cambridge-driving Labeled Video Database) dataset which is a classic example of an academic segmentation dataset. Basically you can see what we do is we start with a picture (they are actually video frames in this dataset) and we have some labels where they are not actually colors — each one has an ID and the IDs are mapped to colors. So red might be 1, purple might be 2, light pink might be 3 and so all the buildings are one class, all the cars are another class, all the people are another class, all the road is another class, and so on. So what we are actually doing here is multi-class classification for every pixel. You can see, sometimes that multi-class classification really is quite tricky — like these branches. Although, sometimes the labels are really not that great. This is very coarse as you can see. So that's what we are going to do.
 
@@ -1257,7 +1257,7 @@ import json
 
 There is a `train` folder containing bunch of images which is the independent variable and a `train_masks` folder there's the dependent variable and they look like below.
 
-![](/images/lesson_14_040.png)
+![](../../../../images/lesson_14_040.png)
 
 In this case, just like cats and dogs, we are going simple rather than doing multi-class classification, we are going to do binary classification. But of course multi-class is just the more general version — categorical cross entropy or binary class entropy. There is no differences conceptually, so the dependent variable is just zeros and ones, where else the independent variable is a regular image.
 
@@ -1285,7 +1285,7 @@ masks_csv = pd.read_csv(PATH / MASKS_FN)
 masks_csv.head()
 ```
 
-![](/images/lesson_14_041.png)
+![](../../../../images/lesson_14_041.png)
 
 The original dataset came with these CSV files as well [1:32:44]. I don't really use them for very much other than getting the list of images from them.
 
@@ -1294,7 +1294,7 @@ meta_csv = pd.read_csv(PATH / META_FN)
 meta_csv.head()
 ```
 
-![](/images/lesson_14_042.png)
+![](../../../../images/lesson_14_042.png)
 
 ```python
 def show_img(im, figsize=None, ax=None, alpha=None):
@@ -1319,7 +1319,7 @@ list((PATH / TRAIN_DN).iterdir())[:5]
 Image.open(PATH / TRAIN_DN / f'{CAR_ID}_01.jpg').resize((300, 200))
 ```
 
-![](/images/lesson_14_043.png)
+![](../../../../images/lesson_14_043.png)
 
 ```python
 list((PATH / MASKS_DN).iterdir())[:5]
@@ -1336,7 +1336,7 @@ list((PATH / MASKS_DN).iterdir())[:5]
 Image.open(PATH / MASKS_DN / f'{CAR_ID}_01_mask.gif').resize((300, 200))
 ```
 
-![](/images/lesson_14_044.png)
+![](../../../../images/lesson_14_044.png)
 
 Each image after the car ID has a 01, 02, etc of which I've printed out all 16 of them for one car and as you can see basically those numbers are the 16 orientations of one car [1:32:58]. I don't think anybody in this competition actually used these orientation information. I believe they all kept the car's images just treated them separately.
 
@@ -1349,7 +1349,7 @@ for i, ax in enumerate(axes.flat):
 plt.tight_layout(pad=0.1)
 ```
 
-![](/images/lesson_14_045.png)
+![](../../../../images/lesson_14_045.png)
 
 #### Resize and convert [[01:33:27](https://youtu.be/nG3tT31nPmQ?t=1h33m27s)]
 
@@ -1431,11 +1431,11 @@ for i, ax in enumerate(axes.flat):
 plt.tight_layout(pad=0.1)
 ```
 
-![](/images/lesson_14_046.png)
+![](../../../../images/lesson_14_046.png)
 
 This is the same `MatchedFilesDataset` we've seen twice already. This is all the same code. Here is something important though. If we had something that was in the training set the one on the left, and then the validation had the image on the right, that would be kind of cheating because it's the same car.
 
-![](/images/lesson_14_047.png)
+![](../../../../images/lesson_14_047.png)
 
 ```python
 class MatchedFilesDataset(FilesDataset):
@@ -1503,7 +1503,7 @@ for i, ax in enumerate(axes.flat):
 plt.tight_layout(pad=0.1)
 ```
 
-![](/images/lesson_14_048.png)
+![](../../../../images/lesson_14_048.png)
 
 I get a lot of questions during our study group about how do I debug things and fix things that aren't working. I never have a great answer other than every time I fix a problem is because of stuff like this that I do all the time. I just always print out everything as I go and then the one thing that I screw up always turns out to be the one thing that I forgot to check along the way. The more of this kind of thing you can do, the better. If you are not looking at all of your intermediate results, you are going to have troubles.
 
@@ -1562,7 +1562,7 @@ learn.sched.plot()
 86%|████████▌ | 55/64 [00:17<00:02,  3.19it/s, loss=2.57]
 ```
 
-![](/images/lesson_14_049.png)
+![](../../../../images/lesson_14_049.png)
 
 ```python
 lr = 4e-2
@@ -1607,7 +1607,7 @@ So there is the correct version that we want to cut out [1:41:54].
 show_img(ay[0])
 ```
 
-![](/images/lesson_14_050.png)
+![](../../../../images/lesson_14_050.png)
 
 That's the 96% accurate version. So when you look at it you realize "oh yeah, getting 96% of the pixel accurate is actually easy because all the outside bit is not car, and all the inside bit is a car, and really interesting bit is the edge. So we need to do better.
 
@@ -1615,7 +1615,7 @@ That's the 96% accurate version. So when you look at it you realize "oh yeah, ge
 show_img(py[0] > 0)
 ```
 
-![](/images/lesson_14_051.png)
+![](../../../../images/lesson_14_051.png)
 
 Let's unfreeze because all we've done so far is train the custom head. Let's do more.
 
@@ -1674,14 +1674,14 @@ ax = show_img(denorm(x)[0])
 show_img(py[0] > 0, ax=ax, alpha=0.5)
 ```
 
-![](/images/lesson_14_052.png)
+![](../../../../images/lesson_14_052.png)
 
 ```python
 ax = show_img(denorm(x)[0])
 show_img(y[0], ax=ax, alpha=0.5)
 ```
 
-![](/images/lesson_14_053.png)
+![](../../../../images/lesson_14_053.png)
 
 #### 512x512 [[01:42:50](https://youtu.be/nG3tT31nPmQ?t=1h42m50s)]
 
@@ -1723,7 +1723,7 @@ for i, ax in enumerate(axes.flat):
 plt.tight_layout(pad=0.1)
 ```
 
-![](/images/lesson_14_054.png)
+![](../../../../images/lesson_14_054.png)
 
 ```python
 simple_up = nn.Sequential(
@@ -1753,7 +1753,7 @@ learn.sched.plot()
 80%|███████▉  | 203/255 [04:16<01:05,  1.26s/it, loss=0.901]
 ```
 
-![](/images/lesson_14_055.png)
+![](../../../../images/lesson_14_055.png)
 
 ```python
 lr = 4e-2
@@ -1815,14 +1815,14 @@ ax = show_img(denorm(x)[0])
 show_img(py[0] > 0, ax=ax, alpha=0.5)
 ```
 
-![](/images/lesson_14_056.png)
+![](../../../../images/lesson_14_056.png)
 
 ```python
 ax = show_img(denorm(x)[0])
 show_img(y[0], ax=ax, alpha=0.5)
 ```
 
-![](/images/lesson_14_057.png)
+![](../../../../images/lesson_14_057.png)
 
 Things keep getting better but we've still got quite a few little black blocky bits. so let's go to 1024 by 1024.
 
@@ -1850,7 +1850,7 @@ for i, ax in enumerate(axes.flat):
 plt.tight_layout(pad=0.1)
 ```
 
-![](/images/lesson_14_058.png)
+![](../../../../images/lesson_14_058.png)
 
 ```python
 simple_up = nn.Sequential(
@@ -1884,7 +1884,7 @@ CPU times: user 22min 29s, sys: 2min 50s, total: 25min 20s
 Wall time: 13min 42s
 ```
 
-![](/images/lesson_14_059.png)
+![](../../../../images/lesson_14_059.png)
 
 ```python
 lr = 4e-2
@@ -1947,26 +1947,26 @@ ax = show_img(denorm(x)[0])
 show_img(py[0][0] > 0, ax=ax, alpha=0.5)
 ```
 
-![](/images/lesson_14_060.png)
+![](../../../../images/lesson_14_060.png)
 
 ```python
 ax = show_img(denorm(x)[0])
 show_img(y[0, ..., -1], ax=ax, alpha=0.5)
 ```
 
-![](/images/lesson_14_061.png)
+![](../../../../images/lesson_14_061.png)
 
 ```python
 show_img(py[0][0] > 0)
 ```
 
-![](/images/lesson_14_062.png)
+![](../../../../images/lesson_14_062.png)
 
 ```python
 show_img(y[0, ..., -1])
 ```
 
-![](/images/lesson_14_063.png)
+![](../../../../images/lesson_14_063.png)
 
 Things not getting better. So, let's resume training from the point where we stop previously at epoch 15. An epoch took me ~27 minutes this time when I have set `torch.backends.cudnn.benchmark` to `True`. Save around 10 minutes per epoch.
 
@@ -2023,14 +2023,14 @@ ax = show_img(denorm(x)[0])
 show_img(py[0] > 0, ax=ax, alpha=0.5)
 ```
 
-![](/images/lesson_14_080.png)
+![](../../../../images/lesson_14_080.png)
 
 ```python
 ax = show_img(denorm(x)[0])
 show_img(y[0], ax=ax, alpha=0.5)
 ```
 
-![](/images/lesson_14_081.png)
+![](../../../../images/lesson_14_081.png)
 
 Plot just the mask.
 
@@ -2038,13 +2038,13 @@ Plot just the mask.
 show_img(py[0] > 0)
 ```
 
-![](/images/lesson_14_082.png)
+![](../../../../images/lesson_14_082.png)
 
 ```python
 show_img(y[0])
 ```
 
-![](/images/lesson_14_083.png)
+![](../../../../images/lesson_14_083.png)
 
 Now if we look at the masks, they are actually looking not bad. That's looking pretty good. So can we do better? And the answer is yes, we can.
 
@@ -2055,11 +2055,11 @@ Now if we look at the masks, they are actually looking not bad. That's looking p
 
 U-Net network is quite magnificent. With that previous approach, our pre-trained ImageNet network was being squished down all the way down to 7x7 and then expand it out all the way back up to 224x224 (1024 gets squished down to quite a bit bigger than 7x7). And then expanded out again all this way which means it has to somehow store all the information about the much bigger version in the small version. And actually most of the information about the bigger version was really in the original picture anyway. So it doesn't seem like a great approach — this squishing and un-squishing.
 
-![](/images/lesson_14_064.png)
+![](../../../../images/lesson_14_064.png)
 
 So the U-Net idea comes from this fantastic paper where it was literally invented in this very domain-specific area of biomedical image segmentation. But in fact, basically every Kaggle winner in anything even vaguely related to segmentation has end up using U-Net. It's one of these things that everybody in Kaggle knows it is the best practice, but in more of academic circles, this has been around for a couple of years at least, a lot of people still don't realize this is by far the best approach.
 
-![](/images/lesson_14_065.png)
+![](../../../../images/lesson_14_065.png)
 
 Here is the basic idea [1:45:10]. On the left is the downward path where we start at 572x572 in this case then halve the grid size 4 times, then on the right is the upward path where we double the grid size 4 times. But the thing that we also do is, at every point where we halve the grid size, we actually copy those activations over to the upward path and concatenate them together.
 
@@ -2219,7 +2219,7 @@ learn.sched.plot()
 84%|████████▍ | 54/64 [00:19<00:03,  2.70it/s, loss=2.81]
 ```
 
-![](/images/lesson_14_066.png)
+![](../../../../images/lesson_14_066.png)
 
 ```python
 lr = 4e-2
@@ -2273,13 +2273,13 @@ py = to_np(learn.model(V(x)))
 show_img(py[0] > 0)
 ```
 
-![](/images/lesson_14_067.png)
+![](../../../../images/lesson_14_067.png)
 
 ```python
 show_img(y[0])
 ```
 
-![](/images/lesson_14_068.png)
+![](../../../../images/lesson_14_068.png)
 
 ### U-net (ish) [[01:48:16](https://youtu.be/nG3tT31nPmQ?t=1h48m16s)]
 
@@ -2302,7 +2302,7 @@ class SaveFeatures():
 
 So we are basically going to start with `get_base` [1:50:37]. Base is our base network and that was defined back up in the first section.
 
-![](/images/lesson_14_069.png)
+![](../../../../images/lesson_14_069.png)
 
 So `get_base` is going to be something that calls whatever f is and `f` is `resnet34`. So we are going to grab our ResNet34 and `cut_model` is the first thing that our convnet builder does. It basically removes everything from the adaptive pooling onwards, so that gives us back the backbone of ResNet34. So `get_base` is going to give us back the ResNet34 backbone.
 
@@ -2356,7 +2356,7 @@ class UnetModel():
 
 Then we are going to take that ResNet34 backbone and turn it into a, I call it a, Unet34 [1:51:17]. So what that's going to do is it's going to save that ResNet that we passed in and then we are going to use a forward hook just like before to save the results at the 2nd, 4th, 5th, and 6th blocks which as before is the layers before each stride 2 convolution. Then we are going to create a bunch of these things we are calling `UnetBlock`. We need to tell `UnetBlock` how many things are coming from the previous layer we are upsampling, how many are coming across, and then how many do we want to come out. The amount coming across is entirely defined by whatever the base network was — whatever the downward path was, we need that many layers. So this is a little bit awkward. Actually one of our master's students here, Kerem, has actually created something called DynamicUnet that you'll find in [fastai.model.DynamicUnet](https://github.com/fastai/fastai/blob/d3ef60a96cddf5b503361ed4c95d68dda4a873fc/fastai/models/unet.py#L53) and it actually calculates this all for you and automatically creates the whole U-Net from your base model. It's got some minor quirks still that I want to fix. By the time the video is out, it'll definitely be working and I will at least have a notebook showing how to use it and possibly an additional video. But for now you'll just have to go through and do it yourself. You can easily see it just by, once you've got a ResNet, you can just type in its name and it'll print out the layers. And you can see how many many activations there are in each block. Or you can have it printed out for you for each block automatically. Anyway, I just did this manually.
 
-![](/images/lesson_14_070.png)
+![](../../../../images/lesson_14_070.png)
 
 So the `UnetBlock` works like this [1:53:29]:
 
@@ -2368,7 +2368,7 @@ Now what I do is, I then say, okay we're going to create a certain amount of con
 
 So I've got an upward sample, I've got a cross convolution, I can concatenate the two together. That's all a `UnetBlock` is. So that's actually a pretty easy module to create.
 
-![](/images/lesson_14_071.png)
+![](../../../../images/lesson_14_071.png)
 
 Then in my forward path, I need to pass to the forward of the `UnetBlock` the upward path and the cross path [1:54:40]. The upward path is just whatever I am up to so far. But then the cross path is whatever the activations are that I stored on the way down. So as I come up, it's the last set of saved features that I need first. And as I gradually keep going up farther and farther, eventually it's the first set of features.
 
@@ -2565,7 +2565,7 @@ learn.sched.plot()
 89%|████████▉ | 57/64 [00:20<00:02,  2.80it/s, loss=1.57]
 ```
 
-![](/images/lesson_14_072.png)
+![](../../../../images/lesson_14_072.png)
 
 ```python
 lr = 4e-2
@@ -2649,13 +2649,13 @@ This is actually looking somewhat car-like compared to our non-U-Net equivalent 
 show_img(py[0] > 0)
 ```
 
-![](/images/lesson_14_073.png)
+![](../../../../images/lesson_14_073.png)
 
 ```python
 show_img(y[0])
 ```
 
-![](/images/lesson_14_074.png)
+![](../../../../images/lesson_14_074.png)
 
 At the end of that, we'll do `m.close` to remove those `sfs.features` taking up GPU memory.
 
@@ -2762,13 +2762,13 @@ And you can see, it's now looking pretty good.
 show_img(py[0] > 0)
 ```
 
-![](/images/lesson_14_075.png)
+![](../../../../images/lesson_14_075.png)
 
 ```python
 show_img(y[0])
 ```
 
-![](/images/lesson_14_076.png)
+![](../../../../images/lesson_14_076.png)
 
 ```python
 m.close()
@@ -2857,13 +2857,13 @@ Wall time: 1h 52min 36s
 learn.sched.plot_loss()
 ```
 
-![](/images/lesson_14_084.png)
+![](../../../../images/lesson_14_084.png)
 
 ```
 learn.sched.plot_lr()
 ```
 
-![](/images/lesson_14_085.png)
+![](../../../../images/lesson_14_085.png)
 
 _4 cycles for 4 epochs. So, 1 cycle is 1 epoch. Therefore, 1 epoch is 1000 iterations._
 
@@ -2894,7 +2894,7 @@ learn.sched.plot_loss()
 
 During training, the GPU memory usage peak at 11 GB on a K80.
 
-![](/images/lesson_14_077.png)
+![](../../../../images/lesson_14_077.png)
 
 ```python
 learn.save('1024urn')
@@ -2911,13 +2911,13 @@ As you can see, that actually looks good [1:57:17]. In accuracy terms, 99.82%. Y
 show_img(py[0]>0)
 ```
 
-![](/images/lesson_14_078.png)
+![](../../../../images/lesson_14_078.png)
 
 ```python
 show_img(y[0])
 ```
 
-![](/images/lesson_14_079.png)
+![](../../../../images/lesson_14_079.png)
 
 ### Back to Bounding Box [[01:58:15](https://youtu.be/nG3tT31nPmQ?t=1h58m15s)]
 
