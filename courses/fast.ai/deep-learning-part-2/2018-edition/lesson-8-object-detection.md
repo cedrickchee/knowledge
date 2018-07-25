@@ -85,7 +85,7 @@ _These are my personal notes from fast.ai course and will continue to be updated
 Two main differences from what we are used to:
 
 **1. We have multiple things that we are classifying.**
-  
+
   This part is not new, as we have done this in part 1, the Planet satellite tutorial.
 
 **2. Bounding boxes around what we are classifying.**
@@ -262,7 +262,7 @@ Convert VOC's height/width into top-left/bottom-right, and switch x/y coords to 
 
 ```Python
 # bb is an example of VOC's bbox
-# x, y, width, height -> top-left coord (y, x), bottom-right coord (y+height-1, x+width-1) 
+# x, y, width, height -> top-left coord (y, x), bottom-right coord (y+height-1, x+width-1)
 #ix   0    1   2    3
 bb = [155, 96, 196, 174]
 bb[1], bb[0], bb[3] + bb[1] - 1, bb[2] + bb[0] - 1 # (96, 155, 269, 350)
@@ -346,11 +346,11 @@ Tricks:
 1. `plt.subplots`.
 
     Useful wrapper for creating plots, regardless of whether you have more than one subplot.
-    
+
     :memo: Matplotlib has an optional object-oriented API which I think is much easier to understand and use (although few examples online use it!).
 
 2. Visible text regardless of background color.
-    
+
     A simple but rarely used trick to making text visible regardless of background is to use white text with black outline, or visa versa. Here's how to do it in Matplotlib:
 
     ```Python
@@ -483,8 +483,8 @@ learn.fit(lrs/5, 1, cycle_len=1)
 ```
 
 ```Python
-epoch      trn_loss   val_loss   accuracy                  
-    0      0.789873   0.674313   0.788     
+epoch      trn_loss   val_loss   accuracy
+    0      0.789873   0.674313   0.788
 [array([0.67431]), 0.7879999985694885]
 ```
 
@@ -499,9 +499,9 @@ learn.fit(lrs/5, 1, cycle_len=2)
 ```
 
 ```Python
-epoch      trn_loss   val_loss   accuracy                  
-    0      0.600366   0.672303   0.794     
-    1      0.444746   0.691367   0.786                     
+epoch      trn_loss   val_loss   accuracy
+    0      0.600366   0.672303   0.794
+    1      0.444746   0.691367   0.786
 [array([0.69137]), 0.786]
 ```
 
@@ -534,7 +534,7 @@ for i, ax in enumerate(axes.flat):
 plt.tight_layout()
 ```
 
-![Image classification plot](/images/pascal_notebook_img_classi_plot.png)
+![Image classification plot](../../../../images/pascal_notebook_img_classi_plot.png)
 
 It's doing a pretty good job of classifying the largest object.
 
@@ -647,7 +647,7 @@ for i, ax in enumerate(axes.flat):
 [  0.  53. 224. 139.]
 ```
 
-![Bounding box of the largest object](/images/pascal_notebook_obj_det_one_img_bbox_plot.png)
+![Bounding box of the largest object](../../../../images/pascal_notebook_obj_det_one_img_bbox_plot.png)
 
 #### Custom Head
 
@@ -664,7 +664,7 @@ learn.opt_fn = optim.Adam
 learn.crit = nn.L1Loss()
 ```
 - `Flatten()`
-  
+
   Normally the previous layer has 7x7x512 in ResNet34, so flatten that out into a single vector of length 25088.
 - `L1Loss`
 
@@ -730,10 +730,10 @@ learn.fit(lr, 2, cycle_len=1, cycle_mult=2)
 ```
 
 ```Python
-epoch      trn_loss   val_loss                            
-    0      48.960351  35.755788 
-    1      37.135304  29.60765                            
-    2      31.466736  29.009163                           
+epoch      trn_loss   val_loss
+    0      48.960351  35.755788
+    1      37.135304  29.60765
+    2      31.466736  29.009163
 [array([29.00916])]
 ```
 
@@ -750,10 +750,10 @@ learn.fit(lrs, 2, cycle_len=1, cycle_mult=2)
 ```
 
 ```Python
-epoch      trn_loss   val_loss                            
-    0      25.858838  25.091344 
-    1      22.565964  22.855172                           
-    2      19.391733  21.236308                           
+epoch      trn_loss   val_loss
+    0      25.858838  25.091344
+    1      22.565964  22.855172
+    2      19.391733  21.236308
 [array([21.23631])]
 ```
 
@@ -765,9 +765,9 @@ learn.fit(lrs, 1, cycle_len=2)
 ```
 
 ```Python
-epoch      trn_loss   val_loss                            
-    0      18.009395  21.977178 
-    1      16.113632  20.927288                           
+epoch      trn_loss   val_loss
+    0      18.009395  21.977178
+    1      16.113632  20.927288
 [array([20.92729])]
 ```
 
@@ -798,8 +798,8 @@ for i, ax in enumerate(axes.flat):
 plt.tight_layout()
 ```
 
-![Bounding box of the largest object](/images/pascal_notebook_obj_det_all_img_bbox_plot.png)
+![Bounding box of the largest object](../../../../images/pascal_notebook_obj_det_all_img_bbox_plot.png)
 
-We will revise this more next lesson. 
+We will revise this more next lesson.
 
 As you look further down, it starts looking a bit crappy — anytime we have more than one object. This is not surprising. Overall, it did a pretty good job.
