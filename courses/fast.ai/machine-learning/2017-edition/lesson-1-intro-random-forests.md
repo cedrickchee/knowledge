@@ -300,7 +300,7 @@ df_raw.to_feather('tmp/bulldozers-raw')
 We can read it back as so:
 
 ```python
-df_raw = pd.read_feather('tmp/raw')
+df_raw = pd.read_feather('tmp/bulldozers-raw')
 ```
 
 We will replace categories with their numeric codes, handle missing continuous values, and split the dependent variable into a separate variable.
@@ -342,12 +342,12 @@ Now we have all numerical values. Note that booleans are treated as numbers. So 
 ```python
 m = RandomForestRegressor(n_jobs=-1)
 m.fit(df, y)
-m.score(df,y)
+m.score(df, y) # returns the coefficient of determination R^2 of the prediction.
 ```
 
-Random forests are **trivially parallelizable**—meaning if you have more than one CPU, you can split up the data across different CPUs and it linearly scale. So the more CPUs you have, it will divide the time it takes by that number (not exactly but roughly). `n_jobs=-1` tells the random forest regressor to create a separate job/process for each CPU you have.
+Random forests are **trivially parallelizable**—meaning if you have more than one CPU, you can split up the data across different CPUs and it linearly scale. So the more CPUs you have, it will divide the time it takes by that number (not exactly but roughly). `n_jobs=-1` tells the random forest regressor to create a separate job/process for each CPU you have. In other words, the number of jobs to run in parallel for fit. If `-1`, then the number of jobs is set to the number of cores.
 
-`m.score` will return r² value (1 is good, 0 is bad). We will learn r² next week.
+`m.score` will return [r²](http://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html#sklearn.ensemble.RandomForestRegressor.score) value (1 is good, 0 is bad). We will learn r² next week.
 
 Wow, an r² of 0.98—that's great, right? Well, perhaps not…
 
@@ -361,11 +361,13 @@ This illustrates how using all our data can lead to **overfitting**. A validatio
 
 ```python
 def split_vals(a,n): return a[:n].copy(), a[n:].copy()
+
 n_valid = 12000  # same as Kaggle's test set size
 n_trn = len(df)-n_valid
 raw_train, raw_valid = split_vals(df_raw, n_trn)
 X_train, X_valid = split_vals(df, n_trn)
 y_train, y_valid = split_vals(y, n_trn)
+
 X_train.shape, y_train.shape, X_valid.shape
 
 # -----------------------------------------------------------------------------
@@ -379,13 +381,14 @@ X_train.shape, y_train.shape, X_valid.shape
 By using validation set, you see that the r² is 0.88 for validation set.
 
 ```python
-def rmse(x,y): return math.sqrt(((x-y)**2).mean())
+def rmse(x, y): return math.sqrt(((x - y)**2).mean())
+
 def print_score(m):
-    res = [rmse(m.predict(X_train), y_train),
-           rmse(m.predict(X_valid), y_valid),
-           m.score(X_train, y_train), m.score(X_valid, y_valid)]
+    res = [rmse(m.predict(X_train), y_train), rmse(m.predict(X_valid), y_valid),
+                m.score(X_train, y_train), m.score(X_valid, y_valid)]
     if hasattr(m, 'oob_score_'): res.append(m.oob_score_)
     print(res)
+
 m = RandomForestRegressor(n_jobs=-1)
 %time m.fit(X_train, y_train)
 print_score(m)
@@ -393,9 +396,9 @@ print_score(m)
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
-CPU times: user 1min 3s, sys: 356 ms, total: 1min 3s
-Wall time: 8.46 s
-[0.09044244804386327, 0.2508166961122146, 0.98290459302099709, 0.88765316048270615]
+CPU times: user 1min 40s, sys: 646 ms, total: 1min 41s
+Wall time: 1min 24s
+[0.09057056725780595, 0.2503660807375712, 0.9828561245974444, 0.8880564808160493]
 ```
 
 _*[training rmse, validation rmse, r² for training set, r² for validation set]_
@@ -403,4 +406,5 @@ _*[training rmse, validation rmse, r² for training set, r² for validation set]
 If you check Kaggle competition's public board, RMSE of 0.25 will fall around top 25%. Random forests are insanely powerful and this totally standardized process is insanely good for any datasets.
 
 #### Before the next class
+
 Please try this process to solve as many Kaggle competitions as possible. What will likely happen is that you will be pleasantly surprised that you will do pretty well with just an hour of lecture.
