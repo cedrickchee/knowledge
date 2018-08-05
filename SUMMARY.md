@@ -33,6 +33,20 @@
       * [Lesson 12 - DarkNet; Generative Adversarial Networks \(GANs\)](courses/fast.ai/deep-learning-part-2/2018-edition/lesson-12-gan.md)
       * [Lesson 13 - Image Enhancement; Style Transfer; Data Ethics](courses/fast.ai/deep-learning-part-2/2018-edition/lesson-13-image-enhancement.md)
       * [Lesson 14 - Super Resolution; Image Segmentation with U-Net](courses/fast.ai/deep-learning-part-2/2018-edition/lesson-14-image-segmentation.md)
+  * Machine Learning: Intro to Machine Learning for Coders
+    * [Machine Learning: 2017 Edition](courses/fast.ai/machine-learning/2017-edition/README.md)
+      * [Lesson 1 - Introduction to Random Forests](courses/fast.ai/machine-learning/2017-edition/lesson-1-intro-random-forests.md)
+      * [Lesson 2 - Random Forest Deep Dive](courses/fast.ai/machine-learning/2017-edition/lesson-2-random-forest-deep-dive.md)
+      * [Lesson 3 - Feature Engineering](courses/fast.ai/machine-learning/2017-edition/lesson-3-feature-engineering.md)
+      * [Lesson 4 - Random Forest Interpretation](courses/fast.ai/machine-learning/2017-edition/lesson-4-random-forest-interpretation.md)
+      * [Lesson 5 - Train vs Test](courses/fast.ai/machine-learning/2017-edition/lesson-5-train-vs-test.md)
+      * [Lesson 6 - What is Machine Learning and Why Do We Use It](courses/fast.ai/machine-learning/2017-edition/lesson-6-what-is-ml-and-why.md)
+      * [Lesson 7 - Decision Trees Ensemble](courses/fast.ai/machine-learning/2017-edition/lesson-7-decision-trees-ensemble.md)
+      * [Lesson 8 - Basic Neural Networks](courses/fast.ai/machine-learning/2017-edition/lesson-8-basic-neaural-nets.md)
+      * [Lesson 9 - SGD; Neural Network Training; Broadcasting](courses/fast.ai/machine-learning/2017-edition/lesson-9-broadcasting-matrix-multiplication.md)
+      * [Lesson 10 - Logistic Regression; NLP; Naive Bayes](courses/fast.ai/machine-learning/2017-edition/lesson-10-regression-nlp-naive-bayes.md)
+      * [Lesson 11 - Structured and Time-Series Data](courses/fast.ai/machine-learning/2017-edition/lesson-11-structured-time-series-data.md)
+      * [Lesson 12 - Entity Embeddings; Data Science and Ethics](courses/fast.ai/machine-learning/2017-edition/lesson-12-embeddings-datascience-ethics.md)
 
 ## Books
 
