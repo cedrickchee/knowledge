@@ -81,7 +81,7 @@ In this course we'll be doing a deep dive into random forests, and simple models
 
 ### Random Forest: Blue Book for Bulldozers Kaggle Competition
 
-- [Notebook]((https://nbviewer.jupyter.org/github/fastai/fastai/blob/master/courses/ml1/lesson1-rf.ipynb))
+- [Notebook](https://nbviewer.jupyter.org/github/fastai/fastai/blob/master/courses/ml1/lesson1-rf.ipynb)
 - [Kaggle competition](https://www.kaggle.com/c/bluebook-for-bulldozers)
 
 ```python
@@ -99,7 +99,7 @@ from IPython.display import display
 from sklearn import metrics
 ```
 
-Data science ≠ Software engineering [(00:08:43)[https://youtu.be/CzdWqFTmn0Y?t=8m43s]]. You will see code that does not follow PEP 8 and things like import *, but go along with it for a while. What we are doing right now is prototyping models, and prototyping models has a very different set of best practices that are taught nowhere. The key is to be able to do things very interactively and iteratively. Jupyter notebook makes this easy. If you ever wondered what display is, you can do one of the three things:
+Data science ≠ Software engineering [[00:08:43](https://youtu.be/CzdWqFTmn0Y?t=8m43s)]. You will see code that does not follow PEP 8 and things like import *, but go along with it for a while. What we are doing right now is prototyping models, and prototyping models has a very different set of best practices that are taught nowhere. The key is to be able to do things very interactively and iteratively. Jupyter notebook makes this easy. If you ever wondered what display is, you can do one of the three things:
 
 1. type `display` in a cell and press `shift + enter`—it will tell you where it came from `<function IPython.core.display.display>`.
 2. type `?display` in a cell and press `shift + enter`—it will show you the documentation.
