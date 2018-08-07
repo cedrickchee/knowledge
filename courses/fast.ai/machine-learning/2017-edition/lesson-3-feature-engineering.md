@@ -306,3 +306,200 @@ Very often. The whole point of star schema is that you have a centric table, and
 :question: How about adding Ecuador’s holidays to supplement the data? [[00:42:52](https://youtu.be/YSFG_W8JxBo?t=42m52s)] That information is actually provided.
 
 In general, one way of tackling this kind of problem is to create lots of new columns containing things like average number of sales on holidays, average percent change in sale between January and February, etc. There has been a [previous competition](https://www.kaggle.com/c/rossmann-store-sales) for a grocery chain in Germany that was almost identical. [The person who won](http://blog.kaggle.com/2015/12/21/rossmann-store-sales-winners-interview-1st-place-gert/) was a domain expert and specialist in doing logistics predictions. He created lots of columns based on his experience of what kinds of things tend to be useful for making predictions. So that is an approach that can work. The third place winner did almost no feature engineering, however, and they also had one big oversight which may have cost them the first place win. We will be learning a lot more about how to win this competition and ones like it as we go.
+
+### Importance of good validation set [[00:44:53](https://youtu.be/YSFG_W8JxBo?t=44m53s)]
+
+If you do not have a good validation set, it is hard, if not impossible, to create a good model. If you are trying to predict next month’s sales and you build models. If you have no way of knowing whether the models you have built are good at predicting sales a month ahead of time, then you have no way of knowing whether it is actually going to be any good when you put your model in production. You need a validation set that you know is reliable at telling you whether or not your model is likely to work well when you put it in production or use it on the test set.
+
+Normally you should not use your test set for anything other than using it right at the end of the competition or right at the end of the project to find out how you did. But there is one thing you can use the test set for in addition — that is to **calibrate your validation set** [[00:46:02](https://youtu.be/YSFG_W8JxBo?t=46m2s)].
+
+![](/images/ml_2017_lesson_3_005.png)
+
+What Terrance did here was that he built four different models and submitted each of the four models to Kaggle to find out its score. X-axis is the score Kaggle told us on the leaderboard, and y-axis he plotted the score on a particular validation set he was trying out to see whether the validation set was going to be any good. If your validation set is good, then the relationship between the leaderboards score (i.e. the test set score) should lie in a straight line. Ideally, it will lie on the `y = x` line, but honestly that does not matter too much as long as relatively speaking it tells you which models are better than which other models, then you know which model is the best. In this case, Terrance has managed to come up with a validation set which looks like it is going to predict the Kaggle leaderboard score well. That is really cool because he can go away and try a hundred different types of models, feature engineering, weighting, tweaks, hyper parameters, whatever else, see how they go on the validation set, and not have to submit to Kaggle. So you will get a lot more iterations, a lot more feedback. This is not just true for Kaggle but every machine learning project you do. In general, if your validation set is not showing nice fit line, you need think carefully [[00:48:02](https://youtu.be/YSFG_W8JxBo?t=48m2s)]. How is the test set constructed? How is my validation set different? You will have to draw lots of charts and so forth to find out.
+
+:question: How do you construct a validation set as close to the test set [[00:48:23](https://youtu.be/YSFG_W8JxBo?t=48m23s)]?
+
+Here are a few tips from Terrance:
+
+- Close by date (i.e. most recent)
+- First looked at the date range of the test set (16 days), then looked at the date range of the kernel which described how to get 0.58 on the leaderboard by taking an average (14 days).
+- Test set begins on the day after pay day and ends on a pay day.
+- Plot lots of pictures. Even if you did not know it was pay day, you want to draw the time series chart and hopefully see that every two weeks there is a spike and make sure that you have the same number of spikes in the validation set as the test set.
+
+### Interpreting machine learning models [[00:50:38](https://youtu.be/YSFG_W8JxBo?t=50m38s)]
+
+[Notebook](https://nbviewer.jupyter.org/github/fastai/fastai/blob/master/courses/ml1/lesson2-rf_interpretation.ipynb)
+
+```python
+PATH = "data/bulldozers/"
+
+df_raw = pd.read_feather('tmp/raw')
+df_trn, y_trn, nas = proc_df(df_raw, 'SalePrice')
+```
+
+We start by reading in our feather files for Blue Books for Bulldozers competition. Reminder: we have already read in the CSV, processed it into categories, and save it in feather format. The next thing we do is call proc_df to turn categories into integers, deal with missing values, and pull out the dependent variable. Then create a validation set just like last week:
+
+```python
+def split_vals(a,n): return a[:n], a[n:]
+
+n_valid = 12000
+n_trn = len(df_trn)-n_valid
+X_train, X_valid = split_vals(df_trn, n_trn)
+y_train, y_valid = split_vals(y_trn, n_trn)
+raw_train, raw_valid = split_vals(df_raw, n_trn)
+```
+
+#### Detour to lesson 1 notebook [[00:51:59](https://youtu.be/YSFG_W8JxBo?t=51m59s)]
+
+Last week, there was a bug in `proc_df` that was shuffling the dataframe when `subset` gets passed in hence causing the validation set to be not the latest 12000 records. This issue was fixed.
+
+```python
+## From lesson1-rf.ipynb
+df_trn, y_trn, nas = proc_df(df_raw, 'SalePrice', subset=30000, na_dict=nas)
+X_train, _ = split_vals(df_trn, 20000)
+y_train, _ = split_vals(y_trn, 20000)
+```
+
+:question: Why is `nas` both input and output of this function [[00:53:03](https://youtu.be/YSFG_W8JxBo?t=53m3s)]?
+
+`proc_df` returns a dictionary telling you which columns were missing and for each of those columns what the median was.
+
+1. When you call `proc_df` on a larger dataset, you do not pass in `nas` but you want to keep that return value.
+2. Later on, when you want to create a subset (by passing in `subset`), you want to use the same missing columns and medians, so you pass nas in.
+3. If it turns out that the subset was from a whole different dataset and had different missing columns, it would update the dictionary with additional key value.
+4. It keeps track of any missing columns you came across in anything you passed to `proc_df` .
+
+#### Back to lesson 2 notebook [[00:54:40](https://youtu.be/YSFG_W8JxBo?t=54m40s)]
+
+Once we have done `proc_df`, this is what it looks like. `SalePrice` is the log of the sale price.
+
+![](/images/ml_2017_lesson_3_006.png)
+
+We already know how to get the prediction. We take the average value in each leaf node in each tree after running a particular row through each tree. Normally, we do not just want a prediction — we also want to know how confident we are of that prediction.
+
+We would be less confident of a prediction if we have not seen many examples of rows like this one. In that case, we would not expect any of the trees to have a path through — which is designed to help us predict that row. So conceptually, you would expect then that as you pass this unusual row through different trees, it is going to end up in very different places. In other words, rather than just taking the mean of the predictions of the trees and saying that is our prediction, what if we took the standard deviation of the predictions of the trees? If the standard deviation is high, that means each tree is giving us a very different estimate of this row’s prediction. If this was a really common kind of row, the trees would have learned to make good predictions for it because it has seen lots of opportunities to split based on those kind of rows. So the standard deviation of the predictions across the trees gives us at least relative understanding of how confident we are of this prediction [[00:56:39](https://youtu.be/YSFG_W8JxBo?t=56m39s)]. This is not something which exists in scikit-learn, so we have to create it. But we already have almost the exact code we need.
+
+For model interpretation, there is no need to use the full dataset because we do not need a massively accurate random forest — we just need one which indicates the nature of relationships involved.
+
+Just make sure the sample size is large enough that if you call the same interpretation commands multiple times, you do not get different results back each time. In practice, 50,000 is a high number and it would be surprising if that was not enough (and it runs in seconds).
+
+```python
+set_rf_samples(50000)
+m = RandomForestRegressor(n_estimators=40, min_samples_leaf=3,
+                        max_features=0.5, n_jobs=-1, oob_score=True)
+m.fit(X_train, y_train)
+print_score(m)
+```
+
+Here is where we can do the exact same list comprehension as the last time [[00:58:35](https://youtu.be/YSFG_W8JxBo?t=58m35s)]:
+
+```python
+%time preds = np.stack([t.predict(X_valid) for t in m.estimators_])
+np.mean(preds[:,0]), np.std(preds[:,0])
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+CPU times: user 1.38 s, sys: 20 ms, total: 1.4 s
+Wall time: 1.4 s
+(9.1960278072006023, 0.21225113407342761)
+```
+
+This is how to do it for one observation. This takes quite a while and specifically, it is not taking advantage of the fact that my computer has lots of cores in it. List comprehensions itself if Python code and Python code (unless you are doing something special) runs in serial which means it runs on a single CPU and does not take advantage of your multi CPU hardware. If we wanted to run this on more trees and more data, the execution time goes up. Wall time (the amount of actual time it took) is roughly equal to the CPU time where else if it was running on lots of cores, the CPU time would be higher than the wall time [[01:00:05](https://youtu.be/YSFG_W8JxBo?t=1h5s)].
+
+It turns out Fast.ai library provides a handy function called `parallel_trees`:
+
+```python
+def get_preds(t): return t.predict(X_valid)
+%time preds = np.stack(parallel_trees(m, get_preds))
+np.mean(preds[:,0]), np.std(preds[:,0])
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+CPU times: user 100 ms, sys: 180 ms, total: 280 ms
+Wall time: 505 ms
+(9.1960278072006023, 0.21225113407342761)
+```
+
+- `parallel_trees` takes a random forest model `m` and some function to call (here, it is `get_preds`). This calls this function on every tree in parallel.
+- It will return a list of the result of applying that function to every tree.
+- This will cut down the wall time to 500 milliseconds and giving exactly the same answer. Time permitting, we will talk about more general ways of writing code that runs in parallel which is super useful for data science, but here is one that we can use for random forests.
+
+#### Plotting [[01:02:02](https://youtu.be/YSFG_W8JxBo?t=1h2m2s)]
+
+We will first create a copy of the data and add the standard deviation of the predictions and predictions themselves (the mean) as new columns:
+
+```python
+x = raw_valid.copy()
+x['pred_std'] = np.std(preds, axis=0)
+x['pred'] = np.mean(preds, axis=0)
+x.Enclosure.value_counts().plot.barh();
+```
+![](/images/ml_2017_lesson_3_007.png)
+
+You might remember from last lesson that one of the predictors we have is called `Enclosure` and this is an important one as we will see later. Let’s start by doing a histogram. One of the nice things about Pandas is it has built-in [plotting capabilities](https://pandas.pydata.org/pandas-docs/stable/visualization.html).
+
+:question: Can you remind me what enclosure is [[01:02:50](https://youtu.be/YSFG_W8JxBo?t=1h2m50s)]?
+
+We do not know what it means and it does not matter. The whole purpose of this process is that we are going to learn about what things are (or at least what things are important and later on figure out what they are and how they are important). So we will start out knowing nothing about this dataset. We are just going to look at something called `Enclosure` that has something called `EROPS` and `ROPS` and we do not even know what this is yet. All we know is that the only three that appear in any great quantity are `OROPS`, `EROPS w AC`, and `EROPS`. This is very common as a data scientist. You often find yourself looking at data that you are not that familiar with and you have to figure out which bits to study more carefully, which bits seem to matter, and so forth. In this case, at least know that `EROPS AC`, `NO ROPS`, and `None or Unspecified` we really do not care about because they basically do not exist. So we will focus on `OROPS`, `EROPS w AC`, and `EROPS`.
+
+Here we took our data frame, grouped by `Enclosure`, then took average of 3 fields [[01:04:00](https://youtu.be/YSFG_W8JxBo?t=1h4m)]:
+
+```python
+flds = ['Enclosure', 'SalePrice', 'pred', 'pred_std']
+enc_summ = x[flds].groupby('Enclosure', as_index=False).mean()
+enc_summ
+```
+
+![](/images/ml_2017_lesson_3_008.png)
+
+We can already start to learn a little here:
+
+- Prediction and the sale price are close to each other on average (good sign)
+- Standard deviation varies a little bit
+
+```python
+enc_summ = enc_summ[~pd.isnull(enc_summ.SalePrice)]
+enc_summ.plot('Enclosure', 'SalePrice', 'barh', xlim=(0,11));
+```
+
+![](/images/ml_2017_lesson_3_009.png)
+
+```python
+enc_summ.plot('Enclosure', 'pred', 'barh', xerr='pred_std',
+              alpha=0.6, xlim=(0,11));
+```
+
+![](/images/ml_2017_lesson_3_010.png)
+
+We used the standard deviation of prediction for the error bars above. This will tell us if there is some groups or some rows that we are not very confident of at all. We could do something similar for product size:
+
+```python
+raw_valid.ProductSize.value_counts().plot.barh();
+```
+
+![](/images/ml_2017_lesson_3_011.png)
+
+```python
+flds = ['ProductSize', 'SalePrice', 'pred', 'pred_std']
+summ = x[flds].groupby(flds[0]).mean()
+summ
+```
+
+![](/images/ml_2017_lesson_3_012.png)
+
+You expect, on average, when you are predicting something that is a bigger number your standard deviation would be higher. So you can sort by the ratio of the standard deviation of the predictions to the predictions themselves [[01:05:51](https://youtu.be/YSFG_W8JxBo?t=1h5m51s)].
+
+```python
+(summ.pred_std/summ.pred).sort_values(ascending=False)
+```
+
+![](/images/ml_2017_lesson_3_013.png)
+
+What this tells us is that product size `Large` and `Compact` , our predictions are less accurate (relatively speaking as a ratio of the total price). So if we go back and have a look, you see why. These are the smallest groups in the histogram. As you would expect, in small groups, we are doing a less good job.
+
+You can use this confidence interval for two main purposes:
+
+1. You can look at the average confidence interval by group to find out if there are groups you do not seem to have confidence about.
+2. Perhaps more importantly, you can look at them for specific rows. When you put it in production, you might always want to see the confidence interval. For example, if you are doing credit scoring to decide whether to give somebody a loan, you probably want to see not only what their level of risk is but how confident we are. If they want to borrow lots of money and we are not at all confident about our ability to predict whether they will pay back, we might want to give them a smaller loan.
