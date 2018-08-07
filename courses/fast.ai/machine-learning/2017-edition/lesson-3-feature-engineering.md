@@ -503,3 +503,102 @@ You can use this confidence interval for two main purposes:
 
 1. You can look at the average confidence interval by group to find out if there are groups you do not seem to have confidence about.
 2. Perhaps more importantly, you can look at them for specific rows. When you put it in production, you might always want to see the confidence interval. For example, if you are doing credit scoring to decide whether to give somebody a loan, you probably want to see not only what their level of risk is but how confident we are. If they want to borrow lots of money and we are not at all confident about our ability to predict whether they will pay back, we might want to give them a smaller loan.
+
+### Feature importance [[01:07:20](https://youtu.be/YSFG_W8JxBo?t=1h7m20s)]
+
+> I always look at feature importance first in practice. Whether I’m working on a Kaggle competition or a real world project, I build a random forest as fast as I can, trying to get it to the point that is significantly better than random but doesn’t have to be much better than that. And the next thing I do is to plot the feature importance.
+
+The feature importance tells us in this random forest, which columns mattered. We have dozens of columns in this dataset, and here, we are picking out the top 10. `rf_feat_importance` is part of fast.ai library which takes a model `m` and dataframe `df_trn` (because we need to know names of columns) and it will give you back a Pandas dataframe showing you in order of importance how important each column was.
+
+```python
+fi = rf_feat_importance(m, df_trn); fi[:10]
+```
+
+![](/images/ml_2017_lesson_3_014.png)
+
+```python
+fi.plot('cols', 'imp', figsize=(10,6), legend=False);
+```
+
+![](/images/ml_2017_lesson_3_015.png)
+
+Since `fi` is a `DataFrame`, we can use `DataFrame` plotting commands [[01:09:00](https://youtu.be/YSFG_W8JxBo?t=1h9m)]. The important thing is to see that some columns are really important and most columns do not really matter at all. In nearly every dataset you use in real life, this is what your feature importance is going to look like. There is only a handful of columns that you care about, and this is why Jeremy always starts here. At this point, in terms of looking into learning about this domain of heavy industrial equipment auctions, we only have to care about learning about the columns which matter. Are we going to bother learning about `Enclosure`? Depends whether `Enclosure` is important. It turns out that it appears in top 10, so we are going to have to learn about `Enclosure`.
+
+We can also plot this as a bar plot:
+
+```python
+def plot_fi(fi):
+  return fi.plot('cols','imp','barh', figsize=(12,7), legend=False)
+
+plot_fi(fi[:30]);
+```
+
+![](/images/ml_2017_lesson_3_016.png)
+
+The most important thing to do with this is to now sit down with your client, your data dictionary, or whatever your source of information is and say to then “okay, tell me about `YearMade`. What does that mean? Where does it come from?” [[01:10:31](https://youtu.be/YSFG_W8JxBo?t=1h10m31s)] Plot lots of things like histogram of `YearMade` and scatter plot of `YearMade` against price and learn everything you can because `YearMade` and `Coupler_System `—they are the things that matter.
+
+What will often happen in real-world projects is that you sit with the the client and you’ll say “it turns out the `Coupler_System` is the second most important thing” and they might say “that makes no sense.” That doesn’t mean that there is a problem with your model, it means there is a problem with their understanding of the data they gave you.
+
+Let me give you an example [[01:11:16](https://youtu.be/YSFG_W8JxBo?t=1h11m16s)]. I entered a Kaggle competition where the goal was to predict which applications for grants at a university would be successful. I used this exact approach and I discovered a number of columns which were almost entirely predictive of the dependent variable. Specifically, when I then looked to see in what way they are predictive, it turned out whether they were missing or not was the only thing that mattered in his dataset. I ended up winning that competition thanks to this insight. Later on, I heard what had happened. It turns out that at that university, there is an administrative burden to fill any other database and so for a lot of the grant applications, they do not fill in the database for the folks whose applications were not accepted. In other words, these missing values in the dataset were saying this grand wasn’t accepted because if it was accepted then the admin folks will go in and type in that information. This is what we call **data leakage**. Data leakage means there is information in the dataset that I was modeling with which the university would not have had in real life at that point in time they were making a decision. When they are actually deciding which grant applications to prioritize, they do not know which ones the admin staff will later on going to add information to because it turns out that they were accepted.
+
+One of the key things you will find here is data leakage problems and that is a serious problem you need to deal with [[01:12:56](https://youtu.be/YSFG_W8JxBo?t=1h12m56s)]. The other thing that will happen is you will often find its signs of collinearity. It seems like what happened with `Coupler_System`. `Coupler_System` tells you whether or not a particular kind of heavy industrial equipment has a particular feature on it. But if it is not that kind of industrial equipment at all, it will be missing. So it indicates whether or not it is a certain class of heavy industrial equipment. This is not data leakage. This is an actual information you actually have at the right time. You just have to be careful interpreting it. So you should go through at least the top 10 or look for where the natural break points are and really study these things carefully.
+
+To make life easier, it is sometimes good to throw some data away and see if it make any difference. In this case, we have a random forest which was .889 r². Here we filter out those where the importance is equal to or less than 0.005 (i.e. only keep the one whose importance is greater than 0.005).
+
+```python
+to_keep = fi[fi.imp>0.005].cols; len(to_keep)
+df_keep = df_trn[to_keep].copy()
+X_train, X_valid = split_vals(df_keep, n_trn)
+m = RandomForestRegressor(n_estimators=40, min_samples_leaf=3,
+                       max_features=0.5, n_jobs=-1, oob_score=True)
+m.fit(X_train, y_train)
+print_score(m)
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+[0.20685390156773095, 0.24454842802383558, 0.91015213846294174, 0.89319840835270514, 0.8942078920004991]
+```
+
+The r² did not change much — it actually increased a tiny bit. Generally speaking, removing redundant columns should not make it worse. If f it makes it worse, they were not redundant after all. It might make it a little bit better because if you think about how we built these trees, when it is deciding what to split on, it has less things to worry about trying, it is less often going to accidentally find a crappy column. So there is slightly better opportunity to create a slightly better tree with slightly less data, but it is not going to change it by much. But it is going to make it a bit faster and it is going to let us focus on what matters. Let’s re-run feature importance on this new result [[01:15:49](https://youtu.be/YSFG_W8JxBo?t=1h15m49s)].
+
+```python
+fi = rf_feat_importance(m, df_keep)
+plot_fi(fi);
+```
+
+![](/images/ml_2017_lesson_3_017.png)
+
+Key thing that has happened is that when you remove redundant columns, you are also removing sources of collinearity. In other words, two columns that might be related to each other. Collinearity does not make your random forests less predictive, but if you have a column A is a little bit related to a column B, and B is a strong driver of the independent, what happens is that the importance is going to be split between A and B. By removing some of those columns with very little impact, it makes your feature importance plot clearer. Before `YearMade` was pretty close to `Coupler_System`. But there must have been a bunch of things that are collinear with `YearMade` and now you can see `YearMade` really matters. This feature importance plot is more reliable than the one before because it has a lot less collinearity to confuse us.
+
+#### Let’s talk about how this works [[01:17:21](https://youtu.be/YSFG_W8JxBo?t=1h17m21s)]
+
+Not only is it really simple, it is a technique you can use not just for random forests but for basically any kind of machine learning model. Interestingly, almost no one knows this. Many people will tell you there is no way of interpreting this particular kind of model (the most important interpretation of a model is knowing which things are important) and that is almost certainly not going to be true because the technique I am going to teach you actually works for any kind of models.
+
+![](/images/ml_2017_lesson_3_018.png)
+
+- We take our bulldozer data set and we have a column `Price` we are trying to predict (dependent variable).
+- We have 25 independent variables and one of them is `YearMade`.
+- How do we figure out how important `YearMade` is? We have a whole random forest and we can find out our predictive accuracy. So we will put all these rows through our random forest, and it will spit out some predictions. We will then compare them to the actual price (in this case, we get our root mean squared error and r²). This is our starting point.
+- Let’s do exactly the same thing, but this time, take the `YearMade` column and randomly shuffle it (i.e. randomly permute just that column). Now `YearMade` has exactly the same distribution as before (same mean, same standard deviation). But it has no relationships with our dependent variable at all because we totally randomly reordered it.
+- Before, we might have found our r² was .89. After we shuffle `YearMade`, we check again, and now r² is .80. The score got much worse when we destroyed that variable.
+- Okay, let’s try again. We put `YearMade` back to how it was, and this time let’s take `Enclosure` and shuffle that. This time, r²is .84 and we can say the amount of decrease in our score for `YearMade` was .09 and the amount of decrease for `Enclosure` was .05. And this is going to give us our feature importances for each column.
+
+:question: Can’t we just exclude the column and check the decay in performance [[01:20:31](https://youtu.be/YSFG_W8JxBo?t=1h20m31s)]?
+
+You could remove the column and train a whole new random forest, but that is going to be really slow. Where else this way, we can keep our random forest and just test the predictive accuracy of it again. So this is nice and fast by comparison. In this case, we just have to rerun every row forward through the forest for each shuffled column.
+
+:question: If you want to do multi-collinearity, would you do two of them and random shuffle and then three of them [[01:21:12](https://youtu.be/YSFG_W8JxBo?t=1h21m12s)]?
+
+I don’t think you mean multi-collinearity, I think you mean looking for interaction effects. So if you want to say which pairs of variables are most important, you could do exactly the same thing each pair in turn. In practice, there are better ways to do that because that is obviously computationally pretty expensive and so we will try to find time to do that if we can.
+
+We now have a model which is a little bit more accurate and we have learned a lot more about it. So we are out of time and what I would suggest you try doing now before next class for this bulldozers dataset is going through the top 5 or 10 predictors and try and learn what you can about how to draw plots in Pandas and try to come back with some insights about things like:
+
+- what is the relationship between `YearMade` and the dependent variable
+- what is the histogram of `YearMade`
+- now that you know `YearMade` is really important, check if there is some noise in that column which we could fix
+- Check if there is some weird encoding in that column we can fix
+- This idea Jeremy had that maybe `Coupler_System` is there entirely because it is collinear with something else, you might want try and figure out if it’s true. If so, how would you do it?
+- `fiProductClassDesc` that rings alarm bells — it sounds like it might be a high cardinality categorical variable. It might be something with lots and lots levels because it sounds like it is a model name. So go and have a look at that model name — does it have some order into it? Could you make it an ordinal variable to make it better? Does it have some kind of hierarchical structure in the string that we can split it on hyphen to create more sub columns.
+
+Have a think about this. Try and make it so that by when you come back, you’ve got some new, ideally a better accuracy than what I just showed because you found some new insights or at least that you can tell the class about some things you have learnt about how heavy industrial equipment auctions work in practice.
