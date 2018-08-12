@@ -72,7 +72,7 @@ Jeremy's answer [[00:11:47](https://youtu.be/blyXCk4sgEg?t=11m47s)]
 - *fi*: predictions
 - `SSres` is RMSE of the actual model
 - If we were exactly as effective as just predicting the mean, `SSres/SStot` = 1 and R² = 0
-- If we were perfect (i.e. yi = fi for all cases), `SSres/SStot` = 0 and R² = 1
+- If we were perfect (i.e. *yi* = *fi* for all cases), `SSres/SStot` = 0 and R² = 1
 
 ### What is the possible range of R² [[00:14:43](https://youtu.be/blyXCk4sgEg?t=14m43s)]?
 
@@ -82,7 +82,7 @@ So when your R² is negative, it means your model is worse than predicting the m
 
 R² is not necessarily what you are actually trying to optimize, but it is a number you can use for every model and you can start to get a feel of what .8 looks like or what .9 looks like. Something you may find interesting is to create synthetic 2D datasets with different amounts of random noise, and see what they look like on a scatterplot and their R² to get a feel of how close they are to the actual value.
 
-R² is the ratio between how good your model is (RMSE)vs. how good is the naïve mean model (RMSE).
+R² is the ratio between how good your model is (RMSE) vs. how good is the naïve mean model (RMSE).
 
 ### Overfitting [[00:17:33](https://youtu.be/blyXCk4sgEg?t=17m33s)]
 
@@ -97,13 +97,16 @@ Creating a validation set is the most important thing you need to do when you ar
 If your dataset has a time piece in it (as is in Blue Book competition), you would likely want to predict future prices/values/etc. What Kaggle did was to give us data representing a particular date range in the training set, and then the test set presented a future set of dates that wasn't represented in the training set. So we need to create a validation set that has the same properties:
 
 ```python
-def split_vals(a,n): return a[:n].copy(), a[n:].copy()
-n_valid = 12000  # same as Kaggle's test set size
-n_trn = len(df)-n_valid
+def split_vals(a, n): return a[:n].copy(), a[n:].copy()
+
+n_valid = 12000 # same as Kaggle's test set size
+n_trn = len(df) - n_valid
+
 raw_train, raw_valid = split_vals(df_raw, n_trn)
 X_train, X_valid = split_vals(df, n_trn)
 y_train, y_valid = split_vals(y, n_trn)
-X_train.shape, y_train.shape, X_valid.shape
+
+X_train.shape, y_train.shape, X_valid.shape, y_valid.shape
 
 # -----------------------------------------------------------------------------
 # Output
@@ -149,7 +152,7 @@ This is one of these examples where the code does not follow PEP8. Being able to
 
 If you put `%time`, it will tell you how long things took. The rule of thumb is that if something takes more than 10 seconds to run, it is too long to do interactive analysis with it. So what we do is we try to make sure that things can run in a reasonable time. And then when we are finished at the end of the day, we can say ok, this feature engineering, these hyper parameters, etc are all working well, and we will now re-run it the big slow precise way.
 
-One way to speed things up is to pass in the subset parameter to proc_df which will randomly sample the data:
+One way to speed things up is to pass in the subset parameter to `proc_df` which will randomly sample the data:
 
 ```python
 df_trn, y_trn, nas = proc_df(df_raw, 'SalePrice', subset=30000, na_dict=nas)
@@ -169,15 +172,19 @@ After resampling the training set into the first 20,000 out of a 30,000 subsets,
 We are going to build a forest made of trees. Let's start by looking at trees. In scikit-learn, they do not call them trees but **estimators**.
 
 ```python
-m = RandomForestRegressor(n_estimators=1, max_depth=3,
-                          bootstrap=False, n_jobs=-1)
+m = RandomForestRegressor(n_estimators=1, max_depth=3, bootstrap=False, n_jobs=-1)
 m.fit(X_train, y_train)
 print_score(m)
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+[0.5266894510247919, 0.5818093431255259, 0.40371860065382226, 0.3954818336381971]
 ```
 
 - `n_estimators=1`—create a forest with just one tree
 - `max_depth=3`—to make it a small tree
-- `bootstrap=False`—random forest randomizes bunch of things, we want to turn that off by this parameter
+- `bootstrap=False`—random forest randomizes bunch of things, we want to turn that off by this parameter (the samples are drawn with replacement if `bootstrap=True` (default).)
 
 This small deterministic tree has R² of 0.4028 after fitting so this is not a good model but better than the mean model since it is greater than 1 and we can actually draw [[00:33:00](https://youtu.be/blyXCk4sgEg?t=33m)]:
 
@@ -196,9 +203,9 @@ We want to start building a random forest from scratch [[00:36:28](https://youtu
 - We need to pick a variable and the value to split on such that the two groups are as different to each other as possible.
 - For each variable, for each possible value of the possible value of that variable see whether it is better.
 - How to determine if it is better? Take weighted average of two new nodes.
-- The resulting model will be similar to the naïve model of means — we have a model with a single binary decision. For everybody with coupler_system greater than 0.5, we will fill in 10.345, for everybody else, we will put 9.363. Then we will calculate RMSE of this model.
+- The resulting model will be similar to the naïve model of means — we have a model with a single binary decision. For everybody with `coupler_system` greater than 0.5, we will fill in 10.345, for everybody else, we will put 9.363. Then we will calculate RMSE of this model.
 
-We now have a single number that represents how good a split is which is the weighted average of the mean squared errors of the two groups that creates [[00:42:13](https://youtu.be/blyXCk4sgEg?t=42m13s)]. We also have a way to find the best split which is to try try every variable and to try every possible value of that variable and see which variable and which value gives us a split with the best score.
+We now have a single number that represents how good a split is which is the weighted average of the mean squared errors of the two groups that creates [[00:42:13](https://youtu.be/blyXCk4sgEg?t=42m13s)]. We also have a way to find the best split which is to try every variable and to try every possible value of that variable and see which variable and which value gives us a split with the best score.
 
 :question: Are there circumstances when it is better to split into 3 groups [[00:45:12](https://youtu.be/blyXCk4sgEg?t=45m12s)]?
 
@@ -214,8 +221,7 @@ This is the entirety of creating a decision tree. Stopping condition:
 Right now, our decision tree has R² of 0.4. Let's make it better by removing `max_depth=3`. By doing so, the training R² becomes 1 (as expected since each leaf node contains exactly one element) and validation R² is 0.73 — which is better than the shallow tree but not as good as we would like.
 
 ```python
-m = RandomForestRegressor(n_estimators=1, bootstrap=False,
-                          n_jobs=-1)
+m = RandomForestRegressor(n_estimators=1, bootstrap=False, n_jobs=-1)
 m.fit(X_train, y_train)
 print_score(m)
 
