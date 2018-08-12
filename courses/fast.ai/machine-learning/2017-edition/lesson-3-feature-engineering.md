@@ -1,4 +1,4 @@
-# Lesson 3 - Lesson 3 - Feature Engineering
+# Lesson 3 - Feature Engineering
 
 _These are my personal notes from fast.ai machine learning course and will continue to be updated and improved if I find anything useful and relevant while I continue to review the course to study much more in-depth. Thanks for reading and happy learning!_
 
