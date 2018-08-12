@@ -133,7 +133,7 @@ Pandas is generally fast, so you can summarize every column of all 125 million r
 %time df_all.describe(include='all')
 ```
 
-![](/images/ml_2017_lesson_3_001.png)
+![](../../../../images/ml_2017_lesson_3_001.png)
 
 - First thing to look at is the dates. Dates are important because any models you put in in practice, you are going to be putting it in at some date that is later than the date that you trained it by definition. So if anything in the world changes, you need to know how your predictive accuracy changes as well. So for Kaggle or for your own project, you should always make sure that your dates do not overlap [[00:22:55](https://youtu.be/YSFG_W8JxBo?t=22m55s)].
 - In this case, training set goes from 2013 to August 2017.
@@ -148,7 +148,7 @@ df_test.onpromotion = df_test.onpromotion.astype(bool)
 df_test.describe(include='all')
 ```
 
-![](/images/ml_2017_lesson_3_002.png)
+![](../../../../images/ml_2017_lesson_3_002.png)
 
 - In our test set, they go from one day later until the end of the month.
 - This is a key thing — you cannot really do any useful machine learning until you understand this basic piece. You have four years of data and you are trying to predict the next two weeks. This is a fundamental thing you need to understand before you can go and do a good job at this.
@@ -162,7 +162,7 @@ Exactly. It is not that there is no useful information from four years ago so we
 df_all.tail()
 ```
 
-![](/images/ml_2017_lesson_3_003.png)
+![](../../../../images/ml_2017_lesson_3_003.png)
 
 Here is what the bottom of the data looks like [[00:26:00](https://youtu.be/YSFG_W8JxBo?t=26m)].
 
@@ -277,7 +277,7 @@ m = RandomForestRegressor(n_estimators=20, min_samples_leaf=3, n_jobs=8)
 
 This brought this error down to 0.70. `min_samples_leaf=1` did not really help. So we have a “reasonable” random forest here. But this does not give a good result on the leader board [[00:33:42](https://youtu.be/YSFG_W8JxBo?t=33m42s)]. Why? Let’s go back and see the data:
 
-![](/images/ml_2017_lesson_3_004.png)
+![](../../../../images/ml_2017_lesson_3_004.png)
 
 These are the columns we had to predict with (plus what were added by `add_datepart`). Most of the insight around how much of something you expect to sell tomorrow is likely to be wrapped up in the details about where the store is, what kind of things they tend to sell at the store, for a given item, what category of item it is. Random forest has no ability to do anything other than create binary splits on things like day of week, store number, item number. It does not know type of items or location of stores. Since its ability to understand what is going on is limited, we probably need to use the entire 4 years of data to even get some useful insights. But as soon as we start using the whole 4 years of data, a lot of the data we are using is really old. There is a Kaggle kernel that points out that what you could do is [[00:35:54](https://youtu.be/YSFG_W8JxBo?t=35m54s)]:
 
@@ -313,7 +313,7 @@ If you do not have a good validation set, it is hard, if not impossible, to crea
 
 Normally you should not use your test set for anything other than using it right at the end of the competition or right at the end of the project to find out how you did. But there is one thing you can use the test set for in addition — that is to **calibrate your validation set** [[00:46:02](https://youtu.be/YSFG_W8JxBo?t=46m2s)].
 
-![](/images/ml_2017_lesson_3_005.png)
+![](../../../../images/ml_2017_lesson_3_005.png)
 
 What Terrance did here was that he built four different models and submitted each of the four models to Kaggle to find out its score. X-axis is the score Kaggle told us on the leaderboard, and y-axis he plotted the score on a particular validation set he was trying out to see whether the validation set was going to be any good. If your validation set is good, then the relationship between the leaderboards score (i.e. the test set score) should lie in a straight line. Ideally, it will lie on the `y = x` line, but honestly that does not matter too much as long as relatively speaking it tells you which models are better than which other models, then you know which model is the best. In this case, Terrance has managed to come up with a validation set which looks like it is going to predict the Kaggle leaderboard score well. That is really cool because he can go away and try a hundred different types of models, feature engineering, weighting, tweaks, hyper parameters, whatever else, see how they go on the validation set, and not have to submit to Kaggle. So you will get a lot more iterations, a lot more feedback. This is not just true for Kaggle but every machine learning project you do. In general, if your validation set is not showing nice fit line, you need think carefully [[00:48:02](https://youtu.be/YSFG_W8JxBo?t=48m2s)]. How is the test set constructed? How is my validation set different? You will have to draw lots of charts and so forth to find out.
 
@@ -373,7 +373,7 @@ y_train, _ = split_vals(y_trn, 20000)
 
 Once we have done `proc_df`, this is what it looks like. `SalePrice` is the log of the sale price.
 
-![](/images/ml_2017_lesson_3_006.png)
+![](../../../../images/ml_2017_lesson_3_006.png)
 
 We already know how to get the prediction. We take the average value in each leaf node in each tree after running a particular row through each tree. Normally, we do not just want a prediction — we also want to know how confident we are of that prediction.
 
@@ -436,7 +436,7 @@ x['pred_std'] = np.std(preds, axis=0)
 x['pred'] = np.mean(preds, axis=0)
 x.Enclosure.value_counts().plot.barh();
 ```
-![](/images/ml_2017_lesson_3_007.png)
+![](../../../../images/ml_2017_lesson_3_007.png)
 
 You might remember from last lesson that one of the predictors we have is called `Enclosure` and this is an important one as we will see later. Let’s start by doing a histogram. One of the nice things about Pandas is it has built-in [plotting capabilities](https://pandas.pydata.org/pandas-docs/stable/visualization.html).
 
@@ -452,7 +452,7 @@ enc_summ = x[flds].groupby('Enclosure', as_index=False).mean()
 enc_summ
 ```
 
-![](/images/ml_2017_lesson_3_008.png)
+![](../../../../images/ml_2017_lesson_3_008.png)
 
 We can already start to learn a little here:
 
@@ -464,14 +464,14 @@ enc_summ = enc_summ[~pd.isnull(enc_summ.SalePrice)]
 enc_summ.plot('Enclosure', 'SalePrice', 'barh', xlim=(0,11));
 ```
 
-![](/images/ml_2017_lesson_3_009.png)
+![](../../../../images/ml_2017_lesson_3_009.png)
 
 ```python
 enc_summ.plot('Enclosure', 'pred', 'barh', xerr='pred_std',
               alpha=0.6, xlim=(0,11));
 ```
 
-![](/images/ml_2017_lesson_3_010.png)
+![](../../../../images/ml_2017_lesson_3_010.png)
 
 We used the standard deviation of prediction for the error bars above. This will tell us if there is some groups or some rows that we are not very confident of at all. We could do something similar for product size:
 
@@ -479,7 +479,7 @@ We used the standard deviation of prediction for the error bars above. This will
 raw_valid.ProductSize.value_counts().plot.barh();
 ```
 
-![](/images/ml_2017_lesson_3_011.png)
+![](../../../../images/ml_2017_lesson_3_011.png)
 
 ```python
 flds = ['ProductSize', 'SalePrice', 'pred', 'pred_std']
@@ -487,7 +487,7 @@ summ = x[flds].groupby(flds[0]).mean()
 summ
 ```
 
-![](/images/ml_2017_lesson_3_012.png)
+![](../../../../images/ml_2017_lesson_3_012.png)
 
 You expect, on average, when you are predicting something that is a bigger number your standard deviation would be higher. So you can sort by the ratio of the standard deviation of the predictions to the predictions themselves [[01:05:51](https://youtu.be/YSFG_W8JxBo?t=1h5m51s)].
 
@@ -495,7 +495,7 @@ You expect, on average, when you are predicting something that is a bigger numbe
 (summ.pred_std/summ.pred).sort_values(ascending=False)
 ```
 
-![](/images/ml_2017_lesson_3_013.png)
+![](../../../../images/ml_2017_lesson_3_013.png)
 
 What this tells us is that product size `Large` and `Compact` , our predictions are less accurate (relatively speaking as a ratio of the total price). So if we go back and have a look, you see why. These are the smallest groups in the histogram. As you would expect, in small groups, we are doing a less good job.
 
@@ -514,13 +514,13 @@ The feature importance tells us in this random forest, which columns mattered. W
 fi = rf_feat_importance(m, df_trn); fi[:10]
 ```
 
-![](/images/ml_2017_lesson_3_014.png)
+![](../../../../images/ml_2017_lesson_3_014.png)
 
 ```python
 fi.plot('cols', 'imp', figsize=(10,6), legend=False);
 ```
 
-![](/images/ml_2017_lesson_3_015.png)
+![](../../../../images/ml_2017_lesson_3_015.png)
 
 Since `fi` is a `DataFrame`, we can use `DataFrame` plotting commands [[01:09:00](https://youtu.be/YSFG_W8JxBo?t=1h9m)]. The important thing is to see that some columns are really important and most columns do not really matter at all. In nearly every dataset you use in real life, this is what your feature importance is going to look like. There is only a handful of columns that you care about, and this is why Jeremy always starts here. At this point, in terms of looking into learning about this domain of heavy industrial equipment auctions, we only have to care about learning about the columns which matter. Are we going to bother learning about `Enclosure`? Depends whether `Enclosure` is important. It turns out that it appears in top 10, so we are going to have to learn about `Enclosure`.
 
@@ -533,7 +533,7 @@ def plot_fi(fi):
 plot_fi(fi[:30]);
 ```
 
-![](/images/ml_2017_lesson_3_016.png)
+![](../../../../images/ml_2017_lesson_3_016.png)
 
 The most important thing to do with this is to now sit down with your client, your data dictionary, or whatever your source of information is and say to then “okay, tell me about `YearMade`. What does that mean? Where does it come from?” [[01:10:31](https://youtu.be/YSFG_W8JxBo?t=1h10m31s)] Plot lots of things like histogram of `YearMade` and scatter plot of `YearMade` against price and learn everything you can because `YearMade` and `Coupler_System `—they are the things that matter.
 
@@ -567,7 +567,7 @@ fi = rf_feat_importance(m, df_keep)
 plot_fi(fi);
 ```
 
-![](/images/ml_2017_lesson_3_017.png)
+![](../../../../images/ml_2017_lesson_3_017.png)
 
 Key thing that has happened is that when you remove redundant columns, you are also removing sources of collinearity. In other words, two columns that might be related to each other. Collinearity does not make your random forests less predictive, but if you have a column A is a little bit related to a column B, and B is a strong driver of the independent, what happens is that the importance is going to be split between A and B. By removing some of those columns with very little impact, it makes your feature importance plot clearer. Before `YearMade` was pretty close to `Coupler_System`. But there must have been a bunch of things that are collinear with `YearMade` and now you can see `YearMade` really matters. This feature importance plot is more reliable than the one before because it has a lot less collinearity to confuse us.
 
@@ -575,7 +575,7 @@ Key thing that has happened is that when you remove redundant columns, you are a
 
 Not only is it really simple, it is a technique you can use not just for random forests but for basically any kind of machine learning model. Interestingly, almost no one knows this. Many people will tell you there is no way of interpreting this particular kind of model (the most important interpretation of a model is knowing which things are important) and that is almost certainly not going to be true because the technique I am going to teach you actually works for any kind of models.
 
-![](/images/ml_2017_lesson_3_018.png)
+![](../../../../images/ml_2017_lesson_3_018.png)
 
 - We take our bulldozer data set and we have a column `Price` we are trying to predict (dependent variable).
 - We have 25 independent variables and one of them is `YearMade`.
