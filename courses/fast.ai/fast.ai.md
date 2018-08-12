@@ -3,7 +3,9 @@
 _My personal notes from [fast.ai course](http://www.fast.ai/). These notes will continue to be updated and improved as I continue to review the course to "really" understand it._
 
 * [**Deep Learning Part 1: 2018 Edition \(v2\)**](deep-learning-part-1/2018-edition/): Oct - Dec 2017
+* [**Deep Learning Part 2: 2017 Edition \(v1\)**](deep-learning-part-2/2017-edition/): Feb - Apr 2017
 * [**Deep Learning Part 2: 2018 Edition \(v2\)**](deep-learning-part-2/2018-edition/): Mar - May 2018
+* [**Machine Learning: 2017 Edition**](machine-learning/2017-edition/): Oct - Dec 2017
 
 ## Main Course Links
 
@@ -38,7 +40,7 @@ _My personal notes from [fast.ai course](http://www.fast.ai/). These notes will 
 
 * Deep Learning Part 1: Practical Deep Learning for Coders
   * 2017 Edition \(v1\)
-  * 2018 Edition \(v2\)
+  * [2018 Edition \(v2\)](deep-learning-part-1/2018-edition/)
 * Deep Learning Part 2: Cutting Edge Deep Learning for Coders
   * [2017 Edition \(v1\)](deep-learning-part-2/2017-edition/)
     * [Lesson 8 - Artistic Style](deep-learning-part-2/2017-edition/lesson-8-artistic-style.md)
