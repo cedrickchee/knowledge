@@ -130,11 +130,11 @@ We are going to tackle that today.
 
 ![](../../../../images/ml_2017_lesson_2_005.png)
 
-As you see, R² is .982 on the training set, and only .887 on the validation set which makes us think that we are overfitting quite badly. But not too badly as RMSE of 0.25 would have put us in the top 25% of the competition.
+As you see, R² is .982 on the training set, and only .891 on the validation set which makes us think that we are overfitting quite badly. But not too badly as RMSE of 0.25 would have put us in the top 25% of the competition.
 
 :question: Why not choose random set of rows as a validation set[[00:24:19](https://youtu.be/blyXCk4sgEg?t=24m19s)]?
 
-Because if we did that, we would not be replicating the test set. If you actually look at the dates in the test set, they are a set of dates that are more recent than any date in the training set. So if we used a validation set that was a random sample, that is much easier because we are predicting the value of a piece of industrial equipment on this day when we already have some observations from that day. In general, anytime you are building a model that has a time element, you want your test set to be a separate time period and therefore you really need your validation set to be of separate time period as well.
+Because if we did that, we would not be replicating the test set. If you actually look at the dates in the test set, they are a set of dates that are more recent than any date in the training set. So if we used a validation set that was a random sample, that is much easier because we are predicting the value of a piece of industrial equipment on this day when we already have some observations from that day. In general, **anytime you are building a model that has a time element, you want your test set to be a separate time period** and therefore you really need your validation set to be of separate time period as well.
 
 :question: Wouldn't it eventually overfit to the validation set? [[00:25:30](https://youtu.be/blyXCk4sgEg?t=25m30s)]
 
@@ -247,6 +247,11 @@ What if we created a whole a lot of trees — big, deep, massively overfit t
 m = RandomForestRegressor(n_jobs=-1)
 m.fit(X_train, y_train)
 print_score(m)
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+[0.11309071106925278, 0.36178632395067034, 0.972029463765708, 0.7662496522042824]
 ```
 
 `n_estimators` by default is 10 (remember, estimators are trees).
@@ -307,18 +312,17 @@ Sometimes your dataset will be small and you will not want to pull out a validat
 What we could do is to recognize that in our first tree, some of the rows did not get used for training. What we could do is to pass those unused rows through the first tree and treat it as a validation set. For the second tree, we could pass through the rows that were not used for the second tree, and so on. Effectively, we would have a different validation set for each tree. To calculate our prediction, we would average all the trees where that row is not used for training. If you have hundreds of trees, it is very likely that all of the rows are going to appear many times in these out-of-bag samples. You can then calculate RMSE, R², etc on these out-of-bag predictions.
 
 ```python
-m = RandomForestRegressor(n_estimators=40, n_jobs=-1,
-                          oob_score=True)
+m = RandomForestRegressor(n_estimators=40, n_jobs=-1, oob_score=True)
 m.fit(X_train, y_train)
 print_score(m)
 
 # -----------------------------------------------------------------------------
 # Output
 # -----------------------------------------------------------------------------
-[0.10198464613020647, 0.2714485881623037, 0.9786192457999483, 0.86840992079038759, 0.84831537630038534]
+[0.0960292024270223, 0.33871888707938386, 0.9801779455129453, 0.7951071509244858, 0.8583582188290497]
 ```
 
-Setting `oob_score` to true will do exactly this and create an attribute called `oob_score_` to the model and as you see in the print_score function, if it has this attributes, it will print it out at the end.
+Setting `oob_score` to true will do exactly this and create an attribute called `oob_score_` to the model and as you see in the `print_score` function, if it has this attributes, it will print it out at the end.
 
 :question: Wouldn't `oob_score_` always lower than the one for the entire forest [[01:12:51](https://youtu.be/blyXCk4sgEg?t=1h12m51s)]?
 
@@ -334,6 +338,7 @@ Earlier, we took 30,000 rows and created all the models which used a different s
 df_trn, y_trn = proc_df(df_raw, 'SalePrice')
 X_train, X_valid = split_vals(df_trn, n_trn)
 y_train, y_valid = split_vals(y_trn, n_trn)
+
 set_rf_samples(20000)
 ```
 
@@ -341,7 +346,7 @@ set_rf_samples(20000)
 
 ![](../../../../images/ml_2017_lesson_2_009.png)
 
-This will take the same amount of time to run as before, but every tree has an access to the entire dataset. After using 40 estimators, we get the R² score of 0.876.
+This will take the same amount of time to run as before, but every tree has an access to the entire dataset. After using 40 estimators, we get the R² score of 0.877.
 
 :question: What samples is this OOB score calculated on [[01:18:26](https://youtu.be/blyXCk4sgEg?t=1h18m26s)]?
 
@@ -355,8 +360,8 @@ Let's get a baseline for this full set to compare to:
 
 ```python
 reset_rf_samples()
-m = RandomForestRegressor(n_estimators=40, n_jobs=-1,
-                          oob_score=True)
+
+m = RandomForestRegressor(n_estimators=40, n_jobs=-1, oob_score=True)
 m.fit(X_train, y_train)
 print_score(m)
 
@@ -391,7 +396,8 @@ print_score(m)
 
 ```python
 m = RandomForestRegressor(n_estimators=40, min_samples_leaf=3,
-                      max_features=0.5, n_jobs=-1, oob_score=True) m.fit(X_train, y_train)
+                      max_features=0.5, n_jobs=-1, oob_score=True)
+m.fit(X_train, y_train)
 print_score(m)
 
 # -----------------------------------------------------------------------------
