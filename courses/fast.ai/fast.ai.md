@@ -16,26 +16,6 @@ _My personal notes from [fast.ai course](http://www.fast.ai/). These notes will 
 * [Forum for anything to do with deep learning that's not related to a fast.ai course](http://forums.fast.ai/c/deep-learning)
 * [Some fastai files, datasets and pre-trained models](http://files.fast.ai/)
 
-## Useful Resources
-
-* [fast.ai blog posts \(by Jeremy Howard & Rachel Thomas\)](http://www.fast.ai/topics/)
-* fast.ai FAQ for beginners
-* fast.ai and deep learning key concepts
-* [Best practices](http://forums.fast.ai/t/30-best-practices/12344)
-
-## Tools for Deep Learning
-
-* tmux
-  * Terminal multiplexer
-* Kaggle CLI
-  * Download Kaggle datasets
-* wget
-  * Download file or data
-* SSH
-  * Connect to remote computer
-* SFTP
-  * Copy files from local computer to remote computer/cloud machine
-
 ## Table of Contents
 
 * Deep Learning Part 1: Practical Deep Learning for Coders
@@ -72,3 +52,27 @@ _My personal notes from [fast.ai course](http://www.fast.ai/). These notes will 
     * [Lesson 10 - Logistic Regression; NLP; Naive Bayes](machine-learning/2017-edition/lesson-10-regression-nlp-naive-bayes.md)
     * [Lesson 11 - Structured and Time-Series Data](machine-learning/2017-edition/lesson-11-structured-time-series-data.md)
     * [Lesson 12 - Entity Embeddings; Data Science and Ethics](machine-learning/2017-edition/lesson-12-embeddings-datascience-ethics.md)
+
+## Useful Resources
+
+* [fast.ai blog posts \(by Jeremy Howard & Rachel Thomas\)](http://www.fast.ai/topics/)
+* fast.ai FAQ for beginners
+* fast.ai and deep learning key concepts
+* [Best practices](http://forums.fast.ai/t/30-best-practices/12344)
+
+## Tools for Deep Learning
+
+* [tmux](https://github.com/tmux/tmux/wiki)
+  * A terminal multiplexer
+* [Wget](https://en.wikipedia.org/wiki/Wget)
+  * A computer program that retrieves (downloads) content from web servers
+* [cURL](https://curl.haxx.se/)
+  * A command line tool for transferring data with URLs
+* [Secure Shell (SSH)](https://en.wikipedia.org/wiki/Secure_Shell)
+  * SSH client is used for securely connecting to remote computer
+* [SFTP (SSH File Transfer Protocol)](https://en.wikipedia.org/wiki/SSH_File_Transfer_Protocol)
+  * Securely transfer files between local computer and remote computer/server
+* [Jupyter Notebook](http://jupyter.org/)
+  * A web-based interactive computational environment for creating and sharing documents that contain live code, equations, visualizations and narrative text
+* [Kaggle API](https://github.com/Kaggle/kaggle-api)
+  * Official Kaggle command line (CLI) tool to download Kaggle datasets
