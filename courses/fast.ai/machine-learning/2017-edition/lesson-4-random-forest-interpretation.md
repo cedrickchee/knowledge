@@ -38,7 +38,7 @@ In terms of the hyper-parameters that are interesting, we are ignoring like pre-
   - Determines how many rows are in each tree. So before we start a new tree, we either bootstrap a sample (i.e. sampling with replacement from the whole thing) or we pull out a subsample of a smaller number of rows and then we build a tree from there.
   - Step 1 is we have our whole big dataset, we grab a few rows at random from it, and we turn them into a smaller dataset. From that, we build a tree.
 
-  ![](/images/ml_2017_lesson_4_001.png)
+![](../../../../images/ml_2017_lesson_4_001.png)
 
   - Assuming that the tree remains balanced as we grow it, how many layers deep will this tree be (assuming we are growing it until every leaf is of size one)? log base 2 of 20K, `log2(20000)`. The depth of the tree doesn't actually vary that much depending on the number of samples because it is related to the log of the size.
   - Once we go all the way down to the bottom, how many leaf nodes would there be? 20K. We have a linear relationship between the number of leaf nodes and the size of the sample. So when you decrease the sample size, there are less final decisions that can be made. Therefore, the tree is going to be less rich in terms of what it can predict because it is making less different individual decisions and it also is making less binary choices to get to those decisions.
@@ -68,7 +68,7 @@ In terms of the hyper-parameters that are interesting, we are ignoring like pre-
 
     The overall effect of the max_features is the same—it's going to mean that each individual tree is probably going to be less accurate but the trees are going to be more varied. In particular, here this can be critical because imagine that you got one feature that is just super predictive. It's so predictive that every random subsample you look at always starts out by splitting on that same feature then the trees are going to be very similar in the sense they all have the same initial split. But there may be some other interesting initial splits because they create different interactions of variables. So by half the time that feature won't even be available at the top of the tree, at least half the tree are going to have a different initial split. It definitely can give us more variation and therefore it can help us to create more generalized trees that have less correlation with each other even though the individual trees probably won't be as predictive.
 
-    ![](/images/ml_2017_lesson_4_002.png)
+    ![](../../../../images/ml_2017_lesson_4_002.png)
 
     In practice, as you add more trees, if you have `max_features=None`, that is going to use all the features every time. Then with very few trees, that can still give you a pretty good error. But as you create more trees, it's not going to help as much because they are all pretty similar as they are all trying every single variable. Where else, if you say `max_features=sqrt` or `log2` , then as we add more estimators, we see improvements so there is an interesting interaction between those two. The chart above is from scikit-learn docs.
 
@@ -116,11 +116,11 @@ That is also true here. If we had a column appear twice, then shuffling that col
 
 Question: Once we've shuffled and we get a new model, what exactly are the units of these importance? Is this a change in the R² [[00:26:26](https://youtu.be/0v93qHDqq_g?t=26m26s)]? It depends on the library we are using. So the units are kind of like… I never think about them. I just know that in this particular library, 0.005 is often a cutoff I would tend to use. But all I actually care about is this picture (the feature importance ordered for each variable):
 
-![](/images/ml_2017_lesson_4_003.png)
+![](../../../../images/ml_2017_lesson_4_003.png)
 
 Then zooming in, turning it into a bar plot and then find where it becomes flat (~0.005).
 
-![](/images/ml_2017_lesson_4_004.png)
+![](../../../../images/ml_2017_lesson_4_004.png)
 
 So I removed them at that point and check the validation score didn't get worse.
 
@@ -134,7 +134,7 @@ What is the purpose of removing them [[00:27:42](https://youtu.be/0v93qHDqq_g?t=
 
 So when I redo the feature importance, there is less collinearity. In this case, I saw that year made went from being a bit better than the next best thing (coupler system), but now it's way better. So it did seem to definitely change these feature importances and hopefully give me some more insight there.
 
-![](/images/ml_2017_lesson_4_005.png)
+![](../../../../images/ml_2017_lesson_4_005.png)
 
 :question: So how did that help our model [[00:29:30](https://youtu.be/0v93qHDqq_g?t=29m30s)]?
 We are going to dig into that now. Basically it tells us that, for example, if we are looking for how we are dealing with missing value, is there noise in the data, if it is a high cardinality categorical variable—they are all different steps we would take. So for example, if it was a high cardinality categorical variable that was originally a string, maybe fiProductClassDesc in above case, I remember one of the ones we looked at the other day had first of all was the type of vehicle and then a hyphen, and then the size of the vehicle. We might look at that and say "okay, that was an important column. Let's try splitting it into two on hyphen and then take that bit which is a size of it and parse it and convert it into an integer." We can try and do some feature engineering. Basically until you know which ones are important, you don't know where to focus that feature engineering time. You can talk to your client or folks that are responsible for creating this data. If you were actually working at a bulldozer auction company, you might now go to the actual auctioneers and say "I am really surprised that coupler system seems to be driving people's pricing decisions so much. Why do you think that might be?" and they can say to you "oh, it's actually because only these classes of vehicles have coupler systems or only this manufacturer has coupler systems. So frankly this is actually not telling you about coupler systems but about something else. Oh hey, that reminds me, that's something else we actually have measured that. It is in this different CSV file. I'll go get it for you." So it helps you focus your attention.
@@ -143,7 +143,7 @@ We are going to dig into that now. Basically it tells us that, for example, if w
 
 There are two reasons why your validation score might not be very good.
 
-![](/images/ml_2017_lesson_4_006.png)
+![](../../../../images/ml_2017_lesson_4_006.png)
 
 So we got these five numbers: RMSE of training, validation, R² of the training, validation, and R² of OOB. There're two reasons and really in the end what we care about for this Kaggle competition is the RMSE of the validation set assuming we've created a good validation set. So Terrance's case, he is saying that RMSE of the validation got worse when I did some feature engineering. Why is that? There are two possible reasons.
 
@@ -154,7 +154,7 @@ So we got these five numbers: RMSE of training, validation, R² of the training,
 
 That's feature importance. I'd like to compare that to how feature importance is normally done in industry and in academic communities outside of machine learning, like in psychology, economics, and so forth. Generally speaking, people in those environments tend to use some kind of linear regression, logistic regression, general linear models. They start with their dataset and they say I am going to assume that I know the kind of parametric relationship between my independent variables and my dependent variable. So I'm going to assume that it's a linear relationship or a linear relationship with a link function like a sigmoid to create logistic regression. So assuming I already know that, I can now write this as an equation. So if you have x1, x2, so forth.
 
-![](/images/ml_2017_lesson_4_007.png)
+![](../../../../images/ml_2017_lesson_4_007.png)
 
 I can say my y values are equal to *ax1 + bx2 = y*, therefore I can find out the feature importance easily enough by just looking at these coefficients and see which one is the highest, particularly if you have normalized the data first. There is this trop out there that is very common is that this is somehow more accurate, more pure, in some way better way of doing feature importance but that couldn't be farther from the truth. If you think about it, if you were missing an interaction, if you were missing a transformation you needed, or if you have any way being anything less than a 100% perfect in all of your pre-processing so that your model is the absolute correct truth of the situation—unless you've got all of that correct, then your coefficients are wrong. Your coefficients are telling you "in your totally wrong model, this is how important those things are" which is basically meaningless. Where else, the random forest feature importance is telling you in this extremely high parameter, highly flexible functional form, with few if any statistical assumptions, this is your feature importance. So I would be very cautious.
 
@@ -192,7 +192,7 @@ Like zip code has more than six levels so that would be left as a number. Genera
 
 So if I try it out, run the random forest as per usual, you can see what happens to the R² of the validation set and to the RMSE of the validation set. In this case, I found it got a little bit worse. This isn't always the case and it's going to depend on your dataset. It depends on if you have a dataset where single categories tend to be quite important or not. In this particular case, it did not make it more predictive. However, what it did do is that we now have different features. proc_df puts the name of the variable, an underscore, and the level name. So interestingly, it turns out that before, it said that enclosure was somewhat important. When we do it as one hot encoded, it actually says `Enclosure_EROPS w AC` is the most important thing. So for at least the purpose of interpreting your model, you should always try one hot encoding quite a few of your variables. I often find somewhere around 6 or 7 pretty good. You can try making that number as high as you can so that it doesn't take forever to compute and the feature importance doesn't include really tiny levels that aren't interesting. That is up to you to play around with, but in this case, I found this very interesting. It clearly tells me I need to find out what `Enclosure_EROPS w AC` is and why it is important because it means nothing to me right now but it is the most important thing. So I should go figure that out.
 
-![](/images/ml_2017_lesson_4_008.png)
+![](../../../../images/ml_2017_lesson_4_008.png)
 
 :question: Can you explain how changing the max number of category works? Because for me, it just seems like there are five categories or six categories [[00:49:15](https://youtu.be/0v93qHDqq_g?t=49m15s)].
 
@@ -200,7 +200,7 @@ All it's doing is is here is a column called zip code, usage band, and sex, for 
 
 If you have actually made an effort to turn your ordinal variables into proper ordinals, using proc_df can destroy that. The simple way to avoid that is if we know that we always want to use the codes for usage band, you could just go ahead and replace it:
 
-![](/images/ml_2017_lesson_4_009.png)
+![](../../../../images/ml_2017_lesson_4_009.png)
 
 Now it's an integer. So it will never get changed.
 
@@ -223,21 +223,21 @@ dendrogram = hc.dendrogram(z, labels=df_keep.columns,
 plt.show()
 ```
 
-![](/images/ml_2017_lesson_4_010.png)
+![](../../../../images/ml_2017_lesson_4_010.png)
 
 Like so. Rather than looking at points, you look at variables and we can see which two variables are the most similar. `saleYear` and `saleElapsed` are very similar. So the horizontal axis here is how similar are the two points that are being compared. If they are closer to the right, that means that they are very similar. So `saleYear` and `saleElapsed` have been combined and they were very similar.
 
 In this case, I actually used Spearman's R. You guys familiar with correlation coefficients already? So correlation is almost exactly the same as the R², but it's between two variables rather than a variable and its prediction. The problem with a normal correlation is that if you have data that looks like this then you can do a correlation and you'll get a good result.
 
-![](/images/ml_2017_lesson_4_011.png)
+![](../../../../images/ml_2017_lesson_4_011.png)
 
 But if you've got data which looks like this and you try and do a correlation (assuming linearity), that's not very good.
 
-![](/images/ml_2017_lesson_4_012.png)
+![](../../../../images/ml_2017_lesson_4_012.png)
 
 So there is a thing called a rank correlation which is a really simple idea. Replace every point by its rank.
 
-![](/images/ml_2017_lesson_4_013.png)
+![](../../../../images/ml_2017_lesson_4_013.png)
 
 From left to right, we rank from 1, 2, …6. Then you do the same for the y-axis. Then you create a new plot where you don't plot the data but you plot the rank of the data. If you think about it, the rank of this dataset is going to look like an exact line because every time something was greater on the x-axis, it was also greater on the y-axis. So if we do a correlation on the rank, that's called a rank correlation.
 
@@ -254,7 +254,7 @@ dendrogram = hc.dendrogram(z, labels=df_keep.columns,
 
 Then you can plot it [[01:01:30](https://youtu.be/0v93qHDqq_g?t=1h1m30s)]. `saleYear` and `saleElapsed` are measuring basically the same thing (at least in terms of rank) which is not surprising because `saleElapsed` is the number of days since the first day in my dataset so obviously these two are nearly entirely correlated. `Grouser_Tracks`, `Hidraulics_Flow`, and `Coupler_System` all seem to be measuring the same thing. This is interesting because remember, `Coupler_System` it said was super important. So this rather supports our hypothesis there is nothing to do with whether it's a coupler system but whether it is whatever kind of vehicle it is has these kind of features. `ProductGroup` and `ProductGroupDesc` seem to be measuring the same thing, and so are `fiBaseModel` and `fiModelDesc`. Once we get past that, suddenly things are further away, so I'm probably going to not worry about those. So we are going to look into those four groups that are very similar.
 
-![](/images/ml_2017_lesson_4_014.png)
+![](../../../../images/ml_2017_lesson_4_014.png)
 
 If you just want to know how similar is this thing to this thing, the best way is to look at the Spearman's R correlation matrix [[01:03:43](https://youtu.be/0v93qHDqq_g?t=1h3m43s)]. There is no random forest being used here. The distance measure is being done entirely on rank correlation.
 
@@ -368,7 +368,7 @@ Here is the top 10:
 plot_fi(rf_feat_importance(m, df_trn2)[:10])
 ```
 
-![](/images/ml_2017_lesson_4_015.png)
+![](../../../../images/ml_2017_lesson_4_015.png)
 
 Let's try to learn more about those top 10. `YearMade` is the second most important. So one obvious thing we could do would be to plot `YearMade` against `saleElapsed` because as we've talked about already, it seems to make sense that they are both important but it seems very likely that they are combined together to find how old was the product when it was sold. So we could try plotting `YearMade` against `saleElapsed` to see how they relate to each other.
 
@@ -376,7 +376,7 @@ Let's try to learn more about those top 10. `YearMade` is the second most import
 df_raw.plot('YearMade', 'saleElapsed', 'scatter', alpha=0.01, figsize=(10,8))
 ```
 
-![](/images/ml_2017_lesson_4_016.png)
+![](../../../../images/ml_2017_lesson_4_016.png)
 
 And when we do, we get this very ugly graph [[01:09:08](https://youtu.be/0v93qHDqq_g?t=1h9m8s)]. It shows us that `YearMade` actually has a whole bunch that are a thousand. Clearly, this is where I would tend to go back to the client and say okay, I'm guessing that these bulldozers weren't actually made in the year 1000 and they would presumably say to me "oh yes, they are ones where we don't know where it was made". Maybe "before 1986, we didn't track that" or maybe "the things that are sold in Illinois, we don't have that data provided", etc—they will tell us some reason. So in order to understand this plot better, I'm just going to remove them from this interpretation section of the analysis. We will just grab things where `YearMade` is greater than 1930.
 
@@ -396,7 +396,7 @@ ggplot(x_all, aes('YearMade', 'SalePrice'))+stat_smooth(se=True,
 
 So I'm just going to grab 500 points from my data frame and plot `YearMade` against `SalePrice`. `aes` stands for "aesthetic" — this is the basic way that you set up your columns in `ggplot`. Then there is this weird thing in `ggplot` where "+" means add chart elements. So I'm going to add a smoother. Often you will find that a scatter plot is very hard to see what is going on because there's too much randomness. Or else, a smoother basically creates a little linear regression for every little subset of the graph. So it joins it up and allows you to see a nice smooth curve. This is the main way that I tend to look at univariate relationships. By adding standard error equals true (`se=True`), it also shows me the confidence interval of this smoother. `loess` stands for locally weighted regression which is this idea of doing lots of little mini regressions.
 
-![](/images/ml_2017_lesson_4_017.png)
+![](../../../../images/ml_2017_lesson_4_017.png)
 
 So we can see here [[01:12:48](https://youtu.be/0v93qHDqq_g?t=1h12m48s)], the relationship between `YearMade` and `SalePrice` is all over the place which is not really what we would expect. I would have expected that stuff that's sold more recently would probably be more expensive because of inflation and they are more current models. The problem is that when you look at a univariate relationship like this, there is a whole lot of collinearity going on — a whole lot of interactions that are being lost. For example, why did the price drop? Is it actually because things made between 1991 and 1997 are less valuable? Or is it actually because most of them were also sold during that time and there was maybe a recession then? Or maybe it was because products sold during that time, a lot more people were buying types of vehicles that were less expensive? There's all kind of reasons for that. So again, as data scientists, one of the things you are going to keep seeing is that at the companies that you join, people will come to you with these kind of univariate charts where they'll say "oh my gosh, our sales in Chicago have disappeared. They got really baed." or "people aren't clicking on this add anymore" and they will show you a chart that looks like this and ask what happened. Most of the time, you'll find the answer to the question "what happened" is that there is something else going on. So for instance, "actually in Chicago last week, actually we were doing a new promotion and that's why our revenue went down — it's not because people are not buying stuff in Chicago anymore; the prices were lower".
 
@@ -410,7 +410,7 @@ There is a really nice library which nobody's heard of called `pdp` which does t
 
 Here is our dataset of 500 auctions and here is our columns, one of which is the thing that we are interested in which is `YearMade`. We are now going to try and create a chart where we say all other things being equal in 1960, how much did things cost in auctions? The way we are going to do that is we are going to replace the `YearMade` column with 1960. We are going to copy in the value 1960 again and again all the way down. Now every row, the year made is 1960 and all of the other data is going to be exactly the same. We are going to take our random forest, we are going to pass all this through our random forest to predict the sale price. That will tell us for everything that was auctioned, how much do we think it would have been sold for if that thing was made in 1960. And that's what we are going to plot on the right.
 
-![](/images/ml_2017_lesson_4_018.png)
+![](../../../../images/ml_2017_lesson_4_018.png)
 
 And we are going to do the same thing for 1961.
 
@@ -418,7 +418,7 @@ And we are going to do the same thing for 1961.
 
 Yes, so this is a lot like the way we did feature importance. But rather than randomly shuffling the column, we are going to replace the column with a constant value. Randomly shuffling the column tells us how accurate it is when you don't use that column anymore. Replacing the whole column with a constant estimates for us how much we would have sold that product for in that auction on that day in that place if that product had been made in 1961. We then take the average of all of the sale prices that we calculate from that random forest. We do it in 1961 and we get this value:
 
-![](/images/ml_2017_lesson_4_019.png)
+![](../../../../images/ml_2017_lesson_4_019.png)
 
 ```python
 def plot_pdp(feat, clusters=None, feat_name=None):
@@ -430,7 +430,7 @@ def plot_pdp(feat, clusters=None, feat_name=None):
 plot_pdp('YearMade')
 ```
 
-![](/images/ml_2017_lesson_4_020.png)
+![](../../../../images/ml_2017_lesson_4_020.png)
 
 So what the partial dependence plot (PDP) here shows us is each of these light blue lines actually is showing us all 500 lines [[01:18:01](https://youtu.be/0v93qHDqq_g?t=1h18m1s)]. So for row number 1 in our dataset, if we sold it in 1960, we are going to index that to zero so call that zero. If we sold it in 1970 that particular auction, it would have been here, etc. We actually plot all 500 predictions of how much every one of those 500 auctions would have gone for if we replaced its `YearMade` with each of these different values. Then this dark line is the average. So this tells us how much would we have sold on average all of those auctions for if all of those products were actually made in 1985, 1990, 1993, etc. So you can see, what's happened here is at least in the period where we have a reasonable amount of data which is since 1990, this is basically a totally straight line — which is what you would except. Because if it was sold on the same date, and it was the same kind of tractor, sold to the same person in the same auction house, then you would expect more recent vehicles to be more expensive because of inflation and they are newer. You would expect that relationship to be roughly linear and that is exactly what we are finding. By removing all these externalities, it often allows us to see the truth much more clearly.
 
@@ -445,7 +445,7 @@ There is another cool thing we can do with PDP which is we can use clusters. Wha
 plot_pdp('YearMade', clusters=5)
 ```
 
-![](/images/ml_2017_lesson_4_021.png)
+![](../../../../images/ml_2017_lesson_4_021.png)
 
 We still get the same average but it says here are five most common shapes that we see. And this is where you could then go in and say all right, it looks like some kinds of vehicle, after 1990, their prices are pretty flat. Before that, they were pretty linear. Some other kinds of vehicle were exactly the opposite, so different kinds of vehicle have these different shapes. So, this is something you could dig into.
 
@@ -453,7 +453,7 @@ We still get the same average but it says here are five most common shapes that 
 
 The purpose of interpretation is to learn about a dataset and so why do you want to learn about a dataset? It's because you want to do something with it. So in this case, it's not so much something if you are trying to win a Kaggle competition — it can be a little bit like some of these insights might make you realize I could transform this variable or create this interaction, etc. Obviously feature importance is super important for Kaggle competitions. But this one is much more for real life. So this is when you are talking to somebody and you say to them "okay, those plots you've been showing me which actually say that there was this kind of dip in prices based on things made between 1990 and 1997. There wasn't really. Actually they were increasing, and there was something else going on at that time." It's basically the thing that allows you to say for whatever this outcome I'm trying to drive in my business is, this is how something is driving it. So if it's like I'm looking at advertising technology, what's driving clicks that I I'm actually digging in to say okay, this is actually how clicks are being driven. This is actually the variable that's driving it. This is how it's related. So therefore, we should change our behavior in this way. That's really the goal of any model. I guess there are two possible goals: one goal of a model is just to get the predictions, like if you are doing hedge fund trading, you probably want to know what the price of that equity is going to be. If you are doing insurance, you probably just want to know how much claims that guy is going to have. But probably most of the time, you are actually trying to change something about how you do business — how you do marketing, how you do logistics, so the thing you actually care about is how the things are related to each other.
 
-![](/images/ml_2017_lesson_4_022.png)
+![](../../../../images/ml_2017_lesson_4_022.png)
 
 :question: Could you explain again why the dip did not signify what we thought it did [[01:23:36](https://youtu.be/0v93qHDqq_g?t=1h23m36s)]?
 
@@ -467,13 +467,13 @@ p = pdp.pdp_interact(m, x, feats)
 pdp.pdp_interact_plot(p, feats)
 ```
 
-![](/images/ml_2017_lesson_4_023.png)
+![](../../../../images/ml_2017_lesson_4_023.png)
 
 You can also do the same thing in a PDP interaction plot [[01:27:36](https://youtu.be/0v93qHDqq_g?t=1h27m36s)]. And PDP interaction plot which is really what I'm trying to get to here is how does `saleElapsed` and `YearMade` together impact the price. If I do a PDP interaction plot, it shows me `saleElapsed` vs. price, `YearMade` vs. price, and the combination vs. price. Remember, this is always log of price. That's why these prices look weird. You can see that the combination of `saleElapsed` and `YearMade` is as you would expect —the highest prices are those where there's the least elapsed and the most recent year made. The upper right is the univariate relationship between `saleElapsed` and price, the lower left is the univariate relationship between `YearMade` and price, and the lower right is the combination of the two. It's enough to see clearly that these two things are driving price together. You can also see these are not simple diagonal lines so there is some interesting interaction going on. Based on looking at these plots, it's enough to make me think, oh, we should maybe put in some kind of interaction term and see what happens. So let's come back to that in a moment, but let's just look at a couple more.
 
 Remember, in this case, we did one-hot-encoding — way back at the top, we said `max_n_cat=7` [[01:29:18](https://youtu.be/0v93qHDqq_g?t=1h29m18s)]. So we have things like `Enclosure_EROPS w AC`. So if you have one-hot-encoded variables, you can pass an array of them to `plot_pdp` and it will treat them as a category.
 
-![](/images/ml_2017_lesson_4_024.png)
+![](../../../../images/ml_2017_lesson_4_024.png)
 
 So in this case, I'm going to create a PDP plot of these three categories, and I'm going to call it "Enclosure".
 
@@ -481,11 +481,11 @@ So in this case, I'm going to create a PDP plot of these three categories, and I
 pdp_plot(['Enclosure_EROPS w AC', 'Enclosure_EROPS', 'Enclosure_OROPS'], 5, 'Enclosur')
 ```
 
-![](/images/ml_2017_lesson_4_025.png)
+![](../../../../images/ml_2017_lesson_4_025.png)
 
 I can see here that `Enclosure_EROPS w AC` on average are more expensive than `Enclosure_EROPS` or `Enclosure_OROPS`. It actually looks like the latter two are pretty similar or else `Enclosure_EROPS w AC` is higher. So at this point, I'm probably being inclined to hop on to Google and type "erops orops" and find out what these things are and here we go.
 
-![](/images/ml_2017_lesson_4_026.png)
+![](../../../../images/ml_2017_lesson_4_026.png)
 
 So it turns out that EROPS is enclosed rollover protective structure and so it turns out that if your bulldozer is fully enclosed then optionally you can also get air conditioning. So actually this thing is telling us whether it has air conditioning. If it's an open structure, then obviously you don't have air conditioning at all. So that's what these three levels are. So we've now learnt all other things being equal, the same bulldozer, sold at the same time, built at the same time, sold to the same person is going to be quite a bit more expensive if it has air conditioning than if it doesn't. So again, we are getting this nice interpretation ability. Now that I spent some time with this dataset, I'd certainly noticed that knowing this is the most important thing, you do notice that there is a lot more air conditioned bulldozers nowadays than they used to be and so there is definitely an interaction between date and that.
 
@@ -501,7 +501,7 @@ m.fit(X_train, y_train)
 plot_fi(rf_feat_importance(m, df_keep))
 ```
 
-![](/images/ml_2017_lesson_4_027.png)
+![](../../../../images/ml_2017_lesson_4_027.png)
 
 Based on the earlier interaction analysis, I've tried, first of all, setting everything before 1950 to 1950 because it seems to be some kind of missing value [[01:31:25](https://youtu.be/0v93qHDqq_g?t=1h31m25s)]. I've set `age` to be equal to `saleYear - YearMade`. Then I tried running a random forest on that. Indeed, `age` is now the single biggest thing, `saleElapsed` is way back down here, `YearMade` is back down here. So we've used this to find an interaction. But remember, of course a random forest can create an interaction through having multiple split points, so we shouldn't assume that this is actually going to be a better result. And in practice, I actually found when I looked at my score and my RMSE, adding `age` was actually a little worse. We will see about that later probably in the next lesson.
 
@@ -523,7 +523,7 @@ row
 
 Here are all the columns in row zero.
 
-![](/images/ml_2017_lesson_4_028.png)
+![](../../../../images/ml_2017_lesson_4_028.png)
 
 What I can do with a tree interpreter is I can go `ti.predict`, pass in my random forest and my row (so this would be like this particular customer's insurance information, or in this case this particular auction). And it will give me back three things:
 
@@ -537,7 +537,7 @@ prediction, bias, contributions = ti.predict(m, row)
 
 So you can think of it this way [[01:34:51](https://youtu.be/0v93qHDqq_g?t=1h34m51s)]. The whole dataset had an average log sale price of 102. The dataset for those with `Coupler_system ≤ 0.5` had an average of 10.3. The dataset for `Coupler_system ≤ 0.5` and `Enclosure ≤ 2.0` was 9.9, and then eventually we get all the way up here and also with `ModelID ≤ 4573.0`, it's 10.2. So you could ask, okay, why did we predict 10.2 for this particular row?
 
-![](/images/ml_2017_lesson_4_029.png)
+![](../../../../images/ml_2017_lesson_4_029.png)
 
 That is because we started with 10.19:
 
