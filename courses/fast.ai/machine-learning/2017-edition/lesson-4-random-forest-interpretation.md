@@ -409,15 +409,15 @@ So I'm just going to grab 500 points from my data frame and plot `YearMade` agai
 
 ![](../../../../images/ml_2017_lesson_4_017.png)
 
-So we can see here [[01:12:48](https://youtu.be/0v93qHDqq_g?t=1h12m48s)], the relationship between `YearMade` and `SalePrice` is all over the place which is not really what we would expect. I would have expected that stuff that's sold more recently would probably be more expensive because of inflation and they are more current models. The problem is that when you look at a univariate relationship like this, there is a whole lot of collinearity going on — a whole lot of interactions that are being lost. For example, why did the price drop? Is it actually because things made between 1991 and 1997 are less valuable? Or is it actually because most of them were also sold during that time and there was maybe a recession then? Or maybe it was because products sold during that time, a lot more people were buying types of vehicles that were less expensive? There's all kind of reasons for that. So again, as data scientists, one of the things you are going to keep seeing is that at the companies that you join, people will come to you with these kind of univariate charts where they'll say "oh my gosh, our sales in Chicago have disappeared. They got really baed." or "people aren't clicking on this add anymore" and they will show you a chart that looks like this and ask what happened. Most of the time, you'll find the answer to the question "what happened" is that there is something else going on. So for instance, "actually in Chicago last week, actually we were doing a new promotion and that's why our revenue went down — it's not because people are not buying stuff in Chicago anymore; the prices were lower".
+So we can see here [[01:12:48](https://youtu.be/0v93qHDqq_g?t=1h12m48s)], the relationship between `YearMade` and `SalePrice` is all over the place which is not really what we would expect. I would have expected that stuff that's sold more recently would probably be more expensive because of inflation and they are more current models. The problem is that when you look at a univariate relationship like this, there is a whole lot of collinearity going on — a whole lot of interactions that are being lost. For example, why did the price drop? Is it actually because things made between 1991 and 1997 are less valuable? Or is it actually because most of them were also sold during that time and there was maybe a recession then? Or maybe it was because products sold during that time, a lot more people were buying types of vehicles that were less expensive? There's all kind of reasons for that. So again, as data scientists, one of the things you are going to keep seeing is that at the companies that you join, people will come to you with these kind of univariate charts where they'll say "oh my gosh, our sales in Chicago have disappeared. They got really bad." or "people aren't clicking on this ads anymore" and they will show you a chart that looks like this and ask what happened. Most of the time, you'll find the answer to the question "what happened" is that there is something else going on. So for instance, "actually in Chicago last week, actually we were doing a new promotion and that's why our revenue went down — it's not because people are not buying stuff in Chicago anymore; the prices were lower".
 
 So what we really want to be able to do is say "well, what's the relationship between `SalePrice` and `YearMade` all other things being equal. "All other things being equal" basically means if we sold something in 1990 vs. 1980 and it was exactly the same thing to exactly the same person in exactly the same auction so on and so forth, what would have been the difference in price? To do that, we do something called a **partial dependence plot** [[01:15:02](https://youtu.be/0v93qHDqq_g?t=1h15m2s)].
 
 ```python
-x = get_sample(X_train[X_train.YearMade>1930], 500)
+x = get_sample(X_train[X_train.YearMade > 1930], 500)
 ```
 
-There is a really nice library which nobody's heard of called `pdp` which does these partial dependence plots, and what happens is this. We've got our sample of 500 data points and we are going to do something really interesting. We are going to take each one of those five hundred randomly chosen auctions and we are going to make a little dataset out of it.
+There is a really nice library which nobody's heard of called [`pdp`](https://pdpbox.readthedocs.io/en/latest/) which does these partial dependence plots, and what happens is this. We've got our sample of 500 data points and we are going to do something really interesting. We are going to take each one of those five hundred randomly chosen auctions and we are going to make a little dataset out of it.
 
 Here is our dataset of 500 auctions and here is our columns, one of which is the thing that we are interested in which is `YearMade`. We are now going to try and create a chart where we say all other things being equal in 1960, how much did things cost in auctions? The way we are going to do that is we are going to replace the `YearMade` column with 1960. We are going to copy in the value 1960 again and again all the way down. Now every row, the year made is 1960 and all of the other data is going to be exactly the same. We are going to take our random forest, we are going to pass all this through our random forest to predict the sale price. That will tell us for everything that was auctioned, how much do we think it would have been sold for if that thing was made in 1960. And that's what we are going to plot on the right.
 
@@ -434,7 +434,7 @@ Yes, so this is a lot like the way we did feature importance. But rather than ra
 ```python
 def plot_pdp(feat, clusters=None, feat_name=None):
     feat_name = feat_name or feat
-    p = pdp.pdp_isolate(m, x, feat)
+    p = pdp.pdp_isolate(m, x, model_features=x.columns.values, feature=feat)
     return pdp.pdp_plot(p, feat_name, plot_lines=True,
                         cluster=clusters is not None,
                         n_cluster_centers=clusters)
@@ -443,11 +443,11 @@ plot_pdp('YearMade')
 
 ![](../../../../images/ml_2017_lesson_4_020.png)
 
-So what the partial dependence plot (PDP) here shows us is each of these light blue lines actually is showing us all 500 lines [[01:18:01](https://youtu.be/0v93qHDqq_g?t=1h18m1s)]. So for row number 1 in our dataset, if we sold it in 1960, we are going to index that to zero so call that zero. If we sold it in 1970 that particular auction, it would have been here, etc. We actually plot all 500 predictions of how much every one of those 500 auctions would have gone for if we replaced its `YearMade` with each of these different values. Then this dark line is the average. So this tells us how much would we have sold on average all of those auctions for if all of those products were actually made in 1985, 1990, 1993, etc. So you can see, what's happened here is at least in the period where we have a reasonable amount of data which is since 1990, this is basically a totally straight line — which is what you would except. Because if it was sold on the same date, and it was the same kind of tractor, sold to the same person in the same auction house, then you would expect more recent vehicles to be more expensive because of inflation and they are newer. You would expect that relationship to be roughly linear and that is exactly what we are finding. By removing all these externalities, it often allows us to see the truth much more clearly.
+So what the partial dependence plot (PDP) here shows us is each of these light blue lines actually is showing us all 500 lines [[01:18:01](https://youtu.be/0v93qHDqq_g?t=1h18m1s)]. So for row number 1 in our dataset, if we sold it in 1960, we are going to index that to zero so call that zero. If we sold it in 1970 that particular auction, it would have been here, etc. We actually plot all 500 predictions of how much every one of those 500 auctions would have gone for if we replaced its `YearMade` with each of these different values. Then this dark line is the average. So this tells us how much would we have sold on average all of those auctions for if all of those products were actually made in 1985, 1990, 1993, etc. So you can see, what's happened here is at least in the period where we have a reasonable amount of data which is since 1990, this is basically a totally straight line — which is what you would expect. Because if it was sold on the same date, and it was the same kind of tractor, sold to the same person in the same auction house, then you would expect more recent vehicles to be more expensive because of inflation and they are newer. You would expect that relationship to be roughly linear and that is exactly what we are finding. By removing all these externalities, it often allows us to see the truth much more clearly.
 
 This partial dependence plot is something which is using a random forest to get us a more clear interpretation of what's going on in our data [[01:20:02](https://youtu.be/0v93qHDqq_g?t=1h20m2s)]. The steps were:
 
-1. First of all look at the future importance to tell us which things do we think we care about.
+1. First of all look at the feature importance to tell us which things do we think we care about.
 2. Then to use the partial dependence plot to tell us what's going on on average.
 
 There is another cool thing we can do with PDP which is we can use clusters. What clusters does is it uses cluster analysis to look at each one of the 500 rows and say do some those 500 rows move in the same way. We could kind of see it seems like there's a whole a lot of rows that go down and then up, and there seems to be a bunch of rows that go up and then go flat. It does seem like there's some kind of different types of behaviors being hidden and so here is the result of doing that cluster analysis:
@@ -468,19 +468,21 @@ The purpose of interpretation is to learn about a dataset and so why do you want
 
 :question: Could you explain again why the dip did not signify what we thought it did [[01:23:36](https://youtu.be/0v93qHDqq_g?t=1h23m36s)]?
 
-Yes. So this is a classic boring univariate plot. So this is just taking all of the dots, all of the options, plotting YearMade against SalePrice and we are just fitting a rough average through them. It's true that the products made between 1992 and 1997 on average in our dataset are being sold for less. Very often in business, you'll hear somebody look at something like this and say " we should stop auctioning equipment that is made in those years because we are getting less money for", for example. But if the truth actually is that during those years, it's just that people were making more small industrial equipment where you would expect it to be sold for less and actually our profit on it is just as high, for instance. Or it's not that things made during those years now would now be cheaper, it's that when we were selling things in those years, they were cheaper because there was a recession going on. If you are trying to actually take some action based on this, you probably don't just care about the fact that things made in those years are cheaper on average, but how does that impact today. So PDP approach where we actually say let's try and remove all of these externalities. So if something is sold on the same day to the same person of the same kind of vehicle, then actually how does year made impact the price. This basically says, for example, if I am deciding what to buy at an auction, then this is saying to me that getting a more recent vehicle on average really does give you more money which is not what the naive univariate plot said.
+Yes. So this is a classic boring univariate plot. So this is just taking all of the dots, all of the options, plotting `YearMade` against `SalePrice` and we are just fitting a rough average through them. It's true that the products made between 1992 and 1997 on average in our dataset are being sold for less. Very often in business, you'll hear somebody look at something like this and say "we should stop auctioning equipment that is made in those years because we are getting less money for", for example. But if the truth actually is that during those years, it's just that people were making more small industrial equipment where you would expect it to be sold for less and actually our profit on it is just as high, for instance. Or it's not that things made during those years now would now be cheaper, it's that when we were selling things in those years, they were cheaper because there was a recession going on. If you are trying to actually take some action based on this, you probably don't just care about the fact that things made in those years are cheaper on average, but how does that impact today. So PDP approach where we actually say let's try and remove all of these externalities. So if something is sold on the same day to the same person of the same kind of vehicle, then actually how does year made impact the price. This basically says, for example, if I am deciding what to buy at an auction, then this is saying to me that getting a more recent vehicle on average really does give you more money which is not what the naive univariate plot said.
 
-**Comment:** Bulldozers made in 2010 probably are not close to the type of bulldozers that were made in 1960. If you are taking something that would be so very different, like a 2010 bulldozer, and then trying to just drop it to say "oh if it was made in 1960" that may cause poor prediction at a point because it's so far outside of the training set [[01:26:12](https://youtu.be/0v93qHDqq_g?t=1h26m12s)]. Absolutely. That's a good point. It is a limitation, however, if you've got a datapoint that's in a part of the space that it has not seen before, like maybe people didn't put air conditioning in bulldozers in 1960 and you are saying how much would this bulldozer with air conditioning would have gone for in 1960, you don't really have any information to know that. This is still the best technique I know of but it's not perfect. And you kind of hope that the trees are still going to find some useful truth even though it hasn't seen that combination of features before. But yeah, it's something to be aware of.
+**Comment:** Bulldozers made in 2010 probably are not close to the type of bulldozers that were made in 1960. If you are taking something that would be so very different, like a 2010 bulldozer, and then trying to just drop it to say "oh if it was made in 1960" that may cause poor prediction at a point because it's so far outside of the training set [[01:26:12](https://youtu.be/0v93qHDqq_g?t=1h26m12s)].
+
+Absolutely. That's a good point. It is a limitation, however, if you've got a datapoint that's in a part of the space that it has not seen before, like maybe people didn't put air conditioning in bulldozers in 1960 and you are saying how much would this bulldozer with air conditioning would have gone for in 1960, you don't really have any information to know that. This is still the best technique I know of but it's not perfect. And you kind of hope that the trees are still going to find some useful truth even though it hasn't seen that combination of features before. But yeah, it's something to be aware of.
 
 ```python
 feats = ['saleElapsed', 'YearMade']
-p = pdp.pdp_interact(m, x, feats)
+p = pdp.pdp_interact(m, x, model_features=x.columns.values, features=feats)
 pdp.pdp_interact_plot(p, feats)
 ```
 
 ![](../../../../images/ml_2017_lesson_4_023.png)
 
-You can also do the same thing in a PDP interaction plot [[01:27:36](https://youtu.be/0v93qHDqq_g?t=1h27m36s)]. And PDP interaction plot which is really what I'm trying to get to here is how does `saleElapsed` and `YearMade` together impact the price. If I do a PDP interaction plot, it shows me `saleElapsed` vs. price, `YearMade` vs. price, and the combination vs. price. Remember, this is always log of price. That's why these prices look weird. You can see that the combination of `saleElapsed` and `YearMade` is as you would expect —the highest prices are those where there's the least elapsed and the most recent year made. The upper right is the univariate relationship between `saleElapsed` and price, the lower left is the univariate relationship between `YearMade` and price, and the lower right is the combination of the two. It's enough to see clearly that these two things are driving price together. You can also see these are not simple diagonal lines so there is some interesting interaction going on. Based on looking at these plots, it's enough to make me think, oh, we should maybe put in some kind of interaction term and see what happens. So let's come back to that in a moment, but let's just look at a couple more.
+You can also do the same thing in a PDP interaction plot [[01:27:36](https://youtu.be/0v93qHDqq_g?t=1h27m36s)]. And PDP interaction plot which is really what I'm trying to get to here is how does `saleElapsed` and `YearMade` together impact the price. If I do a PDP interaction plot, it shows me `saleElapsed` vs. price, `YearMade` vs. price, and the combination vs. price. Remember, this is always log of price. That's why these prices look weird. You can see that the combination of `saleElapsed` and `YearMade` is as you would expect—the highest prices are those where there's the least elapsed and the most recent year made. The upper right is the univariate relationship between `saleElapsed` and price, the lower left is the univariate relationship between `YearMade` and price, and the lower right is the combination of the two. It's enough to see clearly that these two things are driving price together. You can also see these are not simple diagonal lines so there is some interesting interaction going on. Based on looking at these plots, it's enough to make me think, oh, we should maybe put in some kind of interaction term and see what happens. So let's come back to that in a moment, but let's just look at a couple more.
 
 Remember, in this case, we did one-hot-encoding — way back at the top, we said `max_n_cat=7` [[01:29:18](https://youtu.be/0v93qHDqq_g?t=1h29m18s)]. So we have things like `Enclosure_EROPS w AC`. So if you have one-hot-encoded variables, you can pass an array of them to `plot_pdp` and it will treat them as a category.
 
@@ -489,7 +491,7 @@ Remember, in this case, we did one-hot-encoding — way back at the top, we 
 So in this case, I'm going to create a PDP plot of these three categories, and I'm going to call it "Enclosure".
 
 ```python
-pdp_plot(['Enclosure_EROPS w AC', 'Enclosure_EROPS', 'Enclosure_OROPS'], 5, 'Enclosur')
+plot_pdp(['Enclosure_EROPS w AC', 'Enclosure_EROPS', 'Enclosure_OROPS'], 5, 'Enclosure')
 ```
 
 ![](../../../../images/ml_2017_lesson_4_025.png)
@@ -501,14 +503,14 @@ I can see here that `Enclosure_EROPS w AC` on average are more expensive than `E
 So it turns out that EROPS is enclosed rollover protective structure and so it turns out that if your bulldozer is fully enclosed then optionally you can also get air conditioning. So actually this thing is telling us whether it has air conditioning. If it's an open structure, then obviously you don't have air conditioning at all. So that's what these three levels are. So we've now learnt all other things being equal, the same bulldozer, sold at the same time, built at the same time, sold to the same person is going to be quite a bit more expensive if it has air conditioning than if it doesn't. So again, we are getting this nice interpretation ability. Now that I spent some time with this dataset, I'd certainly noticed that knowing this is the most important thing, you do notice that there is a lot more air conditioned bulldozers nowadays than they used to be and so there is definitely an interaction between date and that.
 
 ```python
-df_raw.YearMade[df_raw.YearMade<1950] = 1950
-df_keep['age'] = df_raw['age'] = df_raw.saleYear-df_raw.YearMade
+df_raw.YearMade[df_raw.YearMade < 1950] = 1950
+df_keep['age'] = df_raw['age'] = df_raw.saleYear - df_raw.YearMade
 
 X_train, X_valid = split_vals(df_keep, n_trn)
-m = RandomForestRegressor(n_estimators=40, min_samples_leaf=3,
-                          max_features=0.6, n_jobs=-1)
 
+m = RandomForestRegressor(n_estimators=40, min_samples_leaf=3, max_features=0.6, n_jobs=-1)
 m.fit(X_train, y_train)
+
 plot_fi(rf_feat_importance(m, df_keep))
 ```
 
@@ -528,7 +530,7 @@ df_train, df_valid = split_vals(df_raw[df_keep.columns], n_trn)
 So in this case, we are going to pick row number zero.
 
 ```python
-row = X_valid.values[None,0]
+row = X_valid.values[None, 0]
 row
 ```
 
@@ -573,6 +575,9 @@ idxs = np.argsort(contributions[0])
 So here is all of our predictors and the value of each [[01:37:54](https://youtu.be/0v93qHDqq_g?t=1h37m54s)].
 
 ```python
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
 [('ProductSize', 'Mini', -0.54680742853695008),
  ('age', 11, -0.12507089451852943),
  ('fiProductClassDesc',
