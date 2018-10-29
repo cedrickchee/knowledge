@@ -16,6 +16,11 @@ Live date: 23 Oct 2018, GMT+8
 * Server setup
 * fastai v1 documentations
 * Advice
+* Look at the data
+* Training
+* Transfer learning
+* Interpreting the results
+* ResNet50
 * Homework
 
 ## Lesson Resources
@@ -640,6 +645,7 @@ learn.save('stage-1')
 ## Results [[1:08:54](https://youtu.be/BWWm4AzsdLk?t=4134)]
 
 To see what comes out, we could use this class for class interpretation. We are going to use this factory method from learner, so we pass in a learn object. Remember a learn object knows two things:
+
 1. What's your data
 2. What is your model. Now it's not just an architecture, it's actually a trained model
 
