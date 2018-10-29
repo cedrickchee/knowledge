@@ -14,10 +14,12 @@
 * fast.ai
   * [fast.ai](courses/fast.ai/fast.ai.md)
   * Deep Learning Part 1: Practical Deep Learning for Coders
-    * [Deep Learning Part 1: 2018 Edition](courses/fast.ai/deep-learning-part-1/2018-edition/README.md)
+    * [Deep Learning Part 1: 2018 Edition (v2)](courses/fast.ai/deep-learning-part-1/2018-edition/README.md)
       * Lesson 1
+    * [Deep Learning Part 1: 2019 Edition (v3)](courses/fast.ai/deep-learning-part-1/2019-edition/README.md)
+      * [Lesson 1 - Image Recognition](courses/fast.ai/deep-learning-part-1/2019-edition/lesson-1-image-recognition.md)
   * Deep Learning Part 2: Cutting Edge Deep Learning for Coders
-    * [Deep Learning Part 2: 2017 Edition](courses/fast.ai/deep-learning-part-2/2017-edition/README.md)
+    * [Deep Learning Part 2: 2017 Edition (v1)](courses/fast.ai/deep-learning-part-2/2017-edition/README.md)
       * [Lesson 8 - Artistic Style](courses/fast.ai/deep-learning-part-2/2017-edition/lesson-8-artistic-style.md)
       * [Lesson 9 - Generative Models](courses/fast.ai/deep-learning-part-2/2017-edition/lesson-9-generative-models.md)
       * [Lesson 10 - Multi-modal & GANs](courses/fast.ai/deep-learning-part-2/2017-edition/lesson-10-multi-modal-and-gans.md)
@@ -25,7 +27,7 @@
       * [Lesson 12 - Attentional Models](courses/fast.ai/deep-learning-part-2/2017-edition/lesson-12-attentional-models.md)
       * [Lesson 13 - Neural Translation](courses/fast.ai/deep-learning-part-2/2017-edition/lesson-13-neural-translation.md)
       * [Lesson 14 - Time Series & Segmentation](courses/fast.ai/deep-learning-part-2/2017-edition/lesson-14-time-series-and-segmentation.md)
-    * [Deep Learning Part 2: 2018 Edition](courses/fast.ai/deep-learning-part-2/2018-edition/README.md)
+    * [Deep Learning Part 2: 2018 Edition (v2)](courses/fast.ai/deep-learning-part-2/2018-edition/README.md)
       * [Lesson 8 - Object Detection](courses/fast.ai/deep-learning-part-2/2018-edition/lesson-8-object-detection.md)
       * [Lesson 9 - Single Shot Multibox Detector (SSD)](courses/fast.ai/deep-learning-part-2/2018-edition/lesson-9-multi-object-detection.md)
       * [Lesson 10 - Transfer Learning for NLP and NLP Classification](courses/fast.ai/deep-learning-part-2/2018-edition/lesson-10-transfer-learning-nlp.md)

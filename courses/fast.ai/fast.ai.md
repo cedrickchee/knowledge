@@ -3,6 +3,7 @@
 _My personal notes from [fast.ai course](http://www.fast.ai/). These notes will continue to be updated and improved as I continue to review the course to "really" understand it._
 
 * [**Deep Learning Part 1: 2018 Edition \(v2\)**](deep-learning-part-1/2018-edition/): Oct - Dec 2017
+* [**Deep Learning Part 1: 2019 Edition \(v3\)**](deep-learning-part-1/2019-edition/): Oct - Dec 2018
 * [**Deep Learning Part 2: 2017 Edition \(v1\)**](deep-learning-part-2/2017-edition/): Feb - Apr 2017
 * [**Deep Learning Part 2: 2018 Edition \(v2\)**](deep-learning-part-2/2018-edition/): Mar - May 2018
 * [**Machine Learning: 2017 Edition**](machine-learning/2017-edition/): Oct - Dec 2017
@@ -10,17 +11,21 @@ _My personal notes from [fast.ai course](http://www.fast.ai/). These notes will 
 ## Main Course Links
 
 * [fastai library and Jupyter Notebook code](https://github.com/fastai/fastai)
-* [Forum for part 1](http://forums.fast.ai/c/part1-v2)
-* [Forum for part 1 beginner](http://forums.fast.ai/c/part1v2-beg)
-* [Forum for part 2 and alumni](http://forums.fast.ai/c/part2-v2)
+* [Forum for part 1, v2](http://forums.fast.ai/c/part1-v2)
+* [Forum for part 1, v2 beginner](http://forums.fast.ai/c/part1v2-beg)
+* [Forum for part 2, v2 and alumni](http://forums.fast.ai/c/part2-v2)
 * [Forum for anything to do with deep learning that's not related to a fast.ai course](http://forums.fast.ai/c/deep-learning)
 * [Some fastai files, datasets and pre-trained models](http://files.fast.ai/)
+* [Forum for part 1, v3](https://forums.fast.ai/c/part1-v3)
+* [Forum for part 1, v3 advanced](https://forums.fast.ai/c/part1-v3/part1-v3-adv)
 
 ## Table of Contents
 
 * Deep Learning Part 1: Practical Deep Learning for Coders
   * 2017 Edition \(v1\)
   * [2018 Edition \(v2\)](deep-learning-part-1/2018-edition/)
+  * [2019 Edition \(v3\)](deep-learning-part-1/2019-edition/)
+    * [Lesson 1 - Image Recognition](deep-learning-part-1/2019-edition/lesson-1-image-recognition.md)
 * Deep Learning Part 2: Cutting Edge Deep Learning for Coders
   * [2017 Edition \(v1\)](deep-learning-part-2/2017-edition/)
     * [Lesson 8 - Artistic Style](deep-learning-part-2/2017-edition/lesson-8-artistic-style.md)
