@@ -363,6 +363,24 @@ np.random.seed(2)
 pat = r'/([^/]+)_\d+.jpg$'
 ```
 
+**Regular expressions** or in short regex is a way to search a string in text using pattern matching methods.
+
+Let's deconstruct this regex pattern, `/([^/]+)_\d+.jpg$` by reading it backwards:
+
+| Expression      | Explaination                                                             |
+| --------------- |:-------------------------------------------------------------------------|
+| `$`             | end of search                                                            |
+| `.jpg`          | last chars to be found in search string, also right file format checking |
+| `\d`            | numerical digits, `+` sign denotes can be one or more of them            |
+| `_`             | should come before start of digits                                       |
+| `()`            | denotes group of characters                                              |
+| `[]`            | denotes another subgroup if characters in previous group                 |
+| `^/`            | `^` denotes negation , so `+` says all other chars except `/`            |
+| `( [ ^/ ] + )`  | searches all characters except `/`                                       |
+| `/`             | first `/` in regex says, end of search                                   |
+
+Considering search string was `PosixPath('images/japanese_chin_139.jpg')`, this regex pattern will give us string `japanese_chin`.
+
 With this factory method, we can basically say:
 - `path_img`: a path containing images
 - `fnames`: a list of file names
