@@ -28,6 +28,7 @@ Live date: 23 Oct 2018, GMT+8
 * **Website and video** links will be shared when the MOOC officially released in early 2019.
 * [Official resources and updates (Wiki)](https://forums.fast.ai/t/lesson-1-official-resources-and-updates/27936)
 * [Forum discussion](https://forums.fast.ai/t/lesson-1-chat/27332)
+* [FAQ, resources, and official course updates](https://forums.fast.ai/t/faq-resources-and-official-course-updates/27934)
 * Jupyter Notebook and code
   * [00_notebook_tutorial.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/00_notebook_tutorial.ipynb)
   * [lesson1-pets.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson1-pets.ipynb)
@@ -68,18 +69,6 @@ Live date: 23 Oct 2018, GMT+8
   * [fast.ai recent alumni, Christine Payne, now at OpenAI and her project, Clara, a neural network generator](http://christinemcleavey.com/clara-a-neural-net-music-generator/)
   * [One of our other alumni (Sanyam Bhutani) of the course recently interviewed with OpenAI Fellow: Christine McLeavey Payne](https://hackernoon.com/interview-with-openai-fellow-christine-mcleavey-payne-aaef948ad571)
   * [A small team of student AI coders beats Google’s machine-learning code](https://www.technologyreview.com/s/611858/small-team-of-ai-coders-beats-googles-code/)
-
-#### Other Useful Information
-
-* _TBD_
-
-### Frequently Sought Pieces of Information in the Forum Thread
-
-* _TBD_
-
-## Useful Tools and Libraries
-
-* _TBD_
 
 # My Notes
 
