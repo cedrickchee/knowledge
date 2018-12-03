@@ -32,7 +32,6 @@ Live date: 23 Oct 2018, GMT+8
 * Jupyter Notebook and code
   * [00_notebook_tutorial.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/00_notebook_tutorial.ipynb)
   * [lesson1-pets.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson1-pets.ipynb)
-  * [download_images.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/download_images.ipynb)
 
 ## Assignments
 
@@ -698,7 +697,7 @@ So that's how we can look at top losses and these are perhaps the most important
 
 In this case, if you are a dog and cat expert, you'll realize that the things that's getting wrong are breeds that are actually very difficult to tell apart and you'd be able to look at these and say "oh I can see why they've got this one wrong". So this is a really useful tool.
 
-### Confusion matrix [1:13:21](https://youtu.be/BWWm4AzsdLk?t=4401)
+### Confusion matrix [[1:13:21](https://youtu.be/BWWm4AzsdLk?t=4401)]
 
 Another useful tool, kind of, is to use something called a confusion matrix which basically shows you for every actual type of dog or cat, how many times was it predicted to be that dog or cat. But unfortunately, in this case, because it's so accurate, this diagonal basically says how it's pretty much right all the time.
 ![](../../../../images/fastai_p1_v3/lesson_1/10.png)
@@ -870,7 +869,7 @@ epoch  train_loss  valid_loss  error_rate
 
 Again, we fit it for a while and we get down to 4.2% error rate. So this is pretty extraordinary. I was pretty surprised because when we first did in the first course, this cats vs. dogs, we were getting somewhere around 3% error for something where you've got a 50% chance of being right and the two things look totally different. So the fact that we can get 4.2% error for such a fine grain thing, it's quite extraordinary.
 
-### Interpreting the results again [1:29:41](https://youtu.be/BWWm4AzsdLk?t=5381)
+### Interpreting the results again [[1:29:41](https://youtu.be/BWWm4AzsdLk?t=5381)]
 
 ```python
 interp = ClassificationInterpretation.from_learner(learn)
