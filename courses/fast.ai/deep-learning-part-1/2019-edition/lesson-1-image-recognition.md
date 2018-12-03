@@ -890,7 +890,7 @@ You can call the most_confused here and you can see the kinds of things that it'
 
 ![](../../../../images/fastai_p1_v3/lesson_1/129.png)
 
-I found something similar, I think it was this pitbull versus staffordshire bull terrier, apparently the main difference is the particular kennel club guidelines as to how they are assessed. But some people thing that one of them might have a slightly redder nose. So this is the kind of stuff where actually even if you're not a domain expert, it helps you become one. Because I now know more about which kinds of pet breeds are hard to identify than I used to. So model interpretation works both ways.
+I found something similar, I think it was this pitbull versus staffordshire bull terrier, apparently the main difference is the particular kennel club guidelines as to how they are assessed. But some people think that one of them might have a slightly redder nose. So this is the kind of stuff where actually even if you're not a domain expert, it helps you become one. Because I now know more about which kinds of pet breeds are hard to identify than I used to. So model interpretation works both ways.
 
 ## Homework [[1:30:58](https://youtu.be/BWWm4AzsdLk?t=5458)]
 
@@ -1042,7 +1042,7 @@ The library will use multiple CPUs by default but just one GPU by default. We pr
 
 **Question**:question:: Can the library use 3D data such as MRI or CAT scan?
 
-Yes, it can. ANd there is actually a forum thread about that already. Although that's not as developed as 2D yet but maybe by the time the MOOC is out, it will be.
+Yes, it can. And there is actually a forum thread about that already. Although that's not as developed as 2D yet but maybe by the time the MOOC is out, it will be.
 
 ### Splunk Anti-Fraud Software [[1:38:10](https://youtu.be/BWWm4AzsdLk?t=5890)]
 
