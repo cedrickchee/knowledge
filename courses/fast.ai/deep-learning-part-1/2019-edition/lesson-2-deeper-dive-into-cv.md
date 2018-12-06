@@ -166,19 +166,19 @@ So from today, after we did a bit deeper into really how to make these computer 
 
 For people who have more of a hard sciences background in particular, a lot of folks find this hey, here's some code, type it in, start running it approach rather than here's lots of theory approach confusing and surprising and odd at first. So for those of you, I just wanted to remind you this basic tip which is keep going. You're not expected to remember everything yet. You're not expected to understand everything yet. You're not expected to know why everything works yet. You just want to be in a situation where you can enter the code and you can run it and you can get something happening and then you can start to experiment and you get a feel for what's going on. Then push on. Most of the people who have done the course and have gone on to be really successful watch the videos at least three times. So they kind of go through the whole lot and then go through it slowly the second time, then they go through it really slowly the third time. I consistently hear them say I get a lot more out of it each time I go through. So don't pause at lesson 1 and stop until you can continue.
 
-This approach is based on a lot of academic research into learning theory. One guy in particular David Perkins from Harvard has this really great analogy. He is a researcher into learning theory. He describes this approach of **whole game** which is basically if you're teaching a kid to play soccer, you don't first of all teach them about how the friction between a ball and grass works and then teach them how to saw a soccer ball with their bare hands, and then teach them the mathematics of parabolas when you kick something in the air. No. You say, here's a ball. Let's watch some people playing soccer. Okay, now we'll play soccer and then gradually over the following years, learn more and more so that you can get better and better at it. So this is kind of what we're trying to get you to do is to play soccer which in our case is to type code and look at the inputs and look at the outputs.
+This approach is based on a lot of academic research into learning theory. One guy in particular David Perkins from Harvard has this really great analogy. He is a researcher into learning theory. [He describes this approach of **whole game**](https://www.gse.harvard.edu/news/uk/09/01/education-bat-seven-principles-educators) which is basically if you're teaching a kid to play soccer, you don't first of all teach them about how the friction between a ball and grass works and then teach them how to saw a soccer ball with their bare hands, and then teach them the mathematics of parabolas when you kick something in the air. No. You say, here's a ball. Let's watch some people playing soccer. Okay, now we'll play soccer and then gradually over the following years, learn more and more so that you can get better and better at it. So this is kind of what we're trying to get you to do is to play soccer which in our case is to type code and look at the inputs and look at the outputs.
 
 ## Teddy bear detector using Google Images [[16:21](https://youtu.be/Egp4Zajhzog?t=981)]
 
-Let's dig into our first notebook which is called [lesson2-download.ipynb](https://github.com/fastai/course-v3/blob/master/nbs/dl1/lesson2-download.ipynb). What we are going to do is we are going to see how to create your own classifier with your own images. It's going to be a lot like last week's pet detector but it will detect whatever you like. So to be like some of those examples we just saw. How would you create your own Panama bus detector from scratch. This is approach is inspired by Adrian Rosebrock who has a terrific website called [pyimagesearch](https://www.pyimagesearch.com/) and he has this nice explanation of  [how to create a deep learning dataset using Google Images](https://www.pyimagesearch.com/2017/12/04/how-to-create-a-deep-learning-dataset-using-google-images/). So that was definitely an inspiration for some of the techniques we use here, so thank you to Adrian and you should definitely check out his site. It's full of lots of good resources.
+Let's dig into our first notebook which is called [lesson2-download.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson2-download.ipynb). What we are going to do is we are going to see how to create your own classifier with your own images. It's going to be a lot like last week's pet detector but it will detect whatever you like. So to be like some of those examples we just saw. How would you create your own Panama bus detector from scratch. This is approach is inspired by Adrian Rosebrock who has a terrific website called [PyiImageSearch](https://www.pyimagesearch.com/) and he has this nice explanation of "[how to create a deep learning dataset using Google Images](https://www.pyimagesearch.com/2017/12/04/how-to-create-a-deep-learning-dataset-using-google-images/)". So that was definitely an inspiration for some of the techniques we use here, so thank you to Adrian and you should definitely check out his site. It's full of lots of good resources.
 
 We are going to try to create a teddy bear detector. And we're going to separate teddy bears from black bears, from grizzly bears. This is very important. I have a three year old daughter and she needs to know what she's dealing with. In our house, you would be surprised at the number of monsters, lions, and other terrifying threats that are around particularly around Halloween. So we always need to be on the lookout to make sure that the things we're about to cuddle is in fact a genuine teddy bear. So let's deal with that situation as best as we can.
 
-### Step 1: Gather URLs of each class of images
+### Step 1: Get a list of URLs of each category of images
 
-Our starting point is to find some pictures of teddy bears so we can learn what they look like. So I go to  https://images.google.com/ and I type in Teddy bear and I just scroll through until I find a goodly bunch of them. Okay, that looks like plenty of teddy bears to me.
+Our starting point is to find some pictures of teddy bears so we can learn what they look like. So I go to [Google Images](https://images.google.com/) and I type in Teddy bear and I just scroll through until I find a goodly bunch of them. Okay, that looks like plenty of teddy bears to me.
 
-Then I go back to [the notebook](https://github.com/fastai/course-v3/blob/master/nbs/dl1/lesson2-download.ipynb) and you can see it says "go to Google Images and search and scroll." The next thing we need to do is to get a list of all the URLs there. To do that, back in your google images, you hit <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>J</kbd> in Windows/Linux and <kbd>Cmd</kbd><kbd>Opt</kbd><kbd>J</kbd> in Mac, and you paste the following into the window that appears:
+Then I go back to [the notebook](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson2-download.ipynb) and you can see it says "go to Google Images and search and scroll." The next thing we need to do is to get a list of all the URLs there. To do that, back in your google images, you hit <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>J</kbd> in Windows/Linux and <kbd>Cmd</kbd><kbd>Opt</kbd><kbd>J</kbd> in Mac, and you paste the following into the window that appears:
 
 ``` javascript
 urls = Array.from(document.querySelectorAll('.rg_di .rg_meta')).map(el=>JSON.parse(el.textContent).ou);
@@ -191,14 +191,14 @@ This is a Javascript console for those of you who haven't done any Javascript be
 
 ### Step 2: Download images [[19:39](https://youtu.be/Egp4Zajhzog?t=1179)]
 
-So step 2 is we now need to download those URLs to our server. Because remember when we're using Jupyter Notebook, it's not running on our computer. It's running on SageMaker or Crestle, or Google cloud, etc. So to do that, we start running some Jupyer cells. Let's grab the fastai library:
+So step 2 is we now need to download those URLs to our server. Because remember when we're using Jupyter Notebook, it's not running on our computer. It's running on SageMaker or Crestle, or Google Cloud, etc. So to do that, we start running some Jupyter cells. Let's grab the fastai library:
 
 ```python
 from fastai import *
 from fastai.vision import *
 ```
 
-And let's start with black bears. So I click on this cell for black bears and I'll run it. So here, I've got three different cells doing the same thing but different information. This is one way I like to work with Jupyter notebook. It's something that a lot of people with more strict scientific background are horrified by. This is not reproducible research. I click on the black bear cell, and run it to create a folder called black and a file called urls_black.txt for my black bears. I skip the next two cells.
+And let's start with black bears. So I click on this cell for black bears and I'll run it. So here, I've got three different cells doing the same thing but different information. This is one way I like to work with Jupyter notebook. It's something that a lot of people with more strict scientific background are horrified by. This is not reproducible research. I click on the black bear cell, and run it to create a folder called black and a file called `urls_black.txt` for my black bears. I skip the next two cells.
 
 ```python
 folder = 'black'
@@ -407,7 +407,7 @@ fd = FileDeleter(file_paths=top_loss_paths)
 
 ![](/Users/hiromi/git/notes/lesson2/16.png)
 
-So we run FileDeleter passing in that sorted list of paths and so what pops up is basically the same thing as `plot_top_losses`. In other words, these are the ones which is either wrong about or least confident about. So not surprisingly, this one her (the second from left) does not appear to be a teddy bear, black bear, or grizzly bear. So this shouldn't be in our dataset. So what I do is I wack on the delete button, all the rest do look indeed like bears, so I can click confirm and it'll bring up another five.
+So we run FileDeleter passing in that sorted list of paths and so what pops up is basically the same thing as `plot_top_losses`. In other words, these are the ones which is either wrong about or least confident about. So not surprisingly, this one here (the second from left) does not appear to be a teddy bear, black bear, or grizzly bear. So this shouldn't be in our dataset. So what I do is I wack on the delete button, all the rest do look indeed like bears, so I can click confirm and it'll bring up another five.
 
 What I tend to do when I do this is I'll keep going confirm until I get to a coupe of screen full of the things that all look okay and that suggests to me that I've got past the worst bits of the data. So that's it so now you can go back for the training set as well and retrain your model.
 
@@ -484,7 +484,7 @@ pred_class
 
 So what does this look like in production? I took [Simon Willison's code](https://github.com/simonw/cougar-or-not), shamelessly stole it, made it probably a little bit worse, but basically it's going to look something like this. Simon used a really cool web app toolkit called [Starlette](https://www.starlette.io/). If you've ever used Flask, this will look extremely similar but it's kind of a more modern approach﹣by modern what I really mean is that you can use `await` which is basically means that you can wait for something that takes a while, such as grabbing some data, without using up a process. So for things like I want to get a prediction or I want to load up some data, it's really great to be able to use this modern Python 3 asynchronous stuff. So Starlette could come highly recommended for creating your web app.
 
-You just create a route as per usual, in that you say this is `async` to ensure it doesn't steal the process while it's waiting for things.
+You just create a route as per usual in the web app, in that you say this is `async` to ensure it doesn't steal the process while it's waiting for things.
 
 You open your image you call `learner.predict`  and you return that response. Then you can use Javascript client or whatever to show it. That's it. That's basically the main contents of your web app.
 
@@ -503,7 +503,7 @@ async def classify_url(request):
     })
 ```
 
-So give it a go this week. Even if you've never created a web application before, there's a lot of nice little tutorials online and kind of starter code, if in doubt, why don't you try Starlette. There's a free hosting that you can use, there's one called [PythonAnywhere](https://www.pythonanywhere.com/), for example. The one Simon has used, [Zeit Now](https://zeit.co/now), it's something you can basically package it up as a docker thing and shoot it off and it'll serve it up for you. So it doesn't even need to cost you any money and all these classifiers that you're creating, you can turn them into web application. I'll be really interested to see what you're able to make of that. That'll be really fun.
+So give it a go this week. Even if you've never created a web application before, there's a lot of nice little tutorials online and kind of starter code, if in doubt, why don't you try Starlette. There's a free hosting that you can use, there's one called [PythonAnywhere](https://www.pythonanywhere.com/), for example. The one Simon has used, [Zeit Now](https://zeit.co/now), it's something you can basically package it up as a Docker thing and shoot it off and it'll serve it up for you. So it doesn't even need to cost you any money and all these classifiers that you're creating, you can turn them into web application. I'll be really interested to see what you're able to make of that. That'll be really fun.
 
 https://course-v3.fast.ai/deployment_zeit.html
 
@@ -674,7 +674,7 @@ epoch  train_loss  valid_loss  error_rate
 
 [[52:23](https://youtu.be/Egp4Zajhzog?t=3143)]
 
-So they are the main four things that can go wrong. There are some other details that we will learn about during the rest of this course but honestly if you stopped listening now (please don't, that would be embarrassing) and you're just like okay I'm going to go and download images, I'm going to create CNNs with resnet32 or resnet50, I'm going to make sure that my learning rate and number of epochs is okay and then I'm going to chuck them up in a Starlette web API, most of the time you are done. At least for computer vision. Hopefully you will stick around because you want to learn about NLP, collaborative filtering, tabular data, and segmentation, etc as well.
+So they are the main four things that can go wrong. There are some other details that we will learn about during the rest of this course but honestly if you stopped listening now (please don't, that would be embarrassing) and you're just like okay I'm going to go and download images, I'm going to create CNNs with resnet34 or resnet50, I'm going to make sure that my learning rate and number of epochs is okay and then I'm going to chuck them up in a Starlette web API, most of the time you are done. At least for computer vision. Hopefully you will stick around because you want to learn about NLP, collaborative filtering, tabular data, and segmentation, and stuff like that as well.
 
 [[53:10](https://youtu.be/Egp4Zajhzog?t=3190)]
 
@@ -746,7 +746,7 @@ By the way, a lot of the stuff that we're using here, we are stealing from other
 
 Let's look and see how we create one of these functions, and let's start with the simplest functions I know:
 
-<img src="http://latex.codecogs.com/gif.latex?y&space;=&space;ax&space;&plus;&space;b" title="y = ax + b" />
+<img src="https://latex.codecogs.com/gif.latex?y&space;=&space;ax&space;&plus;&space;b" title="y = ax + b" />
 
 That's a line where
 
@@ -757,35 +757,35 @@ Hopefully when we said that you need to know high school math to do this course,
 
 I'm going to re-write this slightly:
 
-<img src="http://latex.codecogs.com/gif.latex?y&space;=&space;a_1x&space;&plus;&space;a_2" title="y = a_1x + a_2" />
+<img src="https://latex.codecogs.com/gif.latex?y&space;=&space;a_1x&space;&plus;&space;a_2" title="y = a_1x + a_2" />
 
-So let's just replace <img src="http://latex.codecogs.com/gif.latex?b" title="b" /> with a <img src="http://latex.codecogs.com/gif.latex?a_2" title="a_2" />_, just give it a different name. So there's another way of saying the same thing. Then another way of saying that would be if I could multiply<img src="http://latex.codecogs.com/gif.latex?a_2" title="a_2" /> by the number 1.
+So let's just replace <img src="https://latex.codecogs.com/gif.latex?b" title="b" /> with a <img src="https://latex.codecogs.com/gif.latex?a_2" title="a_2" />_, just give it a different name. So there's another way of saying the same thing. Then another way of saying that would be if I could multiply<img src="https://latex.codecogs.com/gif.latex?a_2" title="a_2" /> by the number 1.
 
-<img src="http://latex.codecogs.com/gif.latex?y&space;=&space;a_1x&space;&plus;&space;a_2\cdot&space;1" title="y = a_1x + a_2\cdot 1" />
+<img src="https://latex.codecogs.com/gif.latex?y&space;=&space;a_1x&space;&plus;&space;a_2\cdot&space;1" title="y = a_1x + a_2\cdot 1" />
 
-This still is the same thing. Now at this point, I'm actually going to say let's not put the number 1 there, but put an <img src="http://latex.codecogs.com/gif.latex?x_1" title="x_1" /> here and <img src="http://latex.codecogs.com/gif.latex?x_2" title="x_2" /> here:
+This still is the same thing. Now at this point, I'm actually going to say let's not put the number 1 there, but put an <img src="https://latex.codecogs.com/gif.latex?x_1" title="x_1" /> here and <img src="https://latex.codecogs.com/gif.latex?x_2" title="x_2" /> here:
 
-<img src="http://latex.codecogs.com/gif.latex?y&space;=&space;a_1x_1&space;&plus;&space;a_2x_2" title="y = a_1x_1 + a_2x_2" />
+<img src="https://latex.codecogs.com/gif.latex?y&space;=&space;a_1x_1&space;&plus;&space;a_2x_2" title="y = a_1x_1 + a_2x_2" />
 
-<img src="http://latex.codecogs.com/gif.latex?x_2&space;=&space;1" title="x_2 = 1" />
+<img src="https://latex.codecogs.com/gif.latex?x_2&space;=&space;1" title="x_2 = 1" />
 
-So far, this is pretty early high school math. This is multiplying by 1 which I think we can handle. So this and <img src="http://latex.codecogs.com/gif.latex?y&space;=&space;ax&space;&plus;&space;b" title="y = ax + b" /> are equivalent with a bit of renaming. Now in machine learning, we don't just have one equation, we've got lots. So if  we've got some data that represents the temperature versus the number of ice creams sold, then we have lots of dots.
+So far, this is pretty early high school math. This is multiplying by 1 which I think we can handle. So this and <img src="https://latex.codecogs.com/gif.latex?y&space;=&space;ax&space;&plus;&space;b" title="y = ax + b" /> are equivalent with a bit of renaming. Now in machine learning, we don't just have one equation, we've got lots. So if  we've got some data that represents the temperature versus the number of ice creams sold, then we have lots of dots.
 
 ![](../../../../images/fastai_p1_v3/lesson_2/25.png)
 
-So each one of those dots, we might hypothesize is based on this formula (<img src="http://latex.codecogs.com/gif.latex?y&space;=&space;a_1x_1&space;&plus;&space;a_2x_2" title="y = a_1x_1 + a_2x_2" />). And basically there's lots of values of y and lots of values of x so we can stick little <img src="http://latex.codecogs.com/gif.latex?_i" title="_i" /> here:
+So each one of those dots, we might hypothesize is based on this formula (<img src="https://latex.codecogs.com/gif.latex?y&space;=&space;a_1x_1&space;&plus;&space;a_2x_2" title="y = a_1x_1 + a_2x_2" />). And basically there's lots of values of y and lots of values of x so we can stick little <img src="https://latex.codecogs.com/gif.latex?_i" title="_i" /> here:
 
-<img src="http://latex.codecogs.com/gif.latex?y_i&space;=&space;ax_i&space;&plus;&space;b" title="y_i = ax_i + b" />
+<img src="https://latex.codecogs.com/gif.latex?y_i&space;=&space;ax_i&space;&plus;&space;b" title="y_i = ax_i + b" />
 
 The way we do that is a lot like numpy indexing, but rather things in square brackets, we put them down here in the subscript in our equation:
 
-<img src="http://latex.codecogs.com/gif.latex?y_i&space;=&space;a_1x_i_,_1&space;&plus;&space;a_2x_i_,_2" title="y_i = a_1x_i_,_1 + a_2x_i_,_2" />
+<img src="https://latex.codecogs.com/gif.latex?y_i&space;=&space;a_1x_i_,_1&space;&plus;&space;a_2x_i_,_2" title="y_i = a_1x_i_,_1 + a_2x_i_,_2" />
 
- So this is now saying there's actually lots of these different <img src="http://latex.codecogs.com/gif.latex?y_i" title="y_i" />'s based on lots of different <img src="http://latex.codecogs.com/gif.latex?x_i_,_1" title="x_i_,_1" /> and <img src="http://latex.codecogs.com/gif.latex?x_i_,_2" title="x_i_,_2" /> but notice there is still one of each of these (<img src="http://latex.codecogs.com/gif.latex?a_1" title="a_1" />, <img src="http://latex.codecogs.com/gif.latex?a_2" title="a_2" />). They called the coefficients or the parameters. So this is our linear equation and we are still going to say that every <img src="http://latex.codecogs.com/gif.latex?x_i_,_2" title="x_i_,_2" /> is equal to 1. Why did I do it that way? Because I want to do linear algebra? Why do I want to do in linear algebra? One reason is because [Rachel teaches the world's best linear algebra course](https://github.com/fastai/numerical-linear-algebra/blob/master/README.md), so if you're interested, check it out. So it's a good opportunity for me to throw in a pitch for this which we make no money but never mind. But more to the point right now, it's going to make life much easier. Because I hate writing loops, I hate writing code, I just want the computer to do everything for me. And anytime you see this little _i_ subscripts, that sounds like you're going to have to do loops and all kind of stuff. But what you might remember from school is that when you've got two things being multiplied together, two things being multiplied together, then they get added up, that's called a "dot product". If you do that for lots and lots of different numbers _i_, then that's called a matrix product. So in fact, this whole thing can be written like this:
+ So this is now saying there's actually lots of these different <img src="https://latex.codecogs.com/gif.latex?y_i" title="y_i" />'s based on lots of different <img src="https://latex.codecogs.com/gif.latex?x_i_,_1" title="x_i_,_1" /> and <img src="https://latex.codecogs.com/gif.latex?x_i_,_2" title="x_i_,_2" /> but notice there is still one of each of these (<img src="https://latex.codecogs.com/gif.latex?a_1" title="a_1" />, <img src="https://latex.codecogs.com/gif.latex?a_2" title="a_2" />). They called the coefficients or the parameters. So this is our linear equation and we are still going to say that every <img src="https://latex.codecogs.com/gif.latex?x_i_,_2" title="x_i_,_2" /> is equal to 1. Why did I do it that way? Because I want to do linear algebra? Why do I want to do in linear algebra? One reason is because [Rachel teaches the world's best linear algebra course](https://github.com/fastai/numerical-linear-algebra/blob/master/README.md), so if you're interested, check it out. So it's a good opportunity for me to throw in a pitch for this which we make no money but never mind. But more to the point right now, it's going to make life much easier. Because I hate writing loops, I hate writing code, I just want the computer to do everything for me. And anytime you see this little _i_ subscripts, that sounds like you're going to have to do loops and all kind of stuff. But what you might remember from school is that when you've got two things being multiplied together, two things being multiplied together, then they get added up, that's called a "dot product". If you do that for lots and lots of different numbers _i_, then that's called a matrix product. So in fact, this whole thing can be written like this:
 
-<img src="http://latex.codecogs.com/gif.latex?\vec{y}&space;=&space;X\vec{a}" title="\vec{y} = X\vec{a}" />
+<img src="https://latex.codecogs.com/gif.latex?\vec{y}&space;=&space;X\vec{a}" title="\vec{y} = X\vec{a}" />
 
-Rather than lots of different <img src="http://latex.codecogs.com/gif.latex?y_i" title="y_i" />'s, we can say there's one vector called <img src="http://latex.codecogs.com/gif.latex?y" title="y" /> which is equal to one matrix called <img src="http://latex.codecogs.com/gif.latex?X" title="X" /> times one vector called <img src="http://latex.codecogs.com/gif.latex?a" title="a" />. At this point, I know a lot of you don't remember that. That's fine. We have a picture to show you:
+Rather than lots of different <img src="https://latex.codecogs.com/gif.latex?y_i" title="y_i" />'s, we can say there's one vector called <img src="https://latex.codecogs.com/gif.latex?y" title="y" /> which is equal to one matrix called <img src="https://latex.codecogs.com/gif.latex?X" title="X" /> times one vector called <img src="https://latex.codecogs.com/gif.latex?a" title="a" />. At this point, I know a lot of you don't remember that. That's fine. We have a picture to show you:
 
 <a href='http://matrixmultiplication.xyz/' target='_blank'>![](../../../../images/fastai_p1_v3/lesson_2/matrix.png)</a>
 
@@ -793,17 +793,17 @@ Andre Staltz created this fantastic called http://matrixmultiplication.xyz/ and 
 
 ![](../../../../images/fastai_p1_v3/lesson_2/matrix.gif)
 
-That is what matrix vector multiplication does. In other words, it's just <img src="http://latex.codecogs.com/gif.latex?y_i&space;=&space;a_1x_i_,_1&space;&plus;&space;a_2x_i_,_2" title="y_i = a_1x_i_,_1 + a_2x_i_,_2" /> except his version is much less messy.
+That is what matrix vector multiplication does. In other words, it's just <img src="https://latex.codecogs.com/gif.latex?y_i&space;=&space;a_1x_i_,_1&space;&plus;&space;a_2x_i_,_2" title="y_i = a_1x_i_,_1 + a_2x_i_,_2" /> except his version is much less messy.
 
 **Question**: When generating new image dataset, how do you know how many images are enough? What are ways to measure "enough"? [[1:08:35](https://youtu.be/Egp4Zajhzog?t=4115)]
 
 Great question. Another possible problem you have is you don't have enough data. How do you know if you don't have enough data? Because you found a good learning rate (i.e. if you make it higher than it goes off into massive losses; if you make it lower, it goes really slowly) and then you train for such a long time that your error starts getting worse. So you know that you trained for long enough. And you're still not happy with the accuracy﹣it's not good enough for the teddy bear cuddling level of safety you want. So if that happens, there's a number of things you can do and we'll learn pretty much all of them during this course but one of the easiest one is get more data. If you get more data, then you can train for longer, get a higher accuracy, lower error rate, without overfitting.
 
-Unfortunately there is no shortcut. I wish there was. I wish there's some way to know ahead of time how much data you need. But I will say this﹣most of the time, you need less data than you think. So organizations very commonly spend too much time gathering data, getting more data than it turned out they actually needed. So get a small amount first and see how you go.
+Unfortunately there is no shortcut. I wish there was. I wish there's some way to know ahead of time how much data you need. But I will say this﹣**most of the time, you need less data than you think**. So organizations very commonly spend too much time gathering data, getting more data than it turned out they actually needed. So get a small amount first and see how you go.
 
 **Question**: What do you do if you have unbalanced classes such as 200 grizzly and 50 teddy? [[1:10:00](https://youtu.be/Egp4Zajhzog?t=4200)]
 
-Nothing. Try it. It works. A lot of people ask this question about how do I deal with unbalanced data. I've done lots of analysis with unbalanced data over the last couple of years and I just can't make it not work. It always works. There's actually a paper that said if you want to get it slightly better then the best thing to do is to take that uncommon class and just make a few copies of it. That's called "oversampling" but I haven't found a situation in practice where I needed to do that. I've found it always just works fine, for me.
+Nothing. Try it. It works. A lot of people ask this question about how do I deal with **unbalanced data**. I've done lots of analysis with unbalanced data over the last couple of years and I just can't make it not work. It always works. There's actually a [paper](https://arxiv.org/abs/1710.05381) that said if you want to get it slightly better then the best thing to do is to take that uncommon class and just make a few copies of it. That's called "**oversampling**" but I haven't found a situation in practice where I needed to do that. I've found it always just works fine, for me.
 
 **Question**: Once you unfreeze and retrain with one cycle again, if your training loss is still higher than your validation loss (likely underfitting), do you retrain it unfrozen again (which will technically be more than one cycle) or you redo everything with longer epoch per the cycle?  [[1:10:47](https://youtu.be/Egp4Zajhzog?t=4247)]
 
@@ -820,7 +820,7 @@ learn.load('stage-2')
 
 This requires `models.resnet34` which I find surprising: I had assumed that the model created by `.save(...)` (which is about 85MB on disk) would be able to run without also needing a copy of `resnet34`. [[1:11:37](https://youtu.be/Egp4Zajhzog?t=4297)]
 
-We're going to be learning all about this shortly. There is no "copy of ResNet34", ResNet34 is what we call "architecture"﹣it's a functional form. Just like <img src="http://latex.codecogs.com/gif.latex?y&space;=&space;ax&space;&plus;&space;b" title="y = ax + b" /> is a linear functional form. It doesn't take up any room, it doesn't contain anything, it's just a function. ResNet34 is just a function. I think the confusion here is that we often use a pre-trained neural net that's been learnt on ImageNet. In this case, we don't need to use a pre-trained neural net. Actually, to avoid that even getting created, you can actually pass `pretrained=False`:
+We're going to be learning all about this shortly. There is no "copy of ResNet34", ResNet34 is what we call "architecture"﹣it's a functional form. Just like <img src="https://latex.codecogs.com/gif.latex?y&space;=&space;ax&space;&plus;&space;b" title="y = ax + b" /> is a linear functional form. It doesn't take up any room, it doesn't contain anything, it's just a function. ResNet34 is just a function. I think the confusion here is that we often use a pre-trained neural net that's been learnt on ImageNet. In this case, we don't need to use a pre-trained neural net. Actually, to avoid that even getting created, you can actually pass `pretrained=False`:
 
 ![](../../../../images/fastai_p1_v3/lesson_2/26.png)
 
@@ -828,15 +828,15 @@ That'll ensure that nothing even gets loaded which will save you another 0.2 sec
 
 ![](../../../../images/fastai_p1_v3/lesson_2/27.png)
 
-Which is where we load our parameters. It is basically saying, as we are about find out, what are the values of <img src="http://latex.codecogs.com/gif.latex?a" title="a" /> and <img src="http://latex.codecogs.com/gif.latex?b" title="b" />﹣ we have to store these numbers. But for ResNet34, you don't just store 2 numbers, you store a few million or few tens of millions of numbers.
+Which is where we load our parameters. It is basically saying, as we are about find out, what are the values of <img src="https://latex.codecogs.com/gif.latex?a" title="a" /> and <img src="https://latex.codecogs.com/gif.latex?b" title="b" />﹣ we have to store these numbers. But for ResNet34, you don't just store 2 numbers, you store a few million or few tens of millions of numbers.
 
 [[1:14:13](https://youtu.be/Egp4Zajhzog?t=4453)]
 
-So why did we all this? It's because I wanted to be able to write it out like this: <img src="http://latex.codecogs.com/gif.latex?\vec{y}&space;=&space;X\vec{a}" title="\vec{y} = X\vec{a}" /> and the reason I wanted to be able to like this is that we can now do that in PyTorch with no loops, single line of code, and it's also going to run faster.
+So why did we all this? It's because I wanted to be able to write it out like this: <img src="https://latex.codecogs.com/gif.latex?\vec{y}&space;=&space;X\vec{a}" title="\vec{y} = X\vec{a}" /> and the reason I wanted to be able to like this is that we can now do that in PyTorch with no loops, single line of code, and it's also going to run faster.
 
 > **PyTorch really doesn't like loops**
 
-It really wants you to send it a whole equation to do all at once. Which means, you really want to try and specify things in these kind of linear algebra ways. So let's go and take a look because what we're going to try and do then is we're going to try and take this <img src="http://latex.codecogs.com/gif.latex?\vec{y}&space;=&space;X\vec{a}" title="\vec{y} = X\vec{a}" /> (we're going to call this an architecture). It's the world's tiniest neural network. It's got two parameters <img src="http://latex.codecogs.com/gif.latex?a_1" title="a_1" /> and <img src="http://latex.codecogs.com/gif.latex?a_2" title="a_2" />. We are going to try and fit this architecture to some data.
+It really wants you to send it a whole equation to do all at once. Which means, you really want to try and specify things in these kind of linear algebra ways. So let's go and take a look because what we're going to try and do then is we're going to try and take this <img src="https://latex.codecogs.com/gif.latex?\vec{y}&space;=&space;X\vec{a}" title="\vec{y} = X\vec{a}" /> (we're going to call this an architecture). It's the world's tiniest neural network. It's got two parameters <img src="https://latex.codecogs.com/gif.latex?a_1" title="a_1" /> and <img src="https://latex.codecogs.com/gif.latex?a_2" title="a_2" />. We are going to try and fit this architecture to some data.
 
 ### SGD [[1:15:06](https://youtu.be/Egp4Zajhzog?t=4506)]
 
@@ -846,11 +846,11 @@ Version two of SGD which is what I'm going to talk about today is where we are g
 
 #### Linear Regression problem [[1:16:08](https://youtu.be/Egp4Zajhzog?t=4568)]
 
-We are going to jump into [lesson2-sgd.ipynb](https://github.com/fastai/course-v3/blob/master/nbs/dl1/lesson2-sgd.ipynb). We are going to go bottom-up rather than top-down. We are going to create the simplest possible model we can which is going to be a linear model. And the first thing we need is we need some data. So we are going to generate some data. The data we're going to generate looks like this:
+We are going to jump into [lesson2-sgd.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson2-sgd.ipynb). We are going to go bottom-up rather than top-down. We are going to create the simplest possible model we can which is going to be a linear model. And the first thing we need is we need some data. So we are going to generate some data. The data we're going to generate looks like this:
 
  ![](../../../../images/fastai_p1_v3/lesson_2/n1.png)
 
-So x-axis might represent temperature, y-axis might represent number of ice creams we sell, or something like that. But we're just going to create some synthetic data that we know is following a line. As we build this, we're actually going to lean a little bit about PyTorch as well.
+So x-axis might represent temperature, y-axis might represent number of ice creams we sell, or something like that. But we're just going to create some synthetic data that we know is following a line. As we build this, we're actually going to learn a little bit about PyTorch as well.
 
 ```python
 %matplotlib inline
@@ -875,7 +875,7 @@ tensor([[-0.1338,  1.0000],
         [-0.8161,  1.0000]])
 ```
 
-Basically the way we're going to generate this data is by creating some coefficients. <img src="http://latex.codecogs.com/gif.latex?a_1" title="a_1" /> will be 3 and <img src="http://latex.codecogs.com/gif.latex?a_2" title="a_2" /> will be 2. We are going to create a column of numbers for our <img src="http://latex.codecogs.com/gif.latex?x" title="x" />'s and a whole bunch of 1's.
+Basically the way we're going to generate this data is by creating some coefficients. <img src="https://latex.codecogs.com/gif.latex?a_1" title="a_1" /> will be 3 and <img src="https://latex.codecogs.com/gif.latex?a_2" title="a_2" /> will be 2. We are going to create a column of numbers for our <img src="https://latex.codecogs.com/gif.latex?x" title="x" />'s and a whole bunch of 1's.
 
 ```python
 a = tensor(3.,2); a
@@ -901,19 +901,19 @@ So we basically are going to generate some data by creating a line and then we'r
 
 That's all tensor is. We have these all the time. For example, an image is a 3 dimensional tensor. It's got number of rows by number of columns by number of channels (normally red, green, blue). So for example, VGA picture could be 640 by 480 by 3 or actually we do things backwards so when people talk about images, they normally go width by height, but when we talk mathematically, we always go a number of rows by number of columns, so it would actually be 480 by 640 by 3 that will catch you out. We don't say dimensions, though, with tensors. We use one of two words, we either say rank or axis. Rank specifically means how many axes are there, how many dimensions are there. So an image is generally a rank 3 tensor. What we created here is a rank 1 tensor (also known as a vector). But in math, people come up with very different words for slightly different concepts. Why is a one dimensional array a vector and a two dimensional array is a matrix, and a three dimensional array doesn't have a name. It doesn't make any sense. With computers, we try to have some simple consistent naming conventions. They are all called tensors﹣rank 1 tensor, rank 2 tensor, rank 3 tensor. You can certainly have a rank 4 tensor. If you've got 64 images, then that would be a rank 4 tensor of 64 by 480 by 640 by 3. So tensors are very simple. They just mean arrays.
 
-In PyTorch, you say `tensor` and you pass in some numbers, and you get back, which in this case just a list,  a vector. This then represents our coefficients: the slope and the intercept of our line.
+In PyTorch, you say `tensor` and you pass in some numbers, and you get back, which in this case just a list, a vector. This then represents our coefficients: the slope and the intercept of our line.
 
 ![](../../../../images/fastai_p1_v3/lesson_2/28.png)
 
-Because we are not actually going to have a special case of <img src="http://latex.codecogs.com/gif.latex?ax&space;&plus;&space;b" title="ax + b" />, instead, we are going to say there's always this second <img src="http://latex.codecogs.com/gif.latex?x" title="x" /> value which is always 1
+Because we are not actually going to have a special case of <img src="https://latex.codecogs.com/gif.latex?ax&space;&plus;&space;b" title="ax + b" />, instead, we are going to say there's always this second <img src="https://latex.codecogs.com/gif.latex?x" title="x" /> value which is always 1
 
-<img src="http://latex.codecogs.com/gif.latex?y_i&space;=&space;a_1x_i_,_1&space;&plus;&space;a_2x_i_,_2" title="y_i = a_1x_i_,_1 + a_2x_i_,_2" />
+<img src="https://latex.codecogs.com/gif.latex?y_i&space;=&space;a_1x_i_,_1&space;&plus;&space;a_2x_i_,_2" title="y_i = a_1x_i_,_1 + a_2x_i_,_2" />
 
 You can see it here, always 1 which allows us just to do a simple matrix vector product:
 
 ![](../../../../images/fastai_p1_v3/lesson_2/29.png)
 
-So that's <img src="http://latex.codecogs.com/gif.latex?a" title="a" />. Then we wanted to generate this <img src="http://latex.codecogs.com/gif.latex?x" title="x" /> array of data. We're going to put random numbers in the first column and a whole bunch of 1's in the second column. To do that, we say to PyTorch that we want to create a rank 2 tensor of `n` by 2. Since we passed in a total of 2 things, we get a rank 2 tensor. The number of rows will be `n` and the number of columns will be 2. In there, every single thing in it will be a 1﹣that's what `torch.ones` means.
+So that's <img src="https://latex.codecogs.com/gif.latex?a" title="a" />. Then we wanted to generate this <img src="https://latex.codecogs.com/gif.latex?x" title="x" /> array of data. We're going to put random numbers in the first column and a whole bunch of 1's in the second column. To do that, we say to PyTorch that we want to create a rank 2 tensor of `n` by 2. Since we passed in a total of 2 things, we get a rank 2 tensor. The number of rows will be `n` and the number of columns will be 2. In there, every single thing in it will be a 1﹣that's what `torch.ones` means.
 
 [[1:22:45](https://youtu.be/Egp4Zajhzog?t=4965)]
 
@@ -951,7 +951,7 @@ plt.scatter(x[:,0], y);
 
 Now what we're going to do is, we are going to pretend we were given this data and we don't know that the values of our coefficients are 3 and 2. So we're going to pretend that we never knew that and we have to figure them out. How would we figure them out? How would we draw a line to fit this data and why would that even be interesting? Well, we're going to look at more about why it's interesting in just a moment. But the basic idea is:
 
->If we can find a way to find those two parameters to fit that line to those 100 points, we can also fit these arbitrary functions that convert from pixel values to probabilities.
+> If we can find a way to find those two parameters to fit that line to those 100 points, we can also fit these arbitrary functions that convert from pixel values to probabilities.
 
 It will turn out that this techniques that we're going to learn to find these two numbers works equally well for the 50 million numbers in ResNet34. So we're actually going to use an almost identical approach. This is the bit that I found in previous classes people have the most trouble digesting. I often find, even after week 4 or week 5, people will come up to me and say:
 
@@ -967,17 +967,17 @@ The reason this is hard to digest is that the human brain has a lot of trouble c
 
 ### Loss function [[1:28:36](https://youtu.be/Egp4Zajhzog?t=5316)]
 
-We want to find what PyTorch calls **parameters**, or in statistics, you'll often hear it called coefficient (i.e. these values of <img src="http://latex.codecogs.com/gif.latex?a_1" title="a_1" /> and <img src="http://latex.codecogs.com/gif.latex?a_2" title="a_2" />). We want to find these parameters such that the line that they create minimizes the error between that line and the points. In other words, if the <img src="http://latex.codecogs.com/gif.latex?a_1" title="a_1" /> and <img src="http://latex.codecogs.com/gif.latex?a_2" title="a_2" /> we came up with resulted in this line:
+We want to find what PyTorch calls **parameters**, or in statistics, you'll often hear it called coefficient (i.e. these values of <img src="https://latex.codecogs.com/gif.latex?a_1" title="a_1" /> and <img src="https://latex.codecogs.com/gif.latex?a_2" title="a_2" />). We want to find these parameters such that the line that they create minimizes the error between that line and the points. In other words, if the <img src="https://latex.codecogs.com/gif.latex?a_1" title="a_1" /> and <img src="https://latex.codecogs.com/gif.latex?a_2" title="a_2" /> we came up with resulted in this line:
 
 ![](../../../../images/fastai_p1_v3/lesson_2/31.png)
 
-Then we'd look and we'd see how far away is that line from each point. That's quite a long way. So maybe there was some other <img src="http://latex.codecogs.com/gif.latex?a_1" title="a_1" /> and <img src="http://latex.codecogs.com/gif.latex?a_2" title="a_2" /> which resulted in the gray line. And they would say how far away is each of those points. And then eventually we come up with the yellow line. In this case, each of those is actually very close.
+Then we'd look and we'd see how far away is that line from each point. That's quite a long way. So maybe there was some other <img src="https://latex.codecogs.com/gif.latex?a_1" title="a_1" /> and <img src="https://latex.codecogs.com/gif.latex?a_2" title="a_2" /> which resulted in the gray line. And they would say how far away is each of those points. And then eventually we come up with the yellow line. In this case, each of those is actually very close.
 
 ![](../../../../images/fastai_p1_v3/lesson_2/32.png)
 
 So you can see how in each case we can say how far away is the line at each spot away from its point, and then we can take the average of all those. That's called the **loss**. That is the value of our loss. So you need a mathematical function that can basically say how far away is this line from those points.
 
-For this kind of problem which is called a regression problem (a problem where your dependent variable is continuous, so rather than being grizzlies or teddies, it's some number between -1 and 6), the most common loss function is called mean squared error which pretty much everybody calls MSE. You may also see RMSE which is root mean squared error. The mean squared error is a loss which is the difference between some predictions that you made which is like the value of the line and the actual number of ice cream sales. In the mathematics of this, people normally refer to the actual as <img src="http://latex.codecogs.com/gif.latex?y" title="y" /> and the prediction, they normally call it <img src="https://latex.codecogs.com/gif.latex?\hat{y}" title="\hat{y}" /> (y hat).
+For this kind of problem which is called a regression problem (a problem where your dependent variable is continuous, so rather than being grizzlies or teddies, it's some number between -1 and 6), the most common loss function is called mean squared error which pretty much everybody calls MSE. You may also see RMSE which is root mean squared error. The mean squared error is a loss which is the difference between some predictions that you made which is like the value of the line and the actual number of ice cream sales. In the mathematics of this, people normally refer to the actual as <img src="https://latex.codecogs.com/gif.latex?y" title="y" /> and the prediction, they normally call it <img src="https://latex.codecogs.com/gif.latex?\hat{y}" title="\hat{y}" /> (y hat).
 
 When writing something like mean squared error equation, there is no point writing "ice cream" and "temperature" because we want it to apply to anything. So we tend to use these mathematical placeholders.
 
@@ -997,7 +997,7 @@ So the good news is, if you're a coder with not much of a math background, actua
 
 [[1:34:03](https://youtu.be/Egp4Zajhzog?t=5643)]
 
- `mse` is a loss function. This is something that tells us how good our line is. Now we have to come up with what is the line that fits through here. Remember, we are going to pretend we don't know. So what you actually have to do is you have to guess. You actually have to come up with a guess what are the values of <img src="http://latex.codecogs.com/gif.latex?a_1" title="a_1" /> and <img src="http://latex.codecogs.com/gif.latex?a_2" title="a_2" />. So let's say we guess that <img src="http://latex.codecogs.com/gif.latex?a_1" title="a_1" /> and <img src="http://latex.codecogs.com/gif.latex?a_2" title="a_2" /> are -1 and 1.
+ `mse` is a loss function. This is something that tells us how good our line is. Now we have to come up with what is the line that fits through here. Remember, we are going to pretend we don't know. So what you actually have to do is you have to guess. You actually have to come up with a guess what are the values of <img src="https://latex.codecogs.com/gif.latex?a_1" title="a_1" /> and <img src="https://latex.codecogs.com/gif.latex?a_2" title="a_2" />. So let's say we guess that <img src="https://latex.codecogs.com/gif.latex?a_1" title="a_1" /> and <img src="https://latex.codecogs.com/gif.latex?a_2" title="a_2" /> are -1 and 1.
 
 ```python
 a = tensor(-1.,1)
@@ -1037,7 +1037,7 @@ plt.scatter(x[:,0],y_hat);
 
  So that is not great﹣not surprising. It's just a guess. So SGD or gradient descent more generally and anybody who's done engineering or probably computer science at school would have done plenty of this like Newton's method, etc at university. If you didn't, don't worry. We're going to learn it now.
 
-It's basically about taking this guess and trying to make it a little bit better. How do we make it a little better? Well, there are only two numbers and the two numbers are the two numbers are the intercept of the orange line and the gradient of the orange line. So what we are going to do with gradient descent is we're going to simply say:
+It's basically about taking this guess and trying to make it a little bit better. How do we make it a little better? Well, there are only two numbers and the two numbers are the intercept of the orange line and the gradient of the orange line. So what we are going to do with gradient descent is we're going to simply say:
 
 - What if we changed those two numbers a little bit?
   - What if we made the intercept a little bit higher or a little bit lower?
@@ -1047,7 +1047,7 @@ It's basically about taking this guess and trying to make it a little bit better
 
 There are 4 possibilities and then we can calculate the loss for each of those 4 possibilities and see what works. Did lifting it up or down make it better? Did tilting it more positive or more negative make it better? And then all we do is we say, okay, whichever one of those made it better, that's what we're going to do. That's it.
 
-But here is the cool thing for those of you that remember calculus. You don't actually have to move it up and down, and round about. You can actually calculate the derivative. The derivative is the thing that tells you would moving it up or down make it better, or would rotating it this way or that way make it better. The good news is if you didn't do calculus or you don't remember calculus, I just told you everything you need to know about it. It tells you how changing one thing changes the function. That's what the derivative is, kind of, not quite strictly speaking, but close enough, also called the gradient. The gradient or the derivative tells you how changing <img src="http://latex.codecogs.com/gif.latex?a_1" title="a_1" /> up or down would change our MSE, how changing <img src="http://latex.codecogs.com/gif.latex?a_2" title="a_2" /> up or down would change our MSE, and this does it more quickly than actually moving it up and down.
+But here is the cool thing for those of you that remember calculus. You don't actually have to move it up and down, and round about. You can actually calculate the derivative. The derivative is the thing that tells you would moving it up or down make it better, or would rotating it this way or that way make it better. The good news is if you didn't do calculus or you don't remember calculus, I just told you everything you need to know about it. It tells you how changing one thing changes the function. That's what the derivative is, kind of, not quite strictly speaking, but close enough, also called the gradient. The gradient or the derivative tells you how changing <img src="https://latex.codecogs.com/gif.latex?a_1" title="a_1" /> up or down would change our MSE, how changing <img src="https://latex.codecogs.com/gif.latex?a_2" title="a_2" /> up or down would change our MSE, and this does it more quickly than actually moving it up and down.
 
 In school, unfortunately, they forced us to sit there and calculate these derivatives by hand. We have computers. Computers can do that for us. We are not going to calculate them by hand.
 
@@ -1113,7 +1113,7 @@ That's about it. There's a couple of other little minor issues that we don't nee
 
 #### Training loop [[1:45:43](https://youtu.be/Egp4Zajhzog?t=6343)]
 
-If we run `update` 100 times printing out the loss from time to time, you can see it starts at  8.9, and it goes down.
+If we run `update` 100 times printing out the loss from time to time, you can see it starts at 8.9, and it goes down.
 
 ```python
 lr = 1e-1
@@ -1155,7 +1155,7 @@ rc('animation', html='html5')
 
 > You may need to uncomment the following to install the necessary plugin the first time you run this:
 > (after you run following commands, make sure to restart the kernal for this notebook)
-> If you are running in colab, the installs are not needed; just change the cell above to be ... html='jshtml' instead of ... html='html5'
+> If you are running in Colab, the installs are not needed; just change the cell above to be ... html='jshtml' instead of ... html='html5'
 
 ```python
 #! sudo add-apt-repository -y ppa:mc3man/trusty-media
@@ -1186,7 +1186,7 @@ animation.FuncAnimation(fig, animate, np.arange(0, 100), interval=20)
 
 You might think visualizing your algorithms with animations is something amazing and complex thing to do, but actually now you know it's 11 lines of code. So I think it's pretty darn cool.
 
-That is SGD visualized and we can't visualize as conveniently what updating 50 million parameters in a ResNet 34 looks like but basically doing the same thing. So studying these simple version is actually a great way to get an intuition. So you should try running this notebook with a really big learning rate, with a really small learning rate, and see what this animation looks like, and try to get a feel for it. Maybe you can even try a 3D plot. I haven't tried that yet, but I'm sure it would work fine.
+That is SGD visualized and we can't visualize as conveniently what updating 50 million parameters in a ResNet-34 looks like but basically doing the same thing. So studying these simple version is actually a great way to get an intuition. So you should try running this notebook with a really big learning rate, with a really small learning rate, and see what this animation looks like, and try to get a feel for it. Maybe you can even try a 3D plot. I haven't tried that yet, but I'm sure it would work fine.
 
 #### Mini-batches [[1:48:08](https://youtu.be/Egp4Zajhzog?t=6488)]
 
@@ -1194,7 +1194,7 @@ The only difference between stochastic gradient descent and this is something ca
 
 ![](../../../../images/fastai_p1_v3/lesson_2/39.png)
 
-Once you add those grab a random few points each time, those random few points are called your mini-batch, and that approach is called SGD for Stochastic Gradient Descent.
+Once you add those, grab a random few points each time, those random few points are called your mini-batch, and that approach is called SGD for Stochastic Gradient Descent.
 
 #### Vocabulary [[1:49:40](https://youtu.be/Egp4Zajhzog?t=6580)]
 
@@ -1208,7 +1208,7 @@ There's quite a bit of vocab we've just covered, so let's remind ourselves.
 
 - **SGD**: Gradient descent using mini-batches.
 
-- **Model / Architecture**: They kind of mean the same thing. In this case, our architecture is <img src="http://latex.codecogs.com/gif.latex?\vec{y}&space;=&space;X\vec{a}" title="\vec{y} = X\vec{a}" />﹣ the architecture is the mathematical function that you're fitting the parameters to. And we're going to learn later today or next week what the mathematical function of things like ResNet34 actually is. But it's basically pretty much what you've just seen. It's a bunch of matrix products.
+- **Model / Architecture**: They kind of mean the same thing. In this case, our architecture is <img src="https://latex.codecogs.com/gif.latex?\vec{y}&space;=&space;X\vec{a}" title="\vec{y} = X\vec{a}" />﹣ the architecture is the mathematical function that you're fitting the parameters to. And we're going to learn later today or next week what the mathematical function of things like ResNet-34 actually is. But it's basically pretty much what you've just seen. It's a bunch of matrix products.
 
 - **Parameters / Coefficients / Weights**: Numbers that you are updating.
 
@@ -1216,7 +1216,7 @@ There's quite a bit of vocab we've just covered, so let's remind ourselves.
 
 [1:51:45](https://youtu.be/Egp4Zajhzog?t=6705)
 
-These models / predictors / teddy bear classifiers are functions that take pixel values and return probabilities. They start with some functional form like <img src="http://latex.codecogs.com/gif.latex?\vec{y}&space;=&space;X\vec{a}" title="\vec{y} = X\vec{a}" /> and they fit the parameter `a` using SGD to try and do the best to calculate your predictions. So far, we've learned how to do regression which is a single number. Next we'll learn how to do the same thing for classification where we have multiple numbers, but basically the same.
+These models / predictors / teddy bear classifiers are functions that take pixel values and return probabilities. They start with some functional form like <img src="https://latex.codecogs.com/gif.latex?\vec{y}&space;=&space;X\vec{a}" title="\vec{y} = X\vec{a}" /> and they fit the parameter `a` using SGD to try and do the best to calculate your predictions. So far, we've learned how to do regression which is a single number. Next we'll learn how to do the same thing for classification where we have multiple numbers, but basically the same.
 
 In the process, we had to do some math. We had to do some linear algebra and calculus and a lot of people get a bit scared at that point and tell us "I am not a math person". If that's you, that's totally okay. But you are wrong. You are a math person. In fact, it turns out that in the actual academic research around this, there are not "math people" and "non-math people". It turns out to be entirely a result of culture and expectations. So you should check out Rachel's talk:
 
