@@ -1,4 +1,4 @@
-# Lesson 2 - Deeper Dive In To Computer Vision
+# Lesson 2 - Computer Vision: Deeper Applications
 
 _These are my personal notes from fast.ai Live (the new International Fellowship programme) course and will continue to be updated and improved if I find anything useful and relevant while I continue to review the course to study much more in-depth. Thanks for reading and happy learning!_
 
@@ -7,7 +7,7 @@ Live date: 31 Oct 2018, GMT+8
 ## Topics
 
 * Deeper dive in to Computer Vision
-* Productionizing
+* Productionizing things
 * Linear regression problem
 * Intro to Stochastic Gradient Descent (SGD)
 
@@ -26,8 +26,9 @@ Live date: 31 Oct 2018, GMT+8
 * Run lesson 2 notebooks.
 * Replicate lesson 2 notebooks:
   * Create your own dataset from Google Images.
+  * Linear regression and Gradient Descent.
 * Experiment with different learning rate and number of epochs.
-* Put your model in production.
+* Deploy web apps with your models in production.
 * Share your work on forums.
 * Learn PyTorch.
 
