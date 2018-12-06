@@ -18,6 +18,7 @@
       * Lesson 1
     * [Deep Learning Part 1: 2019 Edition (v3)](courses/fast.ai/deep-learning-part-1/2019-edition/README.md)
       * [Lesson 1 - Image Recognition](courses/fast.ai/deep-learning-part-1/2019-edition/lesson-1-image-recognition.md)
+      * [Lesson 2 - Computer Vision: Deeper Applications](courses/fast.ai/deep-learning-part-1/2019-edition/lesson-2-deeper-dive-into-cv.md)
   * Deep Learning Part 2: Cutting Edge Deep Learning for Coders
     * [Deep Learning Part 2: 2017 Edition (v1)](courses/fast.ai/deep-learning-part-2/2017-edition/README.md)
       * [Lesson 8 - Artistic Style](courses/fast.ai/deep-learning-part-2/2017-edition/lesson-8-artistic-style.md)

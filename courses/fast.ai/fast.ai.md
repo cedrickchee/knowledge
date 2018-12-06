@@ -26,6 +26,7 @@ _My personal notes from [fast.ai course](http://www.fast.ai/). These notes will 
   * [2018 Edition \(v2\)](deep-learning-part-1/2018-edition/)
   * [2019 Edition \(v3\)](deep-learning-part-1/2019-edition/)
     * [Lesson 1 - Image Recognition](deep-learning-part-1/2019-edition/lesson-1-image-recognition.md)
+    * [Lesson 2 - Computer Vision: Deeper Applications](deep-learning-part-1/2019-edition/lesson-2-deeper-dive-into-cv.md)
 * Deep Learning Part 2: Cutting Edge Deep Learning for Coders
   * [2017 Edition \(v1\)](deep-learning-part-2/2017-edition/)
     * [Lesson 8 - Artistic Style](deep-learning-part-2/2017-edition/lesson-8-artistic-style.md)
