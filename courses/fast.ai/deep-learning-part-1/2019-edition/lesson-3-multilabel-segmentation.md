@@ -23,6 +23,7 @@ Live date: 9 Nov 2018, GMT+8
 * **Website and video** links will be shared when the MOOC officially released in early 2019.
 * [Official resources and updates (Wiki)](https://forums.fast.ai/t/lesson-3-official-resources-and-updates/29732)
 * [Forum discussion](https://forums.fast.ai/t/lesson-3-chat/29733)
+* [Advanced forum discussion](https://forums.fast.ai/t/lesson-3-advanced-discussion/29750)
 * [FAQ, resources, and official course updates](https://forums.fast.ai/t/faq-resources-and-official-course-updates/27934)
 * Jupyter Notebook and code
   * [lesson3-planet.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson3-planet.ipynb)
