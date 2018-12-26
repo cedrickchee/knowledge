@@ -128,15 +128,15 @@ Nice to see what people have been building in terms of both web apps and just cl
 
 ## Multi-label classification with Planet Amazon dataset [[9:51](https://youtu.be/PW2HKkzdkKY?t=591)]
 
-[lesson3-planet.ipynb](https://github.com/fastai/course-v3/blob/master/nbs/dl1/lesson3-planet.ipynb)
+[lesson3-planet.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson3-planet.ipynb)
 
-  The first one we're going to look at is a dataset of satellite images. Satellite imaging is a really fertile area for deep learning. Certainly a lot of people are already using deep learning in satellite imaging but only scratching the surface. The dataset we are going to look at looks like this:
+The first one we're going to look at is a dataset of satellite images. Satellite imaging is a really fertile area for deep learning. Certainly a lot of people are already using deep learning in satellite imaging but only scratching the surface. The dataset we are going to look at looks like this:
 
 ![](../../../../images/fastai_p1_v3/lesson_3/planet.png)
 
 It has satellite tiles and for each one, as you can see, there's a number of different labels for each tile. One of the labels always represents the weather (e.g. cloudy, partly_cloudy). And all of the other labels tell you any interesting features that are seen there. So primary means primary rainforest, agriculture means there's some farming, road means road, and so forth. As I am sure you can tell, this is a little different to all the classifiers we've seen so far because there's not just one label, there's potentially multiple labels. So multi-label classification can be done in a very similar way but the first thing we are going to need to do is to download the data.
 
-### Downloading the data [11:02](https://youtu.be/PW2HKkzdkKY?t=662)
+### Downloading the data [[11:02](https://youtu.be/PW2HKkzdkKY?t=662)]
 
 This data comes from Kaggle. Kaggle is mainly known for being a competitions website and it's really great to download data from Kaggle when you're learning because you can see how would I have gone in that competition. And it's a good way to see whether you know what you are doing. I tend to think the goal is to try and get in the top 10%. In my experience, all the people in the top 10% of a competition really know what they're doing. So if you can get in the top 10%, then that's a really good sign.
 
@@ -258,7 +258,7 @@ For example, to grab the planet data we would say:
 
 So there's all these different steps. To give you a sense of what that looks like, the first thing I'm going to do is go back and explain what are all of the PyTorch and fastai classes you need to know about that are going to appear in this process. Because you're going to see them all the time in the fastai docs and PyTorch docs.
 
-### Dataset (PyTorch) [18:30](https://youtu.be/PW2HKkzdkKY?t=1110)
+### Dataset (PyTorch) [[18:30](https://youtu.be/PW2HKkzdkKY?t=1110)]
 
 The first one you need to know about is a class called a Dataset. The Dataset class is part of PyTorch and this is the source code for the Dataset class:
 
@@ -273,7 +273,7 @@ Then this one called `__len__` means that you can go `len(o)` and it will call t
 
 Fastai has lots of Dataset subclasses that do that for all different kinds of stuff. So far, you've been seeing image classification datasets. They are datasets where `__getitem__`  will return an image and a single label of what is that image. So that's what a dataset is.
 
-### DataLoader (PyTorch) [20:37](https://youtu.be/PW2HKkzdkKY?t=1237)
+### DataLoader (PyTorch) [[20:37](https://youtu.be/PW2HKkzdkKY?t=1237)]
 
 Now a dataset is not enough to train a model. The first thing we know we have to do, if you think back to the gradient descent tutorial last week is we have to have a few images/items at a time so that our GPU can work in parallel. Remember we do this thing called a "mini-batch"? Mini-batch is a few items that we present to the model at a time that it can train from in parallel. To create a mini-batch, we use another PyTorch class called a DataLoader.
 
@@ -290,7 +290,7 @@ So a DataLoader is something that grabs individual items, combines them into a m
 
 You can see, already there are choices you have to make: what kind of dataset am I creating, what is the data for it, where it's going to come from. Then when I create my DataLoader: what batch size do I want to use.
 
-### DataBunch (fastai) [21:59](https://youtu.be/PW2HKkzdkKY?t=1319)
+### DataBunch (fastai) [[21:59](https://youtu.be/PW2HKkzdkKY?t=1319)]
 
 It still isn't enough to train a model, because we've got no way to validate the model. If all we have is a training set, then we have no way to know how we're doing because we need a separate set of held out data, a validation set, to see how we're getting along.
 
@@ -617,7 +617,7 @@ What does that mean? Here's the thing. Do you remember we had a little look the 
 
 To get the accuracy for our pet detector, we use this accuracy function the called `argmax` to find out which class ID pet was the one that we're looking at. Then it compared that to the actual, and then took the average. That was the accuracy.
 
-[37:23](https://youtu.be/PW2HKkzdkKY?t=2243)
+[[37:23](https://youtu.be/PW2HKkzdkKY?t=2243)]
 
 We can't do that for satellite recognition because there isn't one label we're looking for﹣there's lots. A data bunch has a special attribute called `c` and `c` is going to be how many outputs do we want our model to create. For any kind of classifier, we want one probability for each possible class. In other words, `data.c` for classifiers is always going to be equal to the length of `data.classes`.
 
@@ -899,7 +899,7 @@ You can see as I kind of go along I tend to save things. You can name your model
 
 ## Segmentation example and CamVid [[56:31](https://youtu.be/PW2HKkzdkKY?t=3391)]
 
-[lesson3-camvid.ipynb](https://github.com/fastai/course-v3/blob/master/nbs/dl1/lesson3-camvid.ipynb)
+[lesson3-camvid.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson3-camvid.ipynb)
 
 The next example we're going to look at is this dataset called CamVid. It's going to be doing something called segmentation. We're going to start with a picture like the left:
 
@@ -935,7 +935,7 @@ But the good news is you can experiment. Obviously if the lines going up, you do
 
 And within a small number of weeks, you will find that you're picking the best learning rate most of the time. So at this stage, it still requires a bit of playing around to get a sense of the different kinds of shapes that you see and how to respond to them. Maybe by the time this video comes out, someone will have a pretty reliable auto learning rate finder. We're not there yet. It's probably not a massively difficult job to do. It would be an interesting project﹣collect a whole bunch of different datasets, maybe grab all the datasets from our datasets page, try and come up with some simple heuristic, compare it to all the different lessons I've shown. It would be a really fun project to do. But at the moment, we don't have that. I'm sure it's possible but we haven't got them.
 
-:memo: fun project to do is create a reliable auto learning rate finder.
+_:memo: a fun project to do is create a reliable auto learning rate finder._
 
 ## Image Segmentation with CamVid [[1:03:05](https://youtu.be/PW2HKkzdkKY?t=3785)]
 
@@ -1239,7 +1239,7 @@ They will be the key things that are we talking about.
 
 For segmentation, we don't just create a convolutional neural network. We can, but actually an architecture called U-Net turns out to be better.
 
-![](../../../../images/fastai_p1_v3/lesson_3/u-net.png)
+![](../../../../images/fastai_p1_v3/lesson_3/u-net-architecture.png)
 
 This is what a U-Net looks like. This is from the [University website](https://lmb.informatik.uni-freiburg.de/people/ronneber/u-net/) where they talk about the U-Net. So we'll be learning about this both in this part of the course and in part two if you do it. But basically this bit down on the left hand side is what a normal convolutional neural network looks like. It's something which starts with a big image and gradually makes it smaller and smaller until eventually you just have one prediction. What a U-Net does is it then takes that and makes it bigger and bigger and bigger again, and then it takes every stage of the downward path and copies it across, and it creates this U shape.
 
@@ -1293,13 +1293,13 @@ Now as you get closer to the final spot, something interesting happens which is 
 
 So what actually happens is (I can only draw 2d sorry), you don't generally have some kind of loss function surface that looks like that (remember there's lots of dimensions), but it actually tends to look bumpy like that. So you want a learning rate that's like high enough to jump over the bumps, but once you get close to the best answer, you don't want to be just jumping backwards and forwards between bumps. You want your learning rate to go down so that as you get closer, you take smaller and smaller steps. That's why it is that we want our learning rate to go down at the end.
 
-![](../../../../images/fastai_p1_v3/lesson_3/whiteboard.gif)
+![](../../../../images/fastai_p1_v3/lesson_3/drawing1.gif)
 
 This idea of decreasing the learning rate during training has been around forever. It's just called **learning rate annealing**. But the idea of gradually increasing it at the start is much more recent and it mainly comes from a guy called Leslie Smith ([meetup with Leslie Smith](https://youtu.be/dxpyg3mP_rU)).
 
 Loss function surfaces tend have flat areas and bumpy areas. If you end up in the bottom of a bumpy area, that solution will tend not to generalize very well because you've found a solution that's good in that one place but it's not very good in other places. Where else if you found one in the flat area, it probably will generalize well because it's not only good in that one spot but it's good to kind of around it as well.
 
-![](../../../../images/fastai_p1_v3/lesson_3/whiteboard2.gif)
+![](../../../../images/fastai_p1_v3/lesson_3/drawing2.gif)
 
 If you have a really small learning rate, it'll tend to kind of plud down and stick in these places. But if you gradually increase the learning rate, then it'll kind of like jump down and as the learning rate goes up, it's going to start going up again like this. Then the learning rate is now going to be up here, it's going to be bumping backwards and forwards. Eventually the learning rate starts to come down again, and it'll tend to find its way to these flat areas.
 
@@ -1447,7 +1447,7 @@ You just need to make sure that every time you create a learner you add at this 
 
 ## Regression with BIWI head pose dataset [[1:34:03](https://youtu.be/PW2HKkzdkKY?t=5643)]
 
-[lesson3-head-pose.ipynb](https://github.com/fastai/course-v3/blob/master/nbs/dl1/lesson3-head-pose.ipynb)
+[lesson3-head-pose.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson3-head-pose.ipynb)
 
 Two more before we kind of rewind. The first one I'm going to show you is an interesting data set called the [BIWI head pose dataset](https://data.vision.ee.ethz.ch/cvl/gfanelli/head_pose/head_forest.html#db). Gabriele Fanelli was kind enough to give us permission to use this in the class. His team created this cool dataset.
 
@@ -1623,7 +1623,7 @@ It's doing nearly perfect job. That's how you can do image regression models. An
 
 ## IMDB [[1:41:07](https://youtu.be/PW2HKkzdkKY?t=6067)]
 
-[lesson3-imdb.ipynb](https://github.com/fastai/course-v3/blob/master/nbs/dl1/lesson3-imdb.ipynb)
+[lesson3-imdb.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson3-imdb.ipynb)
 
 Last example before we look at more foundational theory stuff, NLP. Next week, we're going to be looking at a lot more NLP, but let's now do the same thing but rather than creating a classification of pictures, let's try and classify documents. We're going to go through this in a lot more detail next week, but let's do the quick version.
 
