@@ -20,6 +20,7 @@
       * [Lesson 1 - Image Recognition](courses/fast.ai/deep-learning-part-1/2019-edition/lesson-1-image-recognition.md)
       * [Lesson 2 - Computer Vision: Deeper Applications](courses/fast.ai/deep-learning-part-1/2019-edition/lesson-2-deeper-dive-into-cv.md)
       * [Lesson 3 - Multi-label, Segmentation, Image Regression, and More](courses/fast.ai/deep-learning-part-1/2019-edition/lesson-3-multilabel-segmentation.md)
+      * [Lesson 4 - NLP, Tabular, and Collaborative Filtering](courses/fast.ai/deep-learning-part-1/2019-edition/lesson-4-nlp-tabular-collab.md)
   * Deep Learning Part 2: Cutting Edge Deep Learning for Coders
     * [Deep Learning Part 2: 2017 Edition (v1)](courses/fast.ai/deep-learning-part-2/2017-edition/README.md)
       * [Lesson 8 - Artistic Style](courses/fast.ai/deep-learning-part-2/2017-edition/lesson-8-artistic-style.md)
