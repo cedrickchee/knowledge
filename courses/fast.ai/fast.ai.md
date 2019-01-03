@@ -29,6 +29,7 @@ _My personal notes from [fast.ai course](http://www.fast.ai/). These notes will 
     * [Lesson 2 - Computer Vision: Deeper Applications](deep-learning-part-1/2019-edition/lesson-2-deeper-dive-into-cv.md)
     * [Lesson 3 - Multi-label, Segmentation, Image Regression, and More](deep-learning-part-1/2019-edition/lesson-3-multilabel-segmentation.md)
     * [Lesson 4 - NLP, Tabular, and Collaborative Filtering](deep-learning-part-1/2019-edition/lesson-4-nlp-tabular-collab.md)
+    * [Lesson 5 - Foundations of Neural Networks](deep-learning-part-1/2019-edition/lesson-5-foundations-neural-nets.md)
 * Deep Learning Part 2: Cutting Edge Deep Learning for Coders
   * [2017 Edition \(v1\)](deep-learning-part-2/2017-edition/)
     * [Lesson 8 - Artistic Style](deep-learning-part-2/2017-edition/lesson-8-artistic-style.md)
