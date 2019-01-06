@@ -333,4 +333,8 @@ When we want to create heatmap to the picture best way is to average over 512 di
 
 ## Ethics and Data Science [[01:48:56](https://youtu.be/U7c-nYXrKD4?t=6536)]
 
+![](../../../../images/fastai_p1_v3/lesson_6/22.png)
+
 It matters.
+
+If you got this far, you are definitely at a point now where you're ready to make a serious impact on the world. So, I hope we can make sure that that's a positive impact. See you next week. :clap: :clap: :clap:
