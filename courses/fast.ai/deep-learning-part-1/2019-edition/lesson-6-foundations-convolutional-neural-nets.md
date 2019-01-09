@@ -22,14 +22,16 @@ Live date: 28 Nov 2018, GMT+8
 ## Lesson Resources
 
 * **Website and video** links will be shared when the MOOC officially released in early 2019.
-* [Official resources and updates (Wiki)](https://forums.fast.ai/t/lesson-5-official-resources-and-updates/30863)
-* [Forum discussion](https://forums.fast.ai/t/lesson-6-official-resources-and-updates/31441)
+* [Official resources and updates (Wiki)](https://forums.fast.ai/t/lesson-6-official-resources-and-updates/31441)
+* [Forum discussion](https://forums.fast.ai/t/lesson-6-in-class-discussion/31440)
 * [Advanced forum discussion](https://forums.fast.ai/t/lesson-6-advanced-discussion/31442)
 * [FAQ, resources, and official course updates](https://forums.fast.ai/t/faq-resources-and-official-course-updates/27934)
 * Jupyter Notebook and code
   * [lesson6-rossmann.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson6-rossmann.ipynb)
   * [rossman_data_clean.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/rossman_data_clean.ipynb)
   * [lesson6-pets-more.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson6-pets-more.ipynb)
+
+## Other Resources
 
 ### Papers
 
@@ -439,7 +441,7 @@ So this is an example of a feedback loop. The New York Times is now describing Y
 
 So you've got to be thinking from right at the start. What are the possible unintended consequences of what you're working on? And as the technical people involved, how can you get out in front and make sure that people are aware of them.
 
-Rachel: I just also need to say that in particular, many of these conspiracy theories are promoting white supremacy, they're kind of far-right after no nationalism, anti-science, and i think maybe five or ten years ago, I would have thought conspiracy theories are more fringe thing, but we're seeing huge societal impact it can have for many people to believe these.
+Rachel: I just also need to say that in particular, many of these conspiracy theories are promoting white supremacy, they're kind of far-right etho-nationalism, anti-science, and i think maybe five or ten years ago, I would have thought conspiracy theories are more fringe thing, but we're seeing huge societal impact it can have for many people to believe these.
 
 And you know, partly it's you see them on YouTube all the time, it starts to feel a lot more normal. So one of the things that people are doing to try to say how to fix this problem is to explicitly get involved in talking to the people who might or will be impacted by the kind of decision making processes that you're enabling.
 
