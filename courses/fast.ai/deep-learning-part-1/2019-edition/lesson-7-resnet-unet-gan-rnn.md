@@ -58,7 +58,8 @@ Live date: 13 Dec 2018, GMT+8
 
 * Run lesson 7 notebooks.
 * Practice.
-* Go back, watch the videos again (see the [what now?](#so-what-now) section)
+* Go back, watch the videos again
+* See the [what now?](#so-what-now-015859) section
 
 # My Notes
 
