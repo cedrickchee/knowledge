@@ -65,14 +65,11 @@ Live date: 13 Dec 2018, GMT+8
 
 # My Notes
 
-Welcome to lesson 7. Today's class will be very intense. Lots of materials.
+Welcome to lesson 7. The last lesson of part 1. This will be a pretty intense lesson. Don't let that bother you because partly what I want to do is to give you enough things to think about to keep you busy until part 2. In fact, some of the things we cover today, I'm not going to tell you about some of the details. I'll just point out a few things. I'll say like okay that we're not talking about yet, that we're not talking about yet. Then come back in part 2 to get the details on some of these extra pieces. So today will be a lot of material pretty quickly. You might require a few viewings to fully understand at all or a few experiments and so forth. That's kind of intentional. I'm trying to give you stuff to to keep you amused for a couple of months.
 
-I will go a lot of material without explaining everything. The idea is that we will dive deeper into most of these topics in part 2 of this course.
+**Share your work**
 
-_[:warning: WIP: incomplete video transcribe for this part :warning:]_
-
-Share your work:
-- Reshamas's food classifier mobile app
+I wanted to start by showing some cool work done by a couple of students; Reshama and Nidhin who have developed an Android and an iOS app, so check out [Reshma's post on the forum](https://forums.fast.ai/t/share-your-work-here/27676/679?u=hiromi) about that because they have a demonstration of how to create both Android and iOS apps that are actually on the Play Store and on the Apple App Store, so that's pretty cool. First ones I know of that are on the App Store's that are using fast.ai. Let me also say a huge thank you to Reshama for all of the work she does both for the fast.ai community and the machine learning community more generally, and also the [Women in Machine Learning](https://wimlworkshop.org/) community in particular. She does a lot of fantastic work including providing lots of fantastic documentation and tutorials and community organizing and so many other things. So thank you, Reshama and congrats on getting this app out there.
 
 ## ResNet MNIST [[00:02:12](https://youtu.be/nWpdkZE2_cc?t=132)]
 
