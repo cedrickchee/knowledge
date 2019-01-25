@@ -21,7 +21,7 @@ Live date: 28 Nov 2018, GMT+8
 
 ## Lesson Resources
 
-* [Documentations](https://course.fast.ai/)
+* [Course website](https://course.fast.ai/)
 * [Lesson 5 video player](https://course.fast.ai/videos/?lesson=6)
 * [Video](https://www.youtube.com/watch?v=hkBa9pU-H48)
 * [Official resources and updates (Wiki)](https://forums.fast.ai/t/lesson-6-official-resources-and-updates/31441)

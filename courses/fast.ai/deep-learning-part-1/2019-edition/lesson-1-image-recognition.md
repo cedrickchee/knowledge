@@ -25,7 +25,7 @@ Live date: 23 Oct 2018, GMT+8
 
 ## Lesson Resources
 
-* [Documentations](https://course.fast.ai/)
+* [Course website](https://course.fast.ai/)
 * [Lesson 1 video player](https://course.fast.ai/videos/?lesson=1)
 * [Video](https://www.youtube.com/watch?v=XfoYk_Z5AkI)
 * [Official resources and updates (Wiki)](https://forums.fast.ai/t/lesson-1-official-resources-and-updates/27936)
@@ -34,6 +34,7 @@ Live date: 23 Oct 2018, GMT+8
 * Jupyter Notebook and code
   * [00_notebook_tutorial.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/00_notebook_tutorial.ipynb)
   * [lesson1-pets.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson1-pets.ipynb)
+* [Documentations for the fastai deep learning library](http://docs.fast.ai/)
 
 ## Assignments
 
