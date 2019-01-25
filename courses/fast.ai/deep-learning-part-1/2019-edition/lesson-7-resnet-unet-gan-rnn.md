@@ -21,7 +21,9 @@ Live date: 13 Dec 2018, GMT+8
 
 ## Lesson Resources
 
-* **Website and video** links will be shared when the MOOC officially released in early 2019.
+* [Documentations](https://course.fast.ai/)
+* [Lesson 5 video player](https://course.fast.ai/videos/?lesson=7)
+* [Video](https://www.youtube.com/watch?v=DGdRC4h78_o)
 * [Official resources and updates (Wiki)](https://forums.fast.ai/t/lesson-7-official-resources/32553)
 * [Forum discussion](https://forums.fast.ai/t/lesson-7-in-class-chat/32554)
 * [Advanced forum discussion](https://forums.fast.ai/t/lesson-7-further-discussion/32555)
@@ -29,10 +31,10 @@ Live date: 13 Dec 2018, GMT+8
 * Jupyter Notebook and code
   * [lesson7-resnet-mnist.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson7-resnet-mnist.ipynb)
   * [lesson7-superres-gan.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson7-superres-gan.ipynb)
-  * [lesson7-superres-imagenet.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson7-superres-imagenet.ipynb)
-  * [lesson7-superres.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson7-superres.ipynb)
   * [lesson7-wgan.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson7-wgan.ipynb)
+  * [lesson7-superres.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson7-superres.ipynb)
   * [lesson7-human-numbers.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson7-human-numbers.ipynb)
+  * [lesson7-superres-imagenet.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson7-superres-imagenet.ipynb)
 
 ## Other Resources
 
@@ -427,7 +429,11 @@ U-Net suffer when the size of your output is similar to the size of your input a
 
 ### Wasserstein GAN (WGAN) [[01:15:59](https://youtu.be/nWpdkZE2_cc?t=4559)]
 
-Just before we leave GAN, I just mention there's another notebook you might be interested in looking at which is [lesson7-wgan.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson7-wgan.ipynb). When GANs started a few years ago, people generally use them to kind of create images out of thin air which I personally don't think is a particularly useful or interesting thing to do. But it's a good research exercise I guess I don't know. We implemented this WGAN paper which is really the first one to do somewhat adequate job somewhat easily and you can see how to that with the fastai library. It is kind of interesting because the dataset we used is the LSUN bedroom dataset which we provided in our `URLs` as you can see has bedrooms, lot of bedrooms. The approach that we use in this case is to just say "can we create a bedroom?". What we actually do is that the input to the generator isn't an image that we clean up. We actually feed the generator random noise. Then the generator task is "can you turn random noise into something which the critic can't tell the difference between that output and the real bedroom?". We are not doing any pre-training here or any of those stuffs that make it fast and easy. This is a very traditional approach. But you can see you still go `GANLearner.wgan` you know this kind of older style approach. You just pass the data in, the generator and critic in the usual way and you call fit. You will see in this case we have `show_image` on. After epoch 1, it's not creating great bedrooms or 2 or 3. You can really see in the early days these kind of GANs doesn't do a great job or anything. Eventually after a couple hours of training, producing somewhat like bedroom-ish things. So anyway it's notebook you can play with and have a bit of fun.
+Just before we leave GAN, I just mention there's another notebook you might be interested in looking at which is [lesson7-wgan.ipynb](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson7-wgan.ipynb). When GANs started a few years ago, people generally use them to kind of create images out of thin air which I personally don't think is a particularly useful or interesting thing to do. But it's a good research exercise I guess I don't know. We implemented this [WGAN paper](https://arxiv.org/abs/1701.07875) which is really the first one to do somewhat adequate job somewhat easily and you can see how to do that with the fastai library.
+
+It is kind of interesting because the dataset we used is the LSUN bedroom dataset which we provided in our `URLs` as you can see has bedrooms, lot of bedrooms. The approach that we use in this case is to just say "can we create a bedroom?". What we actually do is that the input to the generator isn't an image that we clean up. We actually feed the generator random noise. Then the generator task is "can you turn random noise into something which the critic can't tell the difference between that output and the real bedroom?".
+
+We are not doing any pre-training here or any of those stuffs that make it fast and easy. This is a very traditional approach. But you can see you still go `GANLearner.wgan` you know this kind of older style approach. You just pass the data in, the generator and critic in the usual way and you call fit. You will see in this case we have `show_image` on. After epoch 1, it's not creating great bedrooms or 2 or 3. You can really see in the early days these kind of GANs doesn't do a great job or anything. Eventually after a couple hours of training, producing somewhat like bedroom-ish things. So anyway it's notebook you can play with and have a bit of fun.
 
 ---
 

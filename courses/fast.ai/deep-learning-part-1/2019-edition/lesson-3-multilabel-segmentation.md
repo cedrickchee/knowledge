@@ -20,7 +20,9 @@ Live date: 9 Nov 2018, GMT+8
 
 ## Lesson Resources
 
-* **Website and video** links will be shared when the MOOC officially released in early 2019.
+* [Documentations](https://course.fast.ai/)
+* [Lesson 3 video player](https://course.fast.ai/videos/?lesson=3)
+* [Video](https://www.youtube.com/watch?v=MpZxV6DVsmM)
 * [Official resources and updates (Wiki)](https://forums.fast.ai/t/lesson-3-official-resources-and-updates/29732)
 * [Forum discussion](https://forums.fast.ai/t/lesson-3-chat/29733)
 * [Advanced forum discussion](https://forums.fast.ai/t/lesson-3-advanced-discussion/29750)
