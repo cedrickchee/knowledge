@@ -69,7 +69,7 @@ Welcome to lesson 7. The last lesson of part 1. This will be a pretty intense le
 
 **Share your work**
 
-I wanted to start by showing some cool work done by a couple of students; Reshama and Nidhin who have developed an Android and an iOS app, so check out [Reshma's post on the forum](https://forums.fast.ai/t/share-your-work-here/27676/679?u=hiromi) about that because they have a demonstration of how to create both Android and iOS apps that are actually on the Play Store and on the Apple App Store, so that's pretty cool. First ones I know of that are on the App Store's that are using fast.ai. Let me also say a huge thank you to Reshama for all of the work she does both for the fast.ai community and the machine learning community more generally, and also the [Women in Machine Learning](https://wimlworkshop.org/) community in particular. She does a lot of fantastic work including providing lots of fantastic documentation and tutorials and community organizing and so many other things. So thank you, Reshama and congrats on getting this app out there.
+I wanted to start by showing some cool work done by a couple of students; Reshama and Nidhin who have developed an Android and an iOS app, so check out [Reshma's post on the forum](https://forums.fast.ai/t/share-your-work-here/27676/679) about that because they have a demonstration of how to create both Android and iOS apps that are actually on the Play Store and on the Apple App Store, so that's pretty cool. First ones I know of that are on the App Store's that are using fast.ai. Let me also say a huge thank you to Reshama for all of the work she does both for the fast.ai community and the machine learning community more generally, and also the [Women in Machine Learning](https://wimlworkshop.org/) community in particular. She does a lot of fantastic work including providing lots of fantastic documentation and tutorials and community organizing and so many other things. So thank you, Reshama and congrats on getting this app out there.
 
 ## ResNet MNIST [[00:02:12](https://youtu.be/nWpdkZE2_cc?t=132)]
 
@@ -299,13 +299,15 @@ def res_block(nf, dense:bool=False, norm_type:Optional[NormType]=NormType.Batch,
 
 ## DenseNet [[00:27:21](https://youtu.be/nWpdkZE2_cc?t=1641)]
 
-There's something else here which is when you create your MergeLayer, you can optionally set `dense=True`. What happen if you do? If you do, it doesn't go `x+x.orig`. It goes `torch.cat([x,x.orig])`. In other words, rather than putting a 'plus (_+_)' in this connection, it does a concatenate. That is pretty interesting because what happens is that you have your input coming in to your ResBlock and once you use concatenate instead of plus, it's not called a ResBlock anymore, it's called a DenseBlock. And it is not called a ResNet anymore, it is called a DenseNet. The DenseNet was invented about a year after the ResNet.
+There's something else here which is when you create your MergeLayer, you can optionally set `dense=True`. What happen if you do? If you do, it doesn't go `x+x.orig`. It goes `torch.cat([x,x.orig])`. In other words, rather than putting a 'plus (_+_)' in this connection, it does a concatenate. That is pretty interesting because what happens is that you have your input coming in to your ResBlock and once you use concatenate instead of plus, it's not called a ResBlock anymore, it's called a DenseBlock. And it is not called a ResNet anymore, it is called a DenseNet.
 
-If you read the DenseNet paper, it can sounds incredibly complex and different, but actually it's literally identical but plus here is replaced with concat. So you have your input coming in to your DenseBlock.
+The DenseNet was invented about a year after the ResNet, and if you read the DenseNet paper, it can sound incredibly complex and different, but actually it's literally identical but plus here is placed with cat. So you have your input coming into your dense block, and you've got a few convolutions in here, and then you've got some output coming out, and then you've got your identity connection, and remember it doesn't plus, it concats so the channel axis gets a little bit bigger. Then we do another dense block, and at the end of that, we have the result of the convolution as per usual, but this time the identity block is that big.
 
 ![](../../../../images/fastai_p1_v3/lesson_7/11.png)
 
-_[:warning: WIP: incomplete video transcribe for this part :warning:]_
+So you can see that what happens is that with dense blocks it's getting bigger and bigger and bigger, and kind of interestingly the exact input is still here. So actually, no matter how deep you get the original input pixels are still there, and the original layer 1 features are still there, and the original layer 2 features are still there. So as you can imagine, DenseNets are very memory intensive. There are ways to manage this. From time to time, you can have a regular convolution and it squishes your channels back down, but they are memory intensive. But, they have very few parameters. So for dealing with small datasets, you should definitely experiment with dense blocks and DenseNets. They tend to work really well on small datasets.
+
+Also, because it's possible to keep those original input pixels all the way down the path, they work really well for segmentation. Because for segmentation, you want to be able to reconstruct the original resolution of your picture, so having all of those original pixels still there is a super helpful.
 
 > TL;DR: DenseNets take a lot of memory because we need to store all these values but layers have a small amount of parameters. This is why you should try DenseBlocks with problems where you have a small dataset.
 
@@ -315,17 +317,33 @@ _:memo: New in fastai v1.0.37: `SequentialEx`, `MergeLayer`, and `res_block` to 
 
 [[00:30:16](https://youtu.be/nWpdkZE2_cc?t=1816)]
 
+That's ResNets. One of the main reasons other than the fact that ResNets are awesome to tell you about them is that these skipped connections are useful in other places as well. They are particularly useful in other places in other ways of designing architectures for segmentation. So in building this lesson, I keep trying to take old papers and imagining like what would that person have done if they had access to all the modern techniques we have now, and I try to rebuild them in a more modern style.
+
 > TL;DR: Jeremy is breaking the records for many different problems by applying modern techniques to old papers. He said that he thinks what the paper writers might have done differently if they would have access to the newest techniques.
 
 ## U-Net
 
-[[00:30:51](https://youtu.be/nWpdkZE2_cc?t=1851)] So I have really been rebuilding this next architecture that we will look at called U-Net in a more modern style recently and got to a point now I keep showing you this [semantic segmentation paper](https://arxiv.org/abs/1611.09326) with the state-of-the-art for CamVid which was 91.5. This week I got it up to 94.1 using the architecture I am about to show you. So we keep pushing this further and further. It was really all about adding all of the modern tricks. Many of which I will show you today. Some of which we will see in part.
+[[00:30:51](https://youtu.be/nWpdkZE2_cc?t=1851)] So I have really been rebuilding this next architecture that we will look at called U-Net in a more modern style recently and got to a point now I keep showing you this [semantic segmentation paper](https://arxiv.org/abs/1611.09326) with the state-of-the-art for CamVid which was 91.5. This week I got it up to 94.1 using the architecture I am about to show you. So we keep pushing this further and further. It was really all about adding all of the modern tricks. Many of which I will show you today. Some of which we will see in part 2.
 
 ![](../../../../images/fastai_p1_v3/lesson_7/12.png)
 
 What we will do to get there is we are going to use this U-Net (`unet_learner`). We've use U-Net before. I've improved it a bit since then. So we've use it when we did the CamVid segmentation but we didn't understand what I was doing. So we're now in the position where we can understand what I was doing.
 
 The first thing we need to do is kind of understand the basic idea of how you can do segmentation. If we go back to our [CamVid notebook](https://nbviewer.jupyter.org/github/fastai/course-v3/blob/master/nbs/dl1/lesson3-camvid.ipynb), remember what we was doing was basically taking these photos and adding a class to every single pixel. So we then go `data.show_batch` for something which is a `SegmentationItemList` it will automatically shows you these color coded pixels.
+
+```python
+bs,size = 8,src_size//2
+
+src = (SegmentationItemList.from_folder(path)
+       .split_by_folder(valid='val')
+       .label_from_func(get_y_fn, classes=codes))
+
+data = (src.transform(get_transforms(), tfm_y=True)
+        .databunch(bs=bs)
+        .normalize(imagenet_stats))
+
+data.show_batch(2, figsize=(10,7))
+```
 
 ![](../../../../images/fastai_p1_v3/lesson_7/13.png)
 
@@ -341,39 +359,116 @@ and if you don't say `pretrained=False`, by default you get `pretrained=True`, w
 
 ![](../../../../images/fastai_p1_v3/lesson_7/14.png)
 
-[[00:33:54](https://youtu.be/nWpdkZE2_cc?t=2034)] We start with ResNet-34 which starts with a big image. In this case, this was from the [U-Net paper](https://arxiv.org/abs/1505.04597).
-
 > TL;DR: So the model starts with a normal image and then go through the layers of pre-build model.
 > The U’s left side will be the pre-build model. It will reduce the size to pretty small. Then we increase our model on the right side and got the same size image we had when we started. We **increase size by doing stride half convolution a.k.a. deconvolution a.k.a. transpose convolution**.
 
-There's a fantastic paper called ["A guide to convolutional arithmetic for deep learning"](https://arxiv.org/abs/1603.07285) that shows a great picture of exactly what is a 3x3 kernel stride half conv looks like and it's literally this.
+[[00:33:54](https://youtu.be/nWpdkZE2_cc?t=2034)] We start with ResNet-34 which starts with a big image. In this case, this was from the [U-Net paper](https://arxiv.org/abs/1505.04597). Their images, they started with one channel by 572 by 572. This is for medical imaging segmentation. After your stride 2 conv, they're doubling the number of channels to 128, and they're halving the size so they're now down to 280 by 280. In this original unit paper, they didn't add any padding. So they lost a pixel on each side each time they did a conv. That's why you are losing these two. But basically half the size, and then half the size, and then half the size, and then half the size, until they're down to 28 by 28 with 1024 channels.
+
+So that's what the U-Net's downsampling path (the left half is called the downsampling path) look like. Ours is just a ResNet-34. So you can see it here `learn.summary()`, this is literally a ResNet-34. So you can see that the size keeps halving, channels keep going up and so forth.
+
+```python
+learn.summary()
+```
+
+```
+======================================================================
+Layer (type)         Output Shape         Param #    Trainable
+======================================================================
+Conv2d               [8, 64, 180, 240]    9408       False
+______________________________________________________________________
+BatchNorm2d          [8, 64, 180, 240]    128        True
+______________________________________________________________________
+ReLU                 [8, 64, 180, 240]    0          False
+______________________________________________________________________
+MaxPool2d            [8, 64, 90, 120]     0          False
+______________________________________________________________________
+Conv2d               [8, 64, 90, 120]     36864      False
+______________________________________________________________________
+BatchNorm2d          [8, 64, 90, 120]     128        True
+______________________________________________________________________
+ReLU                 [8, 64, 90, 120]     0          False
+______________________________________________________________________
+
+... ... ... ... ... ... ... ... truncated ... ... ... ... ... ... ...
+
+Conv2d               [8, 384, 180, 240]   37248      True
+______________________________________________________________________
+PixelShuffle         [8, 96, 360, 480]    0          False
+______________________________________________________________________
+ReplicationPad2d     [8, 96, 361, 481]    0          False
+______________________________________________________________________
+AvgPool2d            [8, 96, 360, 480]    0          False
+______________________________________________________________________
+ReLU                 [8, 384, 180, 240]   0          False
+______________________________________________________________________
+MergeLayer           [8, 99, 360, 480]    0          False
+______________________________________________________________________
+Conv2d               [8, 49, 360, 480]    43708      True
+______________________________________________________________________
+ReLU                 [8, 49, 360, 480]    0          False
+______________________________________________________________________
+Conv2d               [8, 99, 360, 480]    43758      True
+______________________________________________________________________
+ReLU                 [8, 99, 360, 480]    0          False
+______________________________________________________________________
+MergeLayer           [8, 99, 360, 480]    0          False
+______________________________________________________________________
+Conv2d               [8, 12, 360, 480]    1200       True
+______________________________________________________________________
+
+Total params:  41133018
+Total trainable params:  19865370
+Total non-trainable params:  21267648
+```
+
+Eventually, you've got down to a point where, if you use U-Net architecture, it's 28 by 28 with 1,024 channels. With the ResNet architecture with a 224 pixel input, it would be 512 channels by 7 by 7. So it's a pretty small grid size on this feature map. Somehow, we've got to end up with something which is the same size as our original picture. So how do we do that? How do you do computation which increases the grid size? Well, we don't have a way to do that in our current bag of tricks. We can use a stride one conv to do computation and keeps grid size or a stride 2 conv to do computation and halve the grid size.
+
+[[00:35:58](https://youtu.be/nWpdkZE2_cc?t=2158)] So how do we double the grid size? We do a stride half conv, also known as a deconvolution, also known as a transpose convolution.
+
+There's a fantastic paper called ["A guide to convolutional arithmetic for deep learning"](https://arxiv.org/abs/1603.07285) that shows a great picture of exactly what is a 3x3 kernel stride half conv looks like and it's literally this. If you have a 2x2 input, so the blue squares are the 2x2 input, you add not only 2 pixels of padding all around the outside, but you also add a pixel of padding between every pixel. So now if we put this 3x3 kernel here, and then here, and then here, you see how the 3x3 kernels just moving across it in the usual way, you will end up going from a 2x2 output to a 5x5 output. If you only added one pixel of padding around the outside, you would end up with a 4x4 output.
+
+This is how you can increase the resolution. This was the way people did it until maybe a year or two ago. There's another trick for improving things you find online. Because this is actually a dumb way to do it. And it's kind of obvious it's a dumb way to do it for a couple of reasons. One is that, have a look at the shaded area on the left, nearly all of those pixels are white. They're nearly all zeros. What a waste. What a waste of time, what a waste of computation. There's just nothing going on there.
 
 ![](../../../../images/fastai_p1_v3/lesson_7/15.png)
 
-If you've a 2x2 input (the blue squares of the 2x2 input), you add not only 2 pixels of padding all around the outside but you also add a pixel of padding between every pixel.
+So I've now up scaled from 2 by 2 to 4 by 4. I haven't done any interesting computation, but now on top of that, I could just do a stride 1 convolution, and now I have done some computation.
 
-We can see that because the padding is just zero we are calculating a lot of useless stuff that doesn’t affect anything. In worst cases, we have one out of nine non-zero value. I've showed that instead of adding zero padding we can use the same values multiple times.
+An upsample, this is called **nearest neighbor interpolation**. That's super fast which is nice. So you can do a nearest neighbor interpolation, and then a stride 1 conv, and now you've got some computation which is actually using there's no zeros in upper left 4x4, this (one pixel to the right) is kind of nice because it gets a mixture of A's and B's which is kind of what you would want and so forth.
+
+Another approach is instead of using nearest neighbor interpolation, you can use bilinear interpolation which basically means instead of copying A to all those different cells you take a weighted average of the cells around it.
 
 ![Nearest-neighbor interpolation](../../../../images/fastai_p1_v3/lesson_7/16.png)
 
-Other approach is to take a weighted average of the nearest pixels. This is not what fastai is doing and we will learn more about that in part 2. It's using **pixel shuffle** a.k.a. sub-pixel convolutions which isn’t much complex than this method but complex enough to take some time to understand.
+For example if you were looking at what should go here (red), you would kind of go, oh it's about 3 A's, 2 C's, 1 D, and 2 B's, and you take the average, not exactly, but roughly just a weighted average. Bilinear interpolation, you'll find all over the place - it's pretty standard technique. Anytime you look at a picture on your computer screen and change its size, it's doing bilinear interpolation. So you can do that and then a stride 1 conv. So that was what people were using, well, what people still tend to use. That's as much as I going to teach you this part. In part 2, we will actually learn what the fast.ai library is actually doing behind the scenes which is something called a **pixel shuffle** also known as sub pixel convolutions. It's not dramatically more complex but complex enough that I won't cover it today. They're the same basic idea. All of these things is something which is basically letting us do a convolution that ends up with something that's twice the size.
 
-What we have so far learned was something people did before U-Net. So they just first used a normal pre-trained model to make images small and then they increased it again using deconvolution. Problem was that how the model could reproduce the original image when it needs to start from a really small version. Some researchers invented that they could add skip connection and identity connection but rather than skipping two convolutions they made skips much bigger.
+That gives us our upsampling path. That lets us go from 28 by 28 to 54 by 54 and keep on doubling the size, so that's good. And that was it until U-Net came along. That's what people did and it didn't work real well which is not surprising because like in this 28 by 28 feature map, how the heck is it going to have enough information to reconstruct a 572 by 572 output space? That's a really tough ask. So you tended to end up with these things that lack fine detail.
 
 ![](../../../../images/fastai_p1_v3/lesson_7/14.png)
 Gray lines represent the skip connections.
 
-As you can see from the image, it is concatenating the layers instead of adding together. The left side of U is called encoder in fastai source code. One thing fastai is doing differently is that it takes input pixels and do skip connection from that to the end which is not shown in the original paper.
+[[00:41:45](https://youtu.be/nWpdkZE2_cc?t=2505)] So what Olaf Ronneberger et al. did was they said hey let's add a skip connection, an identity connection, and amazingly enough, this was before ResNets existed. So this was like a really big leap, really impressive. But rather than adding a skip connection that skipped every two convolutions, they added skip connections where these gray lines are. In other words, they added a skip connection from the same part of the downsampling path to the same-sized bit in the upsampling path. And they didn't add, that's why you can see the white and the blue next to each other, they didn't add they concatenated. So basically, these are like dense blocks, but the skip connections are skipping over larger and larger amounts of the architecture so that over here (top gray arrow), you've nearly got the input pixels themselves coming into the computation of these last couple of layers. That's going to make it super handy for resolving the fine details in these segmentation tasks because you've literally got all of the fine details. On the downside, you don't have very many layers of computation going on here (top right), just four. So you better hope that by that stage, you've done all the computation necessary to figure out is this a bicyclist or is this a pedestrian, but you can then add on top of that something saying is this exact pixel where their nose finishes or is at the start of the tree. So that works out really well and that's U-Net.
 
 ![](../../../../images/fastai_p1_v3/lesson_7/17.png)
 
+This is the unit code from fast.ai, and the key thing that comes in is the encoder. The encoder refers to the downsampling part of U-Net, in other words, in our case a ResNet 34. In most cases they have this specific older style architecture, but like I said, replace any older style architecture bits with ResNet bits and life improves particularly if they're pre-trained. So that certainly happened for us. So we start with our encoder.
+
+So our layers of our U-Net is an encoder, then batch norm, then ReLU, and then `middle_conv` which is just (`conv_layer`, `conv_layer`). Remember, `conv_layer` is a conv, ReLU, batch norm in fast.ai. So that middle con is these two extra steps here at the bottom:
+
+![](../../../../images/fastai_p1_v3/lesson_7/44.png)
+
+It's doing a little bit of computation. It's kind of nice to add more layers of computation where you can. So encoder, batch norm, ReLU, and then two convolutions. Then we enumerate through these indexes (`sfs_idxs`). What are these indexes? I haven't included the code but these are basically we figure out what is the layer number where each of these stride 2 convs occurs and we just store it in an array of indexes. Then we can loop through that and we can basically say for each one of those points create a `UnetBlock` telling us how many upsampling channels that are and how many cross connection. These gray arrows are called cross connections - at least that's what I call them.
+
+[[00:45:16](https://youtu.be/nWpdkZE2_cc?t=2716)] That's really the main works going on in the in the `UnetBlock`. As I said, there's quite a few tweaks we do as well as the fact we use a much better encoder, we also use some tweaks in all of our upsampling using this pixel shuffle, we use another tweak called ICNR, and then another tweak which I just did in the last week is to not just take the result of the convolutions and pass it across, but we actually grab the input pixels and make them another cross connection. That's what this `last_cross` is here. You can see we're literally appending a `res_block` with the original inputs (so you can see our `MergeLayer`).
+
 ![](../../../../images/fastai_p1_v3/lesson_7/18.png)
 
-Fastai is using hooks to store activations from the pre-build model (a.k.a. encoder).
+So really all the work is going on in a `UnetBlock` and `UnetBlock` has to store the the activations at each of these downsampling points, and the way to do that, as we learn in the last lesson, is with hooks. So we put hooks into the ResNet 34 to store the activations each time there's a stride 2 conv, and so you can see here, we grab the hook (`self.hook =hook`). And we grab the result of the stored value in that hook, and we literally just go `torch.cat` so we concatenate the upsampled convolution with the result of the hook which we chuck through batch norm, and then we do two convolutions to it.
 
-This is not just a great technique for image segmentation but also for other problems.
+Actually, something you could play with at home is pretty obvious here (the very last line). Anytime you see two convolutions like this, there's an obvious question is what if we used a ResNet block instead? So you could try replacing those two convs with a ResNet block, you might find you get even better results. They're the kind of things I look for when I look at an architecture is like "oh, two convs in a row, probably should be a ResNet block.
 
-_[:warning: WIP: incomplete video transcribe for this part :warning:]_
+Okay, so that's U-Net and it's amazing to think it preceded ResNet, preceded DenseNet. It wasn't even published in a major machine learning venue. It was actually published in MICCAI which is a specialized medical image computing conference. For years, it was largely unknown outside of the medical imaging community. Actually, what happened was Kaggle competitions for segmentation kept on being easily won by people using U-Nets and that was the first time I saw it getting noticed outside the medical imaging community. Then gradually, a few people in the academic machine learning community started noticing, and now everybody loves U-Net, which I'm glad because it's just awesome.
+
+So identity connections, regardless of whether they're a plus style or a concat style, are incredibly useful. They can basically get us close to the state of the art on lots of important tasks. So I want to use them on another task now.
 
 **Image Restoration** [[00:48:31](https://youtu.be/nWpdkZE2_cc?t=2911)]
 
